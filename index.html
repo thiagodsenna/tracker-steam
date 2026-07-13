@@ -65,7 +65,7 @@
                         <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2">Screenshots</h4>
                         <div id="modal-screenshots-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-4"></div>
                     </div>
-
+                    
                     <div id="modal-section-videos" class="hidden space-y-3">
                         <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2">Trailers</h4>
                         <div id="modal-youtube-container"></div>
@@ -180,39 +180,53 @@
         }
 
         async function buscarDadosSteam(steamId) {
-            await delay(500);
-            try {
-                const res = await fetch(PROXY_BASE_URL + steamId);
-                const json = await res.json();
-                const game = json[steamId]?.data;
-                
-                if (!game) throw new Error("Sem dados");
-
-                document.getElementById('modal-title-original').textContent = game.name;
-                if(game.header_image) document.getElementById('modal-hero').style.backgroundImage = `url('${game.header_image}')`;
-                document.getElementById('steam-metadata').classList.remove('hidden');
-                
-                if(game.genres) document.getElementById('modal-genres').innerHTML = `<span class="text-neutral-500">Gêneros:</span> ${game.genres.map(g => g.description).join(', ')}`;
-                if(game.developers) document.getElementById('modal-developer').innerHTML = `<span class="text-neutral-500">Desenvolvedor:</span> ${game.developers.join(', ')}`;
-                document.getElementById('modal-description').innerHTML = game.short_description || "Sem descrição disponível.";
-
-                if(game.screenshots && game.screenshots.length > 0) {
-                    document.getElementById('modal-section-screenshots').classList.remove('hidden');
-                    document.getElementById('modal-screenshots-grid').innerHTML = game.screenshots.slice(0, 4).map(s => 
-                        `<img src="${s.path_thumbnail}" referrerpolicy="no-referrer" onclick="abrirLightbox('${s.path_full}')" class="rounded border border-neutral-800 cursor-pointer hover:opacity-80">`
-                    ).join('');
-                }
-
-                if(game.movies && game.movies.length > 0) {
-                    document.getElementById('modal-section-videos').classList.remove('hidden');
-                    document.getElementById('modal-youtube-container').innerHTML = `<video src="${game.movies[0].mp4['480']}" controls class="rounded-xl w-full border border-neutral-800"></video>`;
-                }
-                
-            } catch(e) { 
-                console.error("Erro na busca Steam:", e); 
-                document.getElementById('modal-description').textContent = "Erro ao buscar dados na Steam (Proxy Timeout ou 403).";
+        await delay(500);
+        try {
+            const res = await fetch(API_URL + steamId);
+            const json = await res.json();
+            const game = json[steamId]?.data;
+            
+            if (!game) throw new Error("Sem dados");
+    
+            // Nome e Banner
+            document.getElementById('modal-title-original').textContent = game.name;
+            if(game.header_image) document.getElementById('modal-hero').style.backgroundImage = `url('${game.header_image}')`;
+            
+            // Metadata e Metacritic
+            document.getElementById('steam-metadata').classList.remove('hidden');
+            document.getElementById('modal-genres').innerHTML = `<span class="text-neutral-500">Gêneros:</span> ${game.genres.map(g => g.description).join(', ')}`;
+            document.getElementById('modal-developer').innerHTML = `<span class="text-neutral-500">Desenvolvedor:</span> ${game.developers.join(', ')}`;
+            
+            // Metacritic (Nota)
+            if (game.metacritic) {
+                const metaEl = document.createElement('p');
+                metaEl.innerHTML = `<span class="text-neutral-500">Metacritic:</span> ${game.metacritic.score}/100`;
+                document.getElementById('steam-metadata').appendChild(metaEl);
             }
+    
+            document.getElementById('modal-description').innerHTML = game.short_description || "Sem descrição disponível.";
+    
+            // Screenshots (Todas)
+            if(game.screenshots && game.screenshots.length > 0) {
+                document.getElementById('modal-section-screenshots').classList.remove('hidden');
+                document.getElementById('modal-screenshots-grid').innerHTML = game.screenshots.map(s => 
+                    `<img src="${s.path_thumbnail}" referrerpolicy="no-referrer" onclick="abrirLightbox('${s.path_full}')" class="rounded border border-neutral-800 cursor-pointer hover:opacity-80">`
+                ).join('');
+            }
+    
+            // Trailers (Todos)
+            if(game.movies && game.movies.length > 0) {
+                document.getElementById('modal-section-videos').classList.remove('hidden');
+                document.getElementById('modal-youtube-container').innerHTML = game.movies.map(m => 
+                    `<video src="${m.mp4['480']}" controls class="rounded-xl w-full border border-neutral-800 mb-4"></video>`
+                ).join('');
+            }
+            
+        } catch(e) { 
+            console.error("Erro na busca Steam:", e); 
+            document.getElementById('modal-description').textContent = "Erro ao buscar dados na Steam.";
         }
+    }
 
         function fecharModal() { document.body.style.overflow = ''; document.getElementById('modal-overlay').classList.add('hidden'); }
         function fecharModalFora(e) { if (e.target.id === 'modal-overlay') fecharModal(); }
