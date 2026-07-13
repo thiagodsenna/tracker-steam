@@ -182,7 +182,7 @@
         async function buscarDadosSteam(steamId) {
         await delay(500);
         try {
-            const res = await fetch(API_URL + steamId);
+            const res = await fetch(PROXY_BASE_URL + steamId);
             const json = await res.json();
             const game = json[steamId]?.data;
             
