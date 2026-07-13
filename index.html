@@ -218,6 +218,7 @@
             if(game.movies && game.movies.length > 0) {
                 document.getElementById('modal-section-videos').classList.remove('hidden');
                 document.getElementById('modal-youtube-container').innerHTML = game.movies.map(m => 
+                    console.log('movie', m);
                     `<video src="${m.mp4['480']}" controls class="rounded-xl w-full border border-neutral-800 mb-4"></video>`
                 ).join('');
             }
