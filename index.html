@@ -134,7 +134,7 @@
                     const card = document.createElement('div');
                     card.className = 'bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden cursor-pointer hover:border-emerald-500/50 transition-all flex flex-col h-full';
                     card.onclick = () => abrirModal(index);
-                    card.innerHTML = `<div class="aspect-[3/4] bg-neutral-950"><img src="${img}" class="w-full h-full object-cover opacity-80"></div><div class="p-3"><h2 class="font-bold text-xs text-white line-clamp-2">${item.title}</h2></div>`;
+                    card.innerHTML = `<div class="aspect-[3/4] bg-neutral-950"><img src="${img}" referrerpolicy="no-referrer" class="w-full h-full object-cover opacity-80"></div><div class="p-3"><h2 class="font-bold text-xs text-white line-clamp-2">${item.title}</h2></div>`;
                     grid.appendChild(card);
                 });
             } catch (err) { 
@@ -199,7 +199,7 @@
                 if(game.screenshots && game.screenshots.length > 0) {
                     document.getElementById('modal-section-screenshots').classList.remove('hidden');
                     document.getElementById('modal-screenshots-grid').innerHTML = game.screenshots.slice(0, 4).map(s => 
-                        `<img src="${s.path_thumbnail}" onclick="abrirLightbox('${s.path_full}')" class="rounded border border-neutral-800 cursor-pointer hover:opacity-80">`
+                        `<img src="${s.path_thumbnail}" referrerpolicy="no-referrer" onclick="abrirLightbox('${s.path_full}')" class="rounded border border-neutral-800 cursor-pointer hover:opacity-80">`
                     ).join('');
                 }
 
