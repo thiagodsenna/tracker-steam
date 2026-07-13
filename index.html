@@ -3,40 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Release Tracker</title>
+    <title>Release Tracker - Full Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .animate-modal { animation: fadeIn 0.3s ease-out forwards; }
+        .game-header-text { text-shadow: 0 2px 4px rgba(0,0,0,0.7); }
     </style>
 </head>
 <body class="p-4 sm:p-6 min-h-screen selection:bg-emerald-500/30">
+    
     <div id="lightbox" onclick="fecharLightbox()" class="fixed inset-0 z-[100] bg-black/95 hidden flex justify-center items-center">
         <img id="lightbox-img" class="max-w-[95%] max-h-[95%] object-contain cursor-pointer">
     </div>
 
     <div class="max-w-6xl mx-auto">
         <header class="flex justify-between items-center mb-8 border-b border-neutral-800 pb-4">
-            <h1 class="text-2xl font-bold text-white tracking-tight">Release<span class="text-emerald-500">Tracker</span></h1>
+            <div>
+                <h1 class="text-2xl font-bold text-white tracking-tight">Release<span class="text-emerald-500">Tracker</span></h1>
+            </div>
             <button onclick="carregarJogos()" class="bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 px-4 py-2 rounded-xl text-sm font-semibold transition-colors">Atualizar</button>
         </header>
-        <div id="grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"></div>
+
+        <div id="grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            <div class="col-span-full text-center py-20 text-emerald-500 animate-pulse">Carregando...</div>
+        </div>
     </div>
 
     <div id="modal-overlay" onclick="fecharModalFora(event)" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden overflow-y-auto">
         <div class="min-h-full w-full flex items-center justify-center p-0 sm:p-6">
-            <div class="bg-neutral-900 border border-neutral-800 w-full max-w-4xl min-h-[80vh] sm:rounded-3xl overflow-hidden flex flex-col shadow-2xl relative animate-modal">
+            <div id="modal-content" class="bg-neutral-900 border border-neutral-800 w-full max-w-4xl min-h-[80vh] sm:rounded-3xl overflow-hidden flex flex-col shadow-2xl relative animate-modal my-0 sm:my-8">
+                
                 <div id="modal-hero" class="h-64 w-full bg-neutral-800 bg-cover bg-center relative flex items-end p-8">
                     <div class="absolute inset-0 bg-gradient-to-t from-neutral-900 via-neutral-900/40 to-transparent"></div>
-                    <button onclick="fecharModal()" class="absolute top-4 right-4 bg-black/50 text-white p-2 rounded-full z-10">✕</button>
-                    <h2 id="modal-title-original" class="text-4xl font-bold text-white relative z-0">Carregando...</h2>
+                    <button onclick="fecharModal()" class="absolute top-4 right-4 bg-black/50 hover:bg-black/80 text-white p-2 rounded-full backdrop-blur-sm z-10">✕</button>
+                    <h2 id="modal-title-original" class="text-4xl font-bold text-white relative z-0 game-header-text">Carregando...</h2>
                 </div>
-                <div class="p-8 space-y-6">
-                    <div id="steam-metadata" class="hidden text-neutral-400 text-sm space-y-2 bg-neutral-950 p-4 rounded-xl">
-                        <p id="modal-genres"></p>
-                        <p id="modal-developer"></p>
+
+                <div class="p-5 sm:p-8 space-y-7">
+                    <div class="flex flex-col sm:flex-row gap-6">
+                        <div class="w-32 aspect-[3/4] bg-neutral-950 rounded-lg overflow-hidden shrink-0 border border-neutral-800 -mt-24 shadow-2xl">
+                            <img id="modal-cover" src="" class="w-full h-full object-cover">
+                        </div>
+                        <div class="flex-1 space-y-4">
+                            <div class="bg-neutral-950/50 p-4 rounded-xl border border-neutral-800">
+                                <h3 id="modal-title-release" class="text-sm font-bold text-white mb-3 underline decoration-emerald-500/50"></h3>
+                                <div id="steam-metadata" class="hidden text-xs text-neutral-400 space-y-1">
+                                    <p id="modal-genres"></p>
+                                    <p id="modal-developer"></p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
+                    
                     <div id="modal-description" class="text-sm text-neutral-300 leading-relaxed font-mono"></div>
                     <div id="modal-downloads-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-2"></div>
                 </div>
@@ -46,8 +66,8 @@
 
     <script>
         let jogosCarregados = [];
-        // Mantenha essa URL apontando para o seu deploy na Vercel
-        const API_URL = '/api/steam-proxy?appid='; 
+        // SUBSTITUA PELA SUA URL REAL DA VERCEL
+        const API_URL = 'https://seu-projeto.vercel.app/api/steam-proxy?appid='; 
 
         async function carregarJogos() {
             const grid = document.getElementById('grid');
@@ -61,22 +81,26 @@
                 
                 data.items.forEach((item, index) => {
                     const steamMatch = item.content?.content?.match(/store\.steampowered\.com\/app\/(\d+)/);
-                    jogosCarregados.push({ title: item.title, cover: item.visual?.url, postLink: item.alternate?.[0]?.href, steamId: steamMatch ? steamMatch[1] : null });
+                    jogosCarregados.push({ title: item.title, cover: item.visual?.url, steamId: steamMatch ? steamMatch[1] : null });
                     
                     const card = document.createElement('div');
-                    card.className = 'bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden cursor-pointer hover:border-emerald-500/50 transition-all';
+                    card.className = 'bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden cursor-pointer hover:border-emerald-500/50 transition-all flex flex-col h-full';
                     card.onclick = () => abrirModal(index);
-                    // A correção das imagens está aqui:
-                    card.innerHTML = `<div class="aspect-[3/4] bg-neutral-950"><img src="${item.visual?.url}" referrerpolicy="no-referrer" class="w-full h-full object-cover"></div><div class="p-3 font-bold text-xs line-clamp-2">${item.title}</div>`;
+                    card.innerHTML = `<div class="aspect-[3/4] bg-neutral-950"><img src="${item.visual?.url}" referrerpolicy="no-referrer" class="w-full h-full object-cover"></div><div class="p-3 font-bold text-xs">${item.title}</div>`;
                     grid.appendChild(card);
                 });
-            } catch (err) { grid.innerHTML = `<div class="col-span-full text-red-500">Erro ao carregar feeds.</div>`; }
+            } catch (err) { grid.innerHTML = `<div class="col-span-full text-red-500 text-center py-20">Erro de conexão.</div>`; }
         }
 
         async function abrirModal(id) {
             const jogo = jogosCarregados[id];
+            // Reseta UI
             document.getElementById('modal-title-original').textContent = jogo.title;
+            document.getElementById('modal-title-release').textContent = jogo.title;
             document.getElementById('modal-cover').src = jogo.cover;
+            document.getElementById('modal-description').textContent = 'Buscando na Steam...';
+            document.getElementById('steam-metadata').classList.add('hidden');
+            
             document.getElementById('modal-overlay').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
             
@@ -94,10 +118,11 @@
                         document.getElementById('modal-description').innerHTML = game.short_description;
                     }
                 } catch (e) {
-                    document.getElementById('modal-description').textContent = "Erro ao carregar dados.";
+                    document.getElementById('modal-description').textContent = "Erro ao carregar dados da Steam.";
                 }
             }
         }
+
         function fecharModal() { document.body.style.overflow = ''; document.getElementById('modal-overlay').classList.add('hidden'); }
         function fecharModalFora(e) { if (e.target.id === 'modal-overlay') fecharModal(); }
         carregarJogos();
