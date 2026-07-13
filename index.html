@@ -231,7 +231,7 @@
             
                     const videoId = `vjs-player-${idx}`;
                     container.innerHTML += `
-                        <video id="${videoId}" class="video-js vjs-default-skin w-full mb-4" controls preload="auto">
+                        <video id="${videoId}" class="video-js vjs-default-skin w-full mb-4" controls preload="auto" poster="${m.thumbnail}">
                             <source src="${src}" type="${type}">
                         </video>`;
                     
