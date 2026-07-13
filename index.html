@@ -218,10 +218,6 @@
     
             // Trailers (Todos)
             if(game.movies && game.movies.length > 0) {
-                /*document.getElementById('modal-section-videos').classList.remove('hidden');
-                document.getElementById('modal-youtube-container').innerHTML = game.movies.map(m =>
-                    `<video src="${m.dash_av1}" controls class="rounded-xl w-full border border-neutral-800 mb-4"></video>`
-                ).join('');*/
                 document.getElementById('modal-section-videos').classList.remove('hidden');
                 const container = document.getElementById('modal-youtube-container');
                 container.innerHTML = ''; // Limpa container
@@ -240,7 +236,12 @@
                         </video>`;
                     
                     // Inicializa o player Video.js para este vídeo
-                    videojs(videoId);
+                    // Aguarda o próximo ciclo do DOM para inicializar
+                    setTimeout(() => {
+                        if (window.videojs) {
+                            videojs(videoId);
+                        }
+                    }, 100);
                 });
             }
             
@@ -250,7 +251,16 @@
         }
     }
 
-        function fecharModal() { document.body.style.overflow = ''; document.getElementById('modal-overlay').classList.add('hidden'); }
+        function fecharModal() { 
+            // Destroi todos os players ativos do Video.js antes de fechar
+            if (window.videojs) {
+                const players = videojs.getAllPlayers();
+                players.forEach(player => player.dispose());
+            }
+            
+            document.body.style.overflow = ''; 
+            document.getElementById('modal-overlay').classList.add('hidden'); 
+        }
         function fecharModalFora(e) { if (e.target.id === 'modal-overlay') fecharModal(); }
         
         carregarJogos();
