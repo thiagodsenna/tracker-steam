@@ -1,7 +1,10 @@
 export default async function handler(req, res) {
   const { appid } = req.query;
   res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Content-Type', 'application/json');
+
   if (!appid) return res.status(400).json({ error: 'AppID é obrigatório' });
+
   try {
     const response = await fetch(`https://store.steampowered.com/api/appdetails?appids=${appid}`);
     const data = await response.json();
