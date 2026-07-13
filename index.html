@@ -182,7 +182,7 @@
         }
 
         async function buscarDadosSteam(steamId) {
-        await delay(500);
+        await delay(1);
         try {
             const res = await fetch(PROXY_BASE_URL + steamId);
             const json = await res.json();
@@ -241,7 +241,7 @@
                         if (window.videojs) {
                             videojs(videoId);
                         }
-                    }, 100);
+                    }, 1);
                 });
             }
             
