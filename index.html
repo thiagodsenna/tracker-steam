@@ -231,8 +231,8 @@
             
                     const videoId = `vjs-player-${idx}`;
                     container.innerHTML += `
-                        <div class="aspect-video w-full mb-4">
-                            <video id="${videoId}" class="video-js vjs-default-skin w-full mb-4" controls preload="auto" poster="${m.thumbnail}">
+                        <div class="aspect-video w-full !h-full mb-4">
+                            <video id="${videoId}" class="video-js vjs-default-skin w-full !h-full mb-4" controls preload="auto" poster="${m.thumbnail}">
                                 <source src="${src}" type="${type}">
                             </video>
                         </div>`;
