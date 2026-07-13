@@ -22,12 +22,15 @@
         <header class="flex justify-between items-center mb-8 border-b border-neutral-800 pb-4">
             <div>
                 <h1 class="text-2xl font-bold text-white tracking-tight">Release<span class="text-emerald-500">Tracker</span></h1>
+                <p class="text-xs text-neutral-500 mt-1">Biblioteca Unificada - Backend Proxy Edition</p>
             </div>
-            <button onclick="carregarJogos()" class="bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 px-4 py-2 rounded-xl text-sm font-semibold transition-colors">Atualizar</button>
+            <button onclick="carregarJogos()" class="bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 px-4 py-2 rounded-xl text-sm font-semibold transition-colors">
+                Atualizar
+            </button>
         </header>
 
         <div id="grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            <div class="col-span-full text-center py-20 text-emerald-500 animate-pulse">Carregando...</div>
+            <div class="col-span-full text-center py-20 text-emerald-500 animate-pulse">Carregando lançamentos...</div>
         </div>
     </div>
 
@@ -49,16 +52,34 @@
                         <div class="flex-1 space-y-4">
                             <div class="bg-neutral-950/50 p-4 rounded-xl border border-neutral-800">
                                 <h3 id="modal-title-release" class="text-sm font-bold text-white mb-3 underline decoration-emerald-500/50"></h3>
-                                <div id="steam-metadata" class="hidden text-xs text-neutral-400 space-y-1">
+                                <div id="steam-metadata" class="text-xs text-neutral-400 space-y-1 hidden">
                                     <p id="modal-genres"></p>
                                     <p id="modal-developer"></p>
                                 </div>
                             </div>
+                            <a id="modal-btn-skidrow" href="#" target="_blank" class="inline-block bg-emerald-500 hover:bg-emerald-600 text-neutral-950 font-bold text-xs px-4 py-2 rounded-lg transition-colors">Post Original</a>
                         </div>
                     </div>
                     
-                    <div id="modal-description" class="text-sm text-neutral-300 leading-relaxed font-mono"></div>
-                    <div id="modal-downloads-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-2"></div>
+                    <div id="modal-section-screenshots" class="hidden space-y-3">
+                        <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2">Screenshots</h4>
+                        <div id="modal-screenshots-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-4"></div>
+                    </div>
+
+                    <div id="modal-section-videos" class="hidden space-y-3">
+                        <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2">Trailers</h4>
+                        <div id="modal-youtube-container"></div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2">Descrição</h4>
+                        <div id="modal-description" class="text-sm text-neutral-300 leading-relaxed font-mono"></div>
+                    </div>
+
+                    <div class="space-y-3 pb-8">
+                        <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2">Links de Download</h4>
+                        <div id="modal-downloads-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-2"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -66,65 +87,137 @@
 
     <script>
         let jogosCarregados = [];
-        // SUBSTITUA PELA SUA URL REAL DA VERCEL
-        const API_URL = 'https://seu-projeto.vercel.app/api/steam-proxy?appid='; 
+        const STREAM_ID = 'feed%2Fhttps%3A%2F%2Fwww.skidrowreloaded.com%2Fcategory%2Fpc-games%2Ffeed%2F';
+        // --- SUBSTITUA A URL ABAIXO PELA URL DO SEU PROXY NA VERCEL ---
+        const PROXY_BASE_URL = 'SUA_URL_DA_VERCEL_AQUI/api/steam-proxy?appid='; 
+        
+        const delay = ms => new Promise(res => setTimeout(res, ms));
 
         async function carregarJogos() {
             const grid = document.getElementById('grid');
             jogosCarregados = [];
-            grid.innerHTML = '<div class="col-span-full text-center py-20 text-emerald-500 animate-pulse">Carregando...</div>';
+            grid.innerHTML = '<div class="col-span-full text-center py-20 text-emerald-500 animate-pulse">Carregando lançamentos...</div>';
             
             try {
-                const res = await fetch('/api/feedly-proxy');
+                const streamUrl = `https://api.feedly.com/v3/streams/contents?streamId=${STREAM_ID}&count=200&ranked=newest&similar=true&ct=feedly.desktop&cv=31.0.3081`;
+                const res = await fetch(streamUrl);
                 const data = await res.json();
+                
                 grid.innerHTML = '';
                 
                 data.items.forEach((item, index) => {
-                    const steamMatch = item.content?.content?.match(/store\.steampowered\.com\/app\/(\d+)/);
-                    jogosCarregados.push({ title: item.title, cover: item.visual?.url, steamId: steamMatch ? steamMatch[1] : null });
+                    const doc = new DOMParser().parseFromString(item.content?.content || item.summary?.content || '', 'text/html');
+                    const img = item.visual?.url || doc.querySelector('img')?.src || '';
                     
+                    let downloads = [];
+                    doc.querySelectorAll('a').forEach(a => {
+                        const href = a.href || '';
+                        if(href.includes('skidrowreloaded') || href.includes('steampowered') || href.includes('youtube')) return;
+                        if(a.textContent.length > 2 && downloads.length < 16) {
+                            let label = href.startsWith('magnet:') ? 'TORRENT' : new URL(a.href).hostname.replace('www.', '').toUpperCase().split('.')[0];
+                            downloads.push({label: label, url: a.href});
+                        }
+                    });
+
+                    const steamMatch = item.content?.content?.match(/store\.steampowered\.com\/app\/(\d+)/);
+                    const steamId = steamMatch ? steamMatch[1] : null;
+
+                    jogosCarregados.push({ 
+                        id: index, 
+                        title: item.title, 
+                        cover: img, 
+                        postLink: item.alternate?.[0]?.href || '#', 
+                        downloads, 
+                        date: new Date(item.published).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+                        steamId: steamId 
+                    });
+
                     const card = document.createElement('div');
                     card.className = 'bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden cursor-pointer hover:border-emerald-500/50 transition-all flex flex-col h-full';
                     card.onclick = () => abrirModal(index);
-                    card.innerHTML = `<div class="aspect-[3/4] bg-neutral-950"><img src="${item.visual?.url}" referrerpolicy="no-referrer" class="w-full h-full object-cover"></div><div class="p-3 font-bold text-xs">${item.title}</div>`;
+                    card.innerHTML = `<div class="aspect-[3/4] bg-neutral-950"><img src="${img}" class="w-full h-full object-cover opacity-80"></div><div class="p-3"><h2 class="font-bold text-xs text-white line-clamp-2">${item.title}</h2></div>`;
                     grid.appendChild(card);
                 });
-            } catch (err) { grid.innerHTML = `<div class="col-span-full text-red-500 text-center py-20">Erro de conexão.</div>`; }
+            } catch (err) { 
+                console.error("Erro Feedly:", err);
+                grid.innerHTML = `<div class="col-span-full text-red-500 text-center py-20">Erro ao carregar feeds.</div>`; 
+            }
         }
+
+        window.abrirLightbox = (src) => { 
+            document.getElementById('lightbox-img').src = src; 
+            document.getElementById('lightbox').classList.remove('hidden'); 
+        };
+        function fecharLightbox() { document.getElementById('lightbox').classList.add('hidden'); }
 
         async function abrirModal(id) {
             const jogo = jogosCarregados[id];
-            // Reseta UI
+            if (!jogo) return;
+            
             document.getElementById('modal-title-original').textContent = jogo.title;
             document.getElementById('modal-title-release').textContent = jogo.title;
             document.getElementById('modal-cover').src = jogo.cover;
-            document.getElementById('modal-description').textContent = 'Buscando na Steam...';
+            document.getElementById('modal-hero').style.backgroundImage = 'none';
+            document.getElementById('modal-btn-skidrow').href = jogo.postLink;
+            document.getElementById('modal-description').textContent = 'Buscando informações da Steam...';
+            
             document.getElementById('steam-metadata').classList.add('hidden');
+            document.getElementById('modal-section-screenshots').classList.add('hidden');
+            document.getElementById('modal-section-videos').classList.add('hidden');
+            document.getElementById('modal-downloads-grid').innerHTML = jogo.downloads.map(dl => `
+                <a href="${dl.url}" target="_blank" class="bg-neutral-800 hover:bg-neutral-700 p-2 flex items-center gap-2 rounded text-xs font-bold text-neutral-300 border border-neutral-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    ${dl.label}
+                </a>`).join('');
             
             document.getElementById('modal-overlay').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
             
             if (jogo.steamId) {
-                try {
-                    const res = await fetch(API_URL + jogo.steamId);
-                    const json = await res.json();
-                    const game = json[jogo.steamId]?.data;
+                buscarDadosSteam(jogo.steamId);
+            } else {
+                document.getElementById('modal-description').textContent = "Sem ID Steam detectado no post original.";
+            }
+        }
 
-                    if (game) {
-                        document.getElementById('modal-title-original').textContent = game.name;
-                        document.getElementById('modal-hero').style.backgroundImage = `url('${game.header_image}')`;
-                        document.getElementById('steam-metadata').classList.remove('hidden');
-                        document.getElementById('modal-genres').textContent = "Gêneros: " + game.genres.map(g => g.description).join(', ');
-                        document.getElementById('modal-description').innerHTML = game.short_description;
-                    }
-                } catch (e) {
-                    document.getElementById('modal-description').textContent = "Erro ao carregar dados da Steam.";
+        async function buscarDadosSteam(steamId) {
+            await delay(500);
+            try {
+                const res = await fetch(PROXY_BASE_URL + steamId);
+                const json = await res.json();
+                const game = json[steamId]?.data;
+                
+                if (!game) throw new Error("Sem dados");
+
+                document.getElementById('modal-title-original').textContent = game.name;
+                if(game.header_image) document.getElementById('modal-hero').style.backgroundImage = `url('${game.header_image}')`;
+                document.getElementById('steam-metadata').classList.remove('hidden');
+                
+                if(game.genres) document.getElementById('modal-genres').innerHTML = `<span class="text-neutral-500">Gêneros:</span> ${game.genres.map(g => g.description).join(', ')}`;
+                if(game.developers) document.getElementById('modal-developer').innerHTML = `<span class="text-neutral-500">Desenvolvedor:</span> ${game.developers.join(', ')}`;
+                document.getElementById('modal-description').innerHTML = game.short_description || "Sem descrição disponível.";
+
+                if(game.screenshots && game.screenshots.length > 0) {
+                    document.getElementById('modal-section-screenshots').classList.remove('hidden');
+                    document.getElementById('modal-screenshots-grid').innerHTML = game.screenshots.slice(0, 4).map(s => 
+                        `<img src="${s.path_thumbnail}" onclick="abrirLightbox('${s.path_full}')" class="rounded border border-neutral-800 cursor-pointer hover:opacity-80">`
+                    ).join('');
                 }
+
+                if(game.movies && game.movies.length > 0) {
+                    document.getElementById('modal-section-videos').classList.remove('hidden');
+                    document.getElementById('modal-youtube-container').innerHTML = `<video src="${game.movies[0].mp4['480']}" controls class="rounded-xl w-full border border-neutral-800"></video>`;
+                }
+                
+            } catch(e) { 
+                console.error("Erro na busca Steam:", e); 
+                document.getElementById('modal-description').textContent = "Erro ao buscar dados na Steam (Proxy Timeout ou 403).";
             }
         }
 
         function fecharModal() { document.body.style.overflow = ''; document.getElementById('modal-overlay').classList.add('hidden'); }
         function fecharModalFora(e) { if (e.target.id === 'modal-overlay') fecharModal(); }
+        
         carregarJogos();
     </script>
 </body>
