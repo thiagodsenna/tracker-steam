@@ -99,8 +99,7 @@
             grid.innerHTML = '<div class="col-span-full text-center py-20 text-emerald-500 animate-pulse">Carregando lançamentos...</div>';
             
             try {
-                const streamUrl = `https://api.feedly.com/v3/streams/contents?streamId=${STREAM_ID}&count=200&ranked=newest&similar=true&ct=feedly.desktop&cv=31.0.3081`;
-                const res = await fetch(streamUrl);
+                const res = await fetch('/api/feedly-proxy');
                 const data = await res.json();
                 
                 grid.innerHTML = '';
