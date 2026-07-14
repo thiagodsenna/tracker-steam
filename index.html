@@ -70,7 +70,7 @@
                     </div>
                     
                     <div id="modal-section-videos" class="hidden space-y-3">
-                        <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2">Trailers</h4>
+                        <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2">Vídeos</h4>
                         <div id="modal-youtube-container"></div>
                     </div>
 
@@ -134,11 +134,6 @@
                         steamId: steamId 
                     });
 
-                    /*const card = document.createElement('div');
-                    card.className = 'bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden cursor-pointer hover:border-emerald-500/50 transition-all flex flex-col h-full';
-                    card.onclick = () => abrirModal(index);
-                    card.innerHTML = `<div class="aspect-[3/4] bg-neutral-950"><img src="${img}" referrerpolicy="no-referrer" class="w-full h-full object-cover opacity-80"></div><div class="p-3"><h2 class="font-bold text-xs text-white line-clamp-2">${item.title}</h2></div>`;
-                    grid.appendChild(card);*/
                     const card = document.createElement('div');
                     card.className = 'bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden cursor-pointer relative hover:border-emerald-500/50 transition-all';
                     card.onclick = () => abrirModal(index);
@@ -151,7 +146,7 @@
                     `;
                     grid.appendChild(card);
                 });
-                carregarNotasEmLote();
+                //carregarNotasEmLote();
             } catch (err) { 
                 console.error("Erro Feedly:", err);
                 grid.innerHTML = `<div class="col-span-full text-red-500 text-center py-20">Erro ao carregar feeds.</div>`; 
