@@ -55,6 +55,7 @@
                             <div class="bg-neutral-950/50 p-4 rounded-xl border border-neutral-800">
                                 <h3 id="modal-title-release" class="text-sm font-bold text-white mb-3 underline decoration-emerald-500/50"></h3>
                                 <div id="steam-metadata" class="text-xs text-neutral-400 space-y-1 hidden">
+                                    <p id="release-date"></p>
                                     <p id="modal-genres"></p>
                                     <p id="modal-developer"></p>
                                 </div>
@@ -196,6 +197,7 @@
             
             // Metadata e Metacritic
             document.getElementById('steam-metadata').classList.remove('hidden');
+            document.getElementById('release-date').innerHTML = `<span class="text-neutral-500">Lançamento:</span> ${game.release_date.date}`;
             document.getElementById('modal-genres').innerHTML = `<span class="text-neutral-500">Gêneros:</span> ${game.genres.map(g => g.description).join(', ')}`;
             document.getElementById('modal-developer').innerHTML = `<span class="text-neutral-500">Desenvolvedor:</span> ${game.developers.join(', ')}`;
             
