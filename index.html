@@ -44,8 +44,10 @@
                     <div class="absolute inset-0 bg-gradient-to-t via-neutral-900/40 to-transparent"></div>
                     <button onclick="fecharModal()" class="absolute top-4 right-4 bg-black/50 hover:bg-black/80 text-white p-2 rounded-full backdrop-blur-sm z-10">✕</button>
                     <h2 id="modal-title-original" class="text-4xl font-bold text-white relative z-0 game-header-text" style="display:none">Carregando...</h2>
+                    <div id="modal-metacritic-score" class="absolute bottom-4 right-4 hidden h-16 w-16 flex items-center justify-center rounded-lg border-2 border-white/20 shadow-xl">
+                        <span id="metacritic-score-value" class="text-2xl font-black text-white"></span>
+                    </div>
                 </div>
-
                 <div class="p-5 sm:p-8 space-y-7">
                     <div class="flex flex-row items-start gap-4">
                         <div class="w-32 sm:w-32 bg-neutral-950 rounded-lg overflow-hidden shrink-0 border border-neutral-800 shadow-2xl">
@@ -68,7 +70,7 @@
                         <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2">Screenshots</h4>
                         <div id="modal-screenshots-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-4"></div>
                     </div>
-                    
+
                     <div id="modal-section-videos" class="hidden space-y-3">
                         <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2">Vídeos</h4>
                         <div id="modal-youtube-container"></div>
@@ -95,6 +97,14 @@
         const PROXY_BASE_URL = 'https://tracker-steam.vercel.app/api/steam-proxy?appid='; 
         
         const delay = ms => new Promise(res => setTimeout(res, ms));
+
+        function getMetacriticColor(score) {
+            if (score >= 81) return { bg: 'bg-green-600', border: 'border-green-400' };
+            if (score >= 71) return { bg: 'bg-yellow-500', border: 'border-yellow-300' };
+            if (score >= 51) return { bg: 'bg-yellow-600', border: 'border-yellow-400' };
+            if (score >= 31) return { bg: 'bg-orange-500', border: 'border-orange-300' };
+            return { bg: 'bg-red-600', border: 'border-red-400' };
+        }
 
         async function carregarJogos() {
             const grid = document.getElementById('grid');
@@ -170,8 +180,9 @@
                         if (score) {
                             const el = document.getElementById(`score-${index}`);
                             if (el) {
+                                const { bg, border } = getMetacriticColor(score);
                                 el.textContent = score;
-                                el.classList.remove('hidden');
+                                el.className = `absolute top-2 right-2 ${bg} border ${border} px-2 py-1 rounded text-[10px] font-black text-white shadow-lg`;
                             }
                         }
                     }
@@ -202,6 +213,12 @@
             document.getElementById('steam-metadata').classList.add('hidden');
             document.getElementById('modal-section-screenshots').classList.add('hidden');
             document.getElementById('modal-section-videos').classList.add('hidden');
+            const metaScoreEl = document.getElementById('modal-metacritic-score');
+            metaScoreEl.className = 'absolute bottom-4 right-4 hidden h-16 w-16 flex items-center justify-center rounded-lg border-2 border-white/20 shadow-xl';
+            document.getElementById('metacritic-score-value').textContent = '';
+            // Remove antigo elemento Metacritic do metadata (se existir)
+            const oldMeta = document.querySelector('#steam-metadata p[data-meta="metacritic"]');
+            if (oldMeta) oldMeta.remove();
             document.getElementById('modal-downloads-grid').innerHTML = jogo.downloads.map(dl => `
                 <a href="${dl.url}" target="_blank" class="bg-neutral-800 hover:bg-neutral-700 p-2 flex items-center gap-2 rounded text-xs font-bold text-neutral-300 border border-neutral-700">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -237,9 +254,15 @@
             document.getElementById('modal-genres').innerHTML = `<span class="text-neutral-500">Gêneros:</span> ${game.genres.map(g => g.description).join(', ')}`;
             document.getElementById('modal-developer').innerHTML = `<span class="text-neutral-500">Desenvolvedor:</span> ${game.developers.join(', ')}`;
             
-            // Metacritic (Nota)
+            // Metacritic (Nota) - Badge no cabeçalho
             if (game.metacritic) {
+                const { bg, border } = getMetacriticColor(game.metacritic.score);
+                const metaScoreEl = document.getElementById('modal-metacritic-score');
+                metaScoreEl.className = `absolute bottom-4 right-4 h-16 w-16 flex flex-col items-center justify-center rounded-lg border-2 ${border} ${bg} shadow-xl`;
+                document.getElementById('metacritic-score-value').textContent = game.metacritic.score;
+
                 const metaEl = document.createElement('p');
+                metaEl.dataset.meta = 'metacritic';
                 metaEl.innerHTML = `<span class="text-neutral-500">Metacritic:</span> ${game.metacritic.score}/100`;
                 document.getElementById('steam-metadata').appendChild(metaEl);
             }
