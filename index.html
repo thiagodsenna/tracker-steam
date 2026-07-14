@@ -208,7 +208,7 @@
                 document.getElementById('steam-metadata').appendChild(metaEl);
             }
     
-            document.getElementById('modal-description').innerHTML = game.short_description || "Sem descrição disponível.";
+            document.getElementById('modal-description').innerHTML = game.detailed_description || game.short_description || "Sem descrição disponível.";
     
             // Screenshots (Todas)
             if(game.screenshots && game.screenshots.length > 0) {
