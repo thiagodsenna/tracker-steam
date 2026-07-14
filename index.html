@@ -153,6 +153,9 @@
         function fecharLightbox() { document.getElementById('lightbox').classList.add('hidden'); }
 
         async function abrirModal(id) {
+            // Adiciona um estado ao histórico para capturar o "Voltar"
+            history.pushState({modalOpen: true}, '', window.location.href);
+            
             const jogo = jogosCarregados[id];
             if (!jogo) return;
             
@@ -261,6 +264,11 @@
                 const players = videojs.getAllPlayers();
                 players.forEach(player => player.dispose());
             }
+
+            // Se o modal foi aberto pelo pushState, volta o histórico para limpar
+            if (history.state && history.state.modalOpen) {
+                history.back();
+            }
             
             document.body.style.overflow = ''; 
             document.getElementById('modal-overlay').classList.add('hidden'); 
@@ -268,6 +276,14 @@
         function fecharModalFora(e) { if (e.target.id === 'modal-overlay') fecharModal(); }
         
         carregarJogos();
+
+        window.addEventListener('popstate', () => {
+            const modal = document.getElementById('modal-overlay');
+            // Se o modal estiver aberto, fecha sem navegar para fora da página
+            if (modal && !modal.classList.contains('hidden')) {
+                fecharModal();
+            }
+        });
     </script>
 </body>
 </html>
