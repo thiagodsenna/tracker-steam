@@ -134,16 +134,54 @@
                         steamId: steamId 
                     });
 
-                    const card = document.createElement('div');
+                    /*const card = document.createElement('div');
                     card.className = 'bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden cursor-pointer hover:border-emerald-500/50 transition-all flex flex-col h-full';
                     card.onclick = () => abrirModal(index);
                     card.innerHTML = `<div class="aspect-[3/4] bg-neutral-950"><img src="${img}" referrerpolicy="no-referrer" class="w-full h-full object-cover opacity-80"></div><div class="p-3"><h2 class="font-bold text-xs text-white line-clamp-2">${item.title}</h2></div>`;
+                    grid.appendChild(card);*/
+                    const card = document.createElement('div');
+                    card.className = 'bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden cursor-pointer relative hover:border-emerald-500/50 transition-all';
+                    card.onclick = () => abrirModal(index);
+                    card.innerHTML = `
+                        <div class="aspect-[3/4] bg-neutral-950">
+                            <img src="${item.visual?.url}" referrerpolicy="no-referrer" class="w-full h-full object-cover">
+                        </div>
+                        <div id="score-${index}" class="absolute top-2 right-2 bg-black/70 backdrop-blur px-2 py-1 rounded text-[10px] font-bold text-emerald-400 hidden"></div>
+                        <div class="p-3 font-bold text-xs line-clamp-2">${item.title}</div>
+                    `;
                     grid.appendChild(card);
                 });
+                carregarNotasEmLote();
             } catch (err) { 
                 console.error("Erro Feedly:", err);
                 grid.innerHTML = `<div class="col-span-full text-red-500 text-center py-20">Erro ao carregar feeds.</div>`; 
             }
+        }
+
+        async function carregarNotasEmLote() {
+            const steamIds = jogosCarregados.map(j => j.steamId).filter(id => id !== null);
+            if (steamIds.length === 0) return;
+        
+            try {
+                // Chamada única para o novo endpoint batch
+                const res = await fetch('/api/steam-batch?ids=' + steamIds.join(','));
+                const json = await res.json();
+        
+                jogosCarregados.forEach((jogo, index) => {
+                    if (jogo.steamId && json[jogo.steamId]?.success) {
+                        const game = json[jogo.steamId].data;
+                        const score = game.metacritic?.score;
+                        
+                        if (score) {
+                            const el = document.getElementById(`score-${index}`);
+                            if (el) {
+                                el.textContent = score;
+                                el.classList.remove('hidden');
+                            }
+                        }
+                    }
+                });
+            } catch (e) { console.error("Erro ao buscar notas em lote", e); }
         }
 
         window.abrirLightbox = (src) => { 
