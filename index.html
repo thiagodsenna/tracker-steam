@@ -58,6 +58,7 @@
                                 <h3 id="modal-title-release" class="text-sm font-bold text-white mb-3 underline decoration-emerald-500/50"></h3>
                                 <div id="steam-metadata" class="text-xs text-neutral-400 space-y-1 hidden">
                                     <p id="release-date"></p>
+                                    <p id="total-reviews"></p>
                                     <p id="modal-genres"></p>
                                     <p id="modal-developer"></p>
                                 </div>
@@ -410,25 +411,17 @@
                 if (json.success && json.reviews && json.reviews.length > 0) {
                     const section = document.getElementById('modal-section-reviews');
                     const list = document.getElementById('modal-reviews-list');
-                    let notaSteam = Math.trunc((json.query_summary.total_positive * 100) / json.query_summary.total_reviews);
-                    console.log('notaSteam',notaSteam);
+                    
                     //Nota cabeçalho
+                    let notaSteam = Math.trunc((json.query_summary.total_positive * 100) / json.query_summary.total_reviews);
                     const { bg, border } = getMetacriticColor(notaSteam);
                     const metaScoreEl = document.getElementById('modal-metacritic-score');
                     metaScoreEl.className = `absolute bottom-4 right-4 h-16 w-16 flex flex-col items-center justify-center rounded-lg border-2 ${border} ${bg} shadow-xl`;
                     document.getElementById('metacritic-score-value').textContent = notaSteam;
-
+                    
                     //Total avaliações
-                    const metaEl = document.createElement('p');
-                    metaEl.dataset.meta = 'metacritic';
-                    metaEl.innerHTML = `<span class="text-neutral-500">Avaliações:</span> ${json.query_summary.total_reviews}`;
-                    document.getElementById('steam-metadata').appendChild(metaEl);
-                    /*
-                    88155 = 100
-                    73703 = x
-
-                    x = (73703 * 100) / 88155
-                    */
+                    document.getElementById('total-reviews').innerHTML = `<span class="text-neutral-500">Avaliações:</span> ${json.query_summary.total_reviews}`;
+                    
                     section.classList.remove('hidden');
                     list.innerHTML = json.reviews.map(r => {
                         const iconHtml = r.voted_up
