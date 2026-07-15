@@ -153,10 +153,10 @@
         const delay = ms => new Promise(res => setTimeout(res, ms));
 
         function getMetacriticColor(score) {
-            if (score >= 81) return { bg: 'bg-green-600', border: 'border-green-400' };
-            if (score >= 71) return { bg: 'bg-yellow-500', border: 'border-yellow-300' };
-            if (score >= 51) return { bg: 'bg-yellow-600', border: 'border-yellow-400' };
-            if (score >= 31) return { bg: 'bg-orange-500', border: 'border-orange-300' };
+            if (score >= 80) return { bg: 'bg-green-600', border: 'border-green-400' };
+            if (score >= 70) return { bg: 'bg-yellow-500', border: 'border-yellow-300' };
+            if (score >= 50) return { bg: 'bg-yellow-600', border: 'border-yellow-400' };
+            if (score >= 35) return { bg: 'bg-orange-500', border: 'border-orange-300' };
             return { bg: 'bg-red-600', border: 'border-red-400' };
         }
 
