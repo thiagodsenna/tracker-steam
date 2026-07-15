@@ -280,11 +280,10 @@
             document.getElementById('modal-description').textContent = 'Buscando informações da Steam...';
             
             document.getElementById('steam-metadata').classList.add('hidden');
-                        document.getElementById('modal-section-screenshots').classList.add('hidden');
+            document.getElementById('modal-section-screenshots').classList.add('hidden');
             document.getElementById('modal-section-recursos').classList.add('hidden');
             document.getElementById('modal-section-reviews').classList.add('hidden');
             document.getElementById('modal-section-videos').classList.add('hidden');
-
 
             const metaScoreEl = document.getElementById('modal-metacritic-score');
             metaScoreEl.className = 'absolute bottom-4 right-4 hidden h-16 w-16 flex items-center justify-center rounded-lg border-2 border-white/20 shadow-xl';
@@ -303,113 +302,112 @@
             document.getElementById('modal-overlay').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
             
-                        if (jogo.steamId) {
+            if (jogo.steamId) {
                 buscarDadosSteam(jogo.steamId);
                 buscarReviewsSteam(jogo.steamId);
             } else {
-
                 document.getElementById('modal-description').textContent = "Sem ID Steam detectado no post original.";
             }
         }
 
         async function buscarDadosSteam(steamId) {
-        await delay(1);
-        try {
-            const res = await fetch(PROXY_BASE_URL + steamId);
-            const json = await res.json();
-            const game = json[steamId]?.data;
-            
-            if (!game) throw new Error("Sem dados");
-    
-            // Nome e Banner
-            document.getElementById('modal-title-original').textContent = game.name;
-            if(game.header_image) document.getElementById('modal-hero').style.backgroundImage = `url('${game.header_image}')`;
-            
-            // Metadata e Metacritic
-            document.getElementById('steam-metadata').classList.remove('hidden');
-            document.getElementById('release-date').innerHTML = `<span class="text-neutral-500">Lançamento:</span> ${game.release_date.date}`;
-            document.getElementById('modal-genres').innerHTML = `<span class="text-neutral-500">Gêneros:</span> ${game.genres.map(g => g.description).join(', ')}`;
-            document.getElementById('modal-developer').innerHTML = `<span class="text-neutral-500">Desenvolvedor:</span> ${game.developers.join(', ')}`;
-            
-            // Metacritic (Nota) - Badge no cabeçalho
-            if (game.metacritic) {
-                const { bg, border } = getMetacriticColor(game.metacritic.score);
-                const metaScoreEl = document.getElementById('modal-metacritic-score');
-                metaScoreEl.className = `absolute bottom-4 right-4 h-16 w-16 flex flex-col items-center justify-center rounded-lg border-2 ${border} ${bg} shadow-xl`;
-                document.getElementById('metacritic-score-value').textContent = game.metacritic.score;
+            await delay(1);
+            try {
+                const res = await fetch(PROXY_BASE_URL + steamId);
+                const json = await res.json();
+                const game = json[steamId]?.data;
+                
+                if (!game) throw new Error("Sem dados");
+        
+                // Nome e Banner
+                document.getElementById('modal-title-original').textContent = game.name;
+                if(game.header_image) document.getElementById('modal-hero').style.backgroundImage = `url('${game.header_image}')`;
+                
+                // Metadata e Metacritic
+                document.getElementById('steam-metadata').classList.remove('hidden');
+                document.getElementById('release-date').innerHTML = `<span class="text-neutral-500">Lançamento:</span> ${game.release_date.date}`;
+                document.getElementById('modal-genres').innerHTML = `<span class="text-neutral-500">Gêneros:</span> ${game.genres.map(g => g.description).join(', ')}`;
+                document.getElementById('modal-developer').innerHTML = `<span class="text-neutral-500">Desenvolvedor:</span> ${game.developers.join(', ')}`;
+                
+                // Metacritic (Nota) - Badge no cabeçalho
+                if (game.metacritic) {
+                    const { bg, border } = getMetacriticColor(game.metacritic.score);
+                    const metaScoreEl = document.getElementById('modal-metacritic-score');
+                    metaScoreEl.className = `absolute bottom-4 right-4 h-16 w-16 flex flex-col items-center justify-center rounded-lg border-2 ${border} ${bg} shadow-xl`;
+                    document.getElementById('metacritic-score-value').textContent = game.metacritic.score;
 
-                const metaEl = document.createElement('p');
-                metaEl.dataset.meta = 'metacritic';
-                metaEl.innerHTML = `<span class="text-neutral-500">Metacritic:</span> ${game.metacritic.score}/100`;
-                document.getElementById('steam-metadata').appendChild(metaEl);
-            }
-    
-            document.getElementById('modal-description').innerHTML = game.detailed_description || game.short_description || "Sem descrição disponível.";
-    
-            // Screenshots (Todas)
-            if(game.screenshots && game.screenshots.length > 0) {
-                document.getElementById('modal-section-screenshots').classList.remove('hidden');
-                document.getElementById('modal-screenshots-grid').innerHTML = game.screenshots.map(s => 
-                    `<img src="${s.path_thumbnail}" referrerpolicy="no-referrer" onclick="abrirLightbox('${s.path_full}')" class="rounded border border-neutral-800 cursor-pointer hover:opacity-80">`
-                ).join('');
-            }
+                    const metaEl = document.createElement('p');
+                    metaEl.dataset.meta = 'metacritic';
+                    metaEl.innerHTML = `<span class="text-neutral-500">Metacritic:</span> ${game.metacritic.score}/100`;
+                    document.getElementById('steam-metadata').appendChild(metaEl);
+                }
+        
+                document.getElementById('modal-description').innerHTML = game.detailed_description || game.short_description || "Sem descrição disponível.";
+        
+                // Screenshots (Todas)
+                if(game.screenshots && game.screenshots.length > 0) {
+                    document.getElementById('modal-section-screenshots').classList.remove('hidden');
+                    document.getElementById('modal-screenshots-grid').innerHTML = game.screenshots.map(s => 
+                        `<img src="${s.path_thumbnail}" referrerpolicy="no-referrer" onclick="abrirLightbox('${s.path_full}')" class="rounded border border-neutral-800 cursor-pointer hover:opacity-80">`
+                    ).join('');
+                }
 
-            // Recursos (Categorias)
-            if(game.categories && game.categories.length > 0) {
-                document.getElementById('modal-section-recursos').classList.remove('hidden');
-                document.getElementById('modal-recursos-grid').innerHTML = game.categories.map(c => {
-                    const iconName = CATEGORY_ICONS[c.id] || 'ico_singlePlayer.png'; // Fallback
-                    const iconUrl = `https://store.fastly.steamstatic.com/public/images/v6/ico/${iconName}`;
-                    
-                    return `
-                    <div class="bg-neutral-800 p-2 flex items-center gap-2 rounded text-xs font-bold text-neutral-300 border border-neutral-700">
-                        <img src="${iconUrl}" class="w-6 h-4">
-                        <span class="truncate">${c.description}</span>
-                    </div>`;
-                }).join('');
-            }
-    
-            // Trailers (Todos)
-            if(game.movies && game.movies.length > 0) {
-                document.getElementById('modal-section-videos').classList.remove('hidden');
-                const container = document.getElementById('modal-youtube-container');
-                container.innerHTML = ''; // Limpa container
-            
-                game.movies.forEach((m, idx) => {
-                    // Prioriza MP4, depois HLS (.m3u8), depois DASH (.mpd)
-                    const src = m.dash_av1 || m.dash_h264 || m.hls_h264;
-                    const type = src.includes('.m3u8') ? 'application/x-mpegURL' : 
-                                 src.includes('.mpd') ? 'application/dash+xml' : 
-                                 'video/mp4';
-            
-                    const videoId = `vjs-player-${idx}`;
-                    container.innerHTML += `
-                        <div class="mb-4">
-                            <div class="aspect-video w-full !h-full">
-                                <video id="${videoId}" class="video-js vjs-default-skin w-full !h-full" controls preload="auto" poster="${m.thumbnail}">
-                                <source src="${src}" type="${type}">
-                            </video>
-                            </div>
-                            ${m.name ? `<div class="bg-black text-neutral-400 text-xs font-bold uppercase tracking-widest px-3 py-2">${m.name}</div>` : ''}
+                // Recursos (Categorias)
+                if(game.categories && game.categories.length > 0) {
+                    document.getElementById('modal-section-recursos').classList.remove('hidden');
+                    document.getElementById('modal-recursos-grid').innerHTML = game.categories.map(c => {
+                        const iconName = CATEGORY_ICONS[c.id] || 'ico_singlePlayer.png'; // Fallback
+                        const iconUrl = `https://store.fastly.steamstatic.com/public/images/v6/ico/${iconName}`;
+                        
+                        return `
+                        <div class="bg-neutral-800 p-2 flex items-center gap-2 rounded text-xs font-bold text-neutral-300 border border-neutral-700">
+                            <img src="${iconUrl}" class="w-6 h-4">
+                            <span class="truncate">${c.description}</span>
                         </div>`;
-                    
-                    // Inicializa o player Video.js para este vídeo
-                    // Aguarda o próximo ciclo do DOM para inicializar
-                    setTimeout(() => {
-                        if (window.videojs) {
-                            videojs(videoId);
-                        }
-                    }, 1);
-                });
+                    }).join('');
+                }
+        
+                // Trailers (Todos)
+                if(game.movies && game.movies.length > 0) {
+                    document.getElementById('modal-section-videos').classList.remove('hidden');
+                    const container = document.getElementById('modal-youtube-container');
+                    container.innerHTML = ''; // Limpa container
+                
+                    game.movies.forEach((m, idx) => {
+                        // Prioriza MP4, depois HLS (.m3u8), depois DASH (.mpd)
+                        const src = m.dash_av1 || m.dash_h264 || m.hls_h264;
+                        const type = src.includes('.m3u8') ? 'application/x-mpegURL' : 
+                                    src.includes('.mpd') ? 'application/dash+xml' : 
+                                    'video/mp4';
+                
+                        const videoId = `vjs-player-${idx}`;
+                        container.innerHTML += `
+                            <div class="mb-4">
+                                <div class="aspect-video w-full !h-full">
+                                    <video id="${videoId}" class="video-js vjs-default-skin w-full !h-full" controls preload="auto" poster="${m.thumbnail}">
+                                    <source src="${src}" type="${type}">
+                                </video>
+                                </div>
+                                ${m.name ? `<div class="bg-black text-neutral-400 text-xs font-bold uppercase tracking-widest px-3 py-2">${m.name}</div>` : ''}
+                            </div>`;
+                        
+                        // Inicializa o player Video.js para este vídeo
+                        // Aguarda o próximo ciclo do DOM para inicializar
+                        setTimeout(() => {
+                            if (window.videojs) {
+                                videojs(videoId);
+                            }
+                        }, 1);
+                    });
+                }
+                
+            } catch(e) { 
+                console.error("Erro na busca Steam:", e); 
+                document.getElementById('modal-description').textContent = "Erro ao buscar dados na Steam.";
             }
-            
-        } catch(e) { 
-            console.error("Erro na busca Steam:", e); 
-            document.getElementById('modal-description').textContent = "Erro ao buscar dados na Steam.";
         }
-    }
 
-                async function buscarReviewsSteam(steamId) {
+        async function buscarReviewsSteam(steamId) {
             try {
                 const res = await fetch(`/api/steam-reviews?appid=${steamId}`);
                 const json = await res.json();
@@ -417,6 +415,14 @@
                 if (json.success && json.reviews && json.reviews.length > 0) {
                     const section = document.getElementById('modal-section-reviews');
                     const list = document.getElementById('modal-reviews-list');
+                    let notaSteam = (json.query_summary.total_positive * 100) / json.query_summary.total_reviews;
+                    console.log('notaSteam',notaSteam);
+                    /*
+                    88155 = 100
+                    73703 = x
+
+                    x = (73703 * 100) / 88155
+                    */
                     section.classList.remove('hidden');
                     list.innerHTML = json.reviews.map(r => {
                         const iconHtml = r.voted_up
