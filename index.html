@@ -159,6 +159,16 @@
             return { bg: 'bg-red-600', border: 'border-red-400' };
         }
 
+        function formatarTimestamp(timestamp) {
+            if (!timestamp) return '';
+            const date = new Date(timestamp * 1000); // Converte segundos para milissegundos
+            const dia = String(date.getDate()).padStart(2, '0');
+            const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+            const mes = meses[date.getMonth()];
+            const ano = date.getFullYear();
+            return `${dia} ${mes}, ${ano}`;
+        }
+
         async function carregarJogos() {
             const grid = document.getElementById('grid');
             jogosCarregados = [];
@@ -413,17 +423,20 @@
                             ? `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="inline mr-1"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>`
                             : `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="inline mr-1"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm10-13h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-3"/></svg>`;
 
+                        const dataFormatada = formatarTimestamp(r.timestamp_updated || r.timestamp_created);
+
                         return `
                         <div class="bg-neutral-800/30 border border-neutral-800 p-4 rounded-xl">
                             <div class="flex items-center gap-2 mb-2 flex-wrap">
                                 <span class="${r.voted_up ? 'text-emerald-500' : 'text-red-500'} font-bold text-[10px] tracking-wider uppercase flex items-center">
-                                    ${iconHtml} ${r.voted_up ? 'RECOMENDADO' : 'NÃO RECOMENDADO'}
+                                    ${iconHtml} ${r.voted_up ? ' RECOMENDADO' : ' NÃO RECOMENDADO'}
                                 </span>
-                                <span class="text-neutral-500 text-[10px]">• ${r.author.playtime_forever ? Math.round(r.author.playtime_forever / 60) + 'h de jogo' : '0h'}</span>
+                                <span class="text-neutral-500 text-[10px]">• ${dataFormatada}</span>
+                                <span class="text-neutral-500 text-[10px]">• ${r.author.playtime_forever ? Math.round(r.author.playtime_forever / 60) + 'h' : '0h'}</span>
                                 ${r.votes_up > 0 ? `
                                 <span class="text-neutral-500 text-[10px] flex items-center gap-1">
                                     • <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-neutral-400 inline"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
-                                    ${r.votes_up} ${r.votes_up === 1 ? 'voto positivo' : 'votos positivos'}
+                                    ${r.votes_up}
                                 </span>` : ''}
                             </div>
                             <div class="text-sm text-neutral-300 italic line-clamp-4">"${r.review}"</div>
