@@ -82,10 +82,16 @@
                         <div id="modal-youtube-container"></div>
                     </div>
 
-                    <div class="space-y-3">
+                                        <div class="space-y-3">
                         <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2">Descrição</h4>
                         <div id="modal-description" class="text-sm text-neutral-300"></div>
                     </div>
+
+                    <div id="modal-section-reviews" class="hidden space-y-3">
+                        <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2">Avaliações (Steam)</h4>
+                        <div id="modal-reviews-list" class="space-y-4"></div>
+                    </div>
+
 
                     <div class="space-y-3 pb-8">
                         <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2">Links</h4>
@@ -264,9 +270,11 @@
             document.getElementById('modal-description').textContent = 'Buscando informações da Steam...';
             
             document.getElementById('steam-metadata').classList.add('hidden');
-            document.getElementById('modal-section-screenshots').classList.add('hidden');
+                        document.getElementById('modal-section-screenshots').classList.add('hidden');
             document.getElementById('modal-section-recursos').classList.add('hidden');
+            document.getElementById('modal-section-reviews').classList.add('hidden');
             document.getElementById('modal-section-videos').classList.add('hidden');
+
 
             const metaScoreEl = document.getElementById('modal-metacritic-score');
             metaScoreEl.className = 'absolute bottom-4 right-4 hidden h-16 w-16 flex items-center justify-center rounded-lg border-2 border-white/20 shadow-xl';
@@ -285,9 +293,11 @@
             document.getElementById('modal-overlay').classList.remove('hidden');
             document.body.style.overflow = 'hidden';
             
-            if (jogo.steamId) {
+                        if (jogo.steamId) {
                 buscarDadosSteam(jogo.steamId);
+                buscarReviewsSteam(jogo.steamId);
             } else {
+
                 document.getElementById('modal-description').textContent = "Sem ID Steam detectado no post original.";
             }
         }
@@ -389,7 +399,32 @@
         }
     }
 
+                async function buscarReviewsSteam(steamId) {
+            try {
+                const res = await fetch(`/api/steam-reviews?appid=${steamId}`);
+                const json = await res.json();
+                
+                if (json.success && json.reviews && json.reviews.length > 0) {
+                    const section = document.getElementById('modal-section-reviews');
+                    const list = document.getElementById('modal-reviews-list');
+                    section.classList.remove('hidden');
+                    list.innerHTML = json.reviews.map(r => `
+                        <div class="bg-neutral-800/30 border border-neutral-800 p-4 rounded-xl">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="${r.voted_up ? 'text-emerald-500' : 'text-red-500'}">
+                                    ${r.voted_up ? '👍 Recomendado' : '👎 Não Recomendado'}
+                                </span>
+                                <span class="text-neutral-500 text-[10px]">• ${r.author.playtime_forever ? Math.round(r.author.playtime_forever / 60) + 'h de jogo' : ''}</span>
+                            </div>
+                            <div class="text-sm text-neutral-300 italic line-clamp-4">"${r.review}"</div>
+                        </div>
+                    `).join('');
+                }
+            } catch (e) { console.error("Erro ao buscar reviews", e); }
+        }
+
         function fecharModal() { 
+ 
             // Destroi todos os players ativos do Video.js antes de fechar
             if (window.videojs) {
                 const players = videojs.getAllPlayers();
