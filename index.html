@@ -305,8 +305,8 @@
                     const iconUrl = `https://store.fastly.steamstatic.com/public/images/v6/ico/${iconName}`;
                     
                     return `
-                    <div class="bg-neutral-800/50 p-2 flex items-center gap-2 rounded text-[10px] font-bold text-neutral-300 border border-neutral-800 hover:bg-neutral-800 transition-colors">
-                        <img src="${iconUrl}" class="w-4 h-4 brightness-75 invert">
+                    <div class="bg-neutral-800 p-2 flex items-center gap-2 rounded text-xs font-bold text-neutral-300 border border-neutral-700">
+                        <img src="${iconUrl}">
                         <span class="truncate">${c.description}</span>
                     </div>`;
                 }).join('');
