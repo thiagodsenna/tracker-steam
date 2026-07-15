@@ -457,7 +457,12 @@
                                 </span>` : ''}
                                 <span class="text-neutral-500 text-[10px] ml-auto">${dataFormatada}</span>
                             </div>
-                            <div class="text-[12px] text-neutral-400 line-clamp-4">${r.review.replace(/\n/g, '<br>')}</div>
+                            <div>
+                                <div class="text-[12px] text-neutral-400 line-clamp-4 break-words">${r.review.replace(/\n/g, '<br>')}</div>
+                                ${r.review.length > 200 || r.review.split('\n').length > 4 ? `
+                                <button onclick="this.previousElementSibling.classList.toggle('line-clamp-4'); this.textContent = this.previousElementSibling.classList.contains('line-clamp-4') ? 'Mais...' : 'Menos...';" class="text-[11px] text-emerald-500 font-bold mt-1 hover:text-emerald-400 transition-colors">Mais...</button>
+                                ` : ''}
+                            </div>
                         </div>
                         `;
                     }).join('');
