@@ -88,7 +88,12 @@
                     </div>
 
                     <div class="space-y-3 pb-8">
-                        <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2">Links de Download</h4>
+                        <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2">Links</h4>
+                        <div id="modal-links-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-2"></div>
+                    </div>
+
+                    <div class="space-y-3 pb-8">
+                        <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2">Download</h4>
                         <div id="modal-downloads-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-2"></div>
                     </div>
                 </div>
@@ -176,6 +181,11 @@
                     const steamMatch = item.content?.content?.match(/store\.steampowered\.com\/app\/(\d+)/);
                     const steamId = steamMatch ? steamMatch[1] : null;
 
+                    let links = [
+                        { label: 'Atualizações', url: `https://store.steampowered.com/newshub/?appids=${steamId}` },
+                        { label: 'Discussões', url: `https://steamcommunity.com/app/${steamId}/discussions/` },
+                    ];
+                    
                     jogosCarregados.push({ 
                         id: index, 
                         title: item.title, 
@@ -183,7 +193,8 @@
                         postLink: item.alternate?.[0]?.href || '#', 
                         downloads, 
                         date: new Date(item.published).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
-                        steamId: steamId 
+                        steamId: steamId,
+                        links
                     });
 
                     const card = document.createElement('div');
@@ -260,6 +271,11 @@
             const metaScoreEl = document.getElementById('modal-metacritic-score');
             metaScoreEl.className = 'absolute bottom-4 right-4 hidden h-16 w-16 flex items-center justify-center rounded-lg border-2 border-white/20 shadow-xl';
             document.getElementById('metacritic-score-value').textContent = '';
+            document.getElementById('modal-links-grid').innerHTML = jogo.links.map(link => `
+                <a href="${link.url}" target="_blank" class="bg-neutral-800 hover:bg-neutral-700 p-2 flex items-center gap-2 rounded text-xs font-bold text-neutral-300 border border-neutral-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    ${link.label}
+                </a>`).join('');
             document.getElementById('modal-downloads-grid').innerHTML = jogo.downloads.map(dl => `
                 <a href="${dl.url}" target="_blank" class="bg-neutral-800 hover:bg-neutral-700 p-2 flex items-center gap-2 rounded text-xs font-bold text-neutral-300 border border-neutral-700">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
