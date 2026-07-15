@@ -197,17 +197,19 @@
 
                     const steamMatch = item.content?.content?.match(/store\.steampowered\.com\/app\/(\d+)/);
                     const steamId = steamMatch ? steamMatch[1] : null;
+                    const postLink = item.alternate?.[0]?.href || '#';
 
                     let links = [
                         { label: 'Atualizações', url: `https://store.steampowered.com/newshub/?appids=${steamId}` },
                         { label: 'Discussões', url: `https://steamcommunity.com/app/${steamId}/discussions/` },
+                        { label: 'Skidrow', url: postLink },
                     ];
                     
                     jogosCarregados.push({ 
                         id: index, 
                         title: item.title, 
                         cover: img, 
-                        postLink: item.alternate?.[0]?.href || '#', 
+                        postLink: postLink,
                         downloads, 
                         date: new Date(item.published).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
                         steamId: steamId,
