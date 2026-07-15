@@ -420,7 +420,7 @@
                     document.getElementById('metacritic-score-value').textContent = notaSteam;
                     
                     //Total avaliações
-                    document.getElementById('total-reviews').innerHTML = `<span class="text-neutral-500">Avaliações:</span> ${json.query_summary.total_reviews}`;
+                    document.getElementById('total-reviews').innerHTML = `<span class="text-neutral-500">Avaliações:</span> ${json.query_summary.total_reviews.toLocaleString('pt-BR')}`;
                     
                     section.classList.remove('hidden');
                     list.innerHTML = json.reviews.map(r => {
