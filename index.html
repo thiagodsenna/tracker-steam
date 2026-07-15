@@ -457,7 +457,7 @@
                                 </span>` : ''}
                                 <span class="text-neutral-500 text-[10px] ml-auto">${dataFormatada}</span>
                             </div>
-                            <div class="text-sm text-neutral-300 italic line-clamp-4">"${r.review}"</div>
+                            <div class="text-sm text-neutral-300 italic line-clamp-4">"${r.review.replace(/\n/g, '<br>')}"</div>
                         </div>
                         `;
                     }).join('');
