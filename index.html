@@ -331,10 +331,10 @@
                 
                 // Metacritic (Nota) - Badge no cabeçalho
                 if (game.metacritic) {
-                    const { bg, border } = getMetacriticColor(game.metacritic.score);
+                    /* const { bg, border } = getMetacriticColor(game.metacritic.score);
                     const metaScoreEl = document.getElementById('modal-metacritic-score');
                     metaScoreEl.className = `absolute bottom-4 right-4 h-16 w-16 flex flex-col items-center justify-center rounded-lg border-2 ${border} ${bg} shadow-xl`;
-                    document.getElementById('metacritic-score-value').textContent = game.metacritic.score;
+                    document.getElementById('metacritic-score-value').textContent = game.metacritic.score; */
 
                     const metaEl = document.createElement('p');
                     metaEl.dataset.meta = 'metacritic';
@@ -415,8 +415,13 @@
                 if (json.success && json.reviews && json.reviews.length > 0) {
                     const section = document.getElementById('modal-section-reviews');
                     const list = document.getElementById('modal-reviews-list');
-                    let notaSteam = (json.query_summary.total_positive * 100) / json.query_summary.total_reviews;
+                    let notaSteam = Math.trunc((json.query_summary.total_positive * 100) / json.query_summary.total_reviews);
                     console.log('notaSteam',notaSteam);
+                    //Nota cabeçalho
+                    const { bg, border } = getMetacriticColor(notaSteam);
+                    const metaScoreEl = document.getElementById('modal-metacritic-score');
+                    metaScoreEl.className = `absolute bottom-4 right-4 h-16 w-16 flex flex-col items-center justify-center rounded-lg border-2 ${border} ${bg} shadow-xl`;
+                    document.getElementById('metacritic-score-value').textContent = notaSteam;
                     /*
                     88155 = 100
                     73703 = x
