@@ -335,11 +335,6 @@
                     const metaScoreEl = document.getElementById('modal-metacritic-score');
                     metaScoreEl.className = `absolute bottom-4 right-4 h-16 w-16 flex flex-col items-center justify-center rounded-lg border-2 ${border} ${bg} shadow-xl`;
                     document.getElementById('metacritic-score-value').textContent = game.metacritic.score; */
-
-                    const metaEl = document.createElement('p');
-                    metaEl.dataset.meta = 'metacritic';
-                    metaEl.innerHTML = `<span class="text-neutral-500">Metacritic:</span> ${game.metacritic.score}/100`;
-                    document.getElementById('steam-metadata').appendChild(metaEl);
                 }
         
                 document.getElementById('modal-description').innerHTML = game.detailed_description || game.short_description || "Sem descrição disponível.";
@@ -422,6 +417,12 @@
                     const metaScoreEl = document.getElementById('modal-metacritic-score');
                     metaScoreEl.className = `absolute bottom-4 right-4 h-16 w-16 flex flex-col items-center justify-center rounded-lg border-2 ${border} ${bg} shadow-xl`;
                     document.getElementById('metacritic-score-value').textContent = notaSteam;
+
+                    //Total avaliações
+                    const metaEl = document.createElement('p');
+                    metaEl.dataset.meta = 'metacritic';
+                    metaEl.innerHTML = `<span class="text-neutral-500">Avaliações:</span> ${json.query_summary.total_reviews}`;
+                    document.getElementById('steam-metadata').appendChild(metaEl);
                     /*
                     88155 = 100
                     73703 = x
