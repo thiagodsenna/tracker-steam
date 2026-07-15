@@ -57,6 +57,7 @@
                             <div class="bg-neutral-950/50 p-4 rounded-xl border border-neutral-800">
                                 <h3 id="modal-title-release" class="text-sm font-bold text-white mb-3"></h3>
                                 <div id="steam-metadata" class="text-xs text-neutral-400 space-y-1 hidden">
+                                    <p id="game-size"></p>
                                     <p id="release-date"></p>
                                     <p id="total-reviews"></p>
                                     <p id="modal-genres"></p>
@@ -184,6 +185,10 @@
                 data.items.forEach((item, index) => {
                     const doc = new DOMParser().parseFromString(item.content?.content || item.summary?.content || '', 'text/html');
                     const img = item.visual?.url || doc.querySelector('img')?.src || '';
+                    const textContent = doc.body.textContent || '';
+                    const sizeMatch = textContent.match(/Size:\s*([\d.,]+\s*[a-zA-Z]+)/i);
+                    const size = sizeMatch ? sizeMatch[1].trim() : 'Não informado';
+                    console.log('size',size);
                     
                     let downloads = [];
                     doc.querySelectorAll('a').forEach(a => {
@@ -328,6 +333,7 @@
                 
                 // Metadata e Metacritic
                 document.getElementById('steam-metadata').classList.remove('hidden');
+                document.getElementById('game-size').innerHTML = `<span class="text-neutral-500">Tamanho:</span> `;
                 document.getElementById('release-date').innerHTML = `<span class="text-neutral-500">Lançamento:</span> ${game.release_date.date}`;
                 document.getElementById('modal-genres').innerHTML = `<span class="text-neutral-500">Gêneros:</span> ${game.genres.map(g => g.description).join(', ')}`;
                 document.getElementById('modal-developer').innerHTML = `<span class="text-neutral-500">Desenvolvedor:</span> ${game.developers.join(', ')}`;
