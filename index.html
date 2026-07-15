@@ -188,7 +188,6 @@
                     const textContent = doc.body.textContent || '';
                     const sizeMatch = textContent.match(/Size:\s*([\d.,]+\s*[a-zA-Z]+)/i);
                     const size = sizeMatch ? sizeMatch[1].trim() : 'Não informado';
-                    console.log('size',size);
                     
                     let downloads = [];
                     doc.querySelectorAll('a').forEach(a => {
@@ -218,7 +217,8 @@
                         downloads, 
                         date: new Date(item.published).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
                         steamId: steamId,
-                        links
+                        links,
+                        size: size
                     });
 
                     const card = document.createElement('div');
@@ -286,6 +286,7 @@
             document.getElementById('modal-hero').style.backgroundImage = 'none';
             document.getElementById('modal-btn-skidrow').href = jogo.postLink;
             document.getElementById('modal-description').textContent = 'Buscando informações da Steam...';
+            document.getElementById('game-size').innerHTML = `<span class="text-neutral-500">Tamanho:</span> ${jogo.size}`;
             
             document.getElementById('steam-metadata').classList.add('hidden');
             document.getElementById('modal-section-screenshots').classList.add('hidden');
@@ -333,7 +334,6 @@
                 
                 // Metadata e Metacritic
                 document.getElementById('steam-metadata').classList.remove('hidden');
-                document.getElementById('game-size').innerHTML = `<span class="text-neutral-500">Tamanho:</span> `;
                 document.getElementById('release-date').innerHTML = `<span class="text-neutral-500">Lançamento:</span> ${game.release_date.date}`;
                 document.getElementById('modal-genres').innerHTML = `<span class="text-neutral-500">Gêneros:</span> ${game.genres.map(g => g.description).join(', ')}`;
                 document.getElementById('modal-developer').innerHTML = `<span class="text-neutral-500">Desenvolvedor:</span> ${game.developers.join(', ')}`;
