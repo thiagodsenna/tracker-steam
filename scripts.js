@@ -264,7 +264,7 @@ async function buscarDadosSteam(steamId) {
 
         // Metadata e Metacritic
         document.getElementById('steam-metadata').classList.remove('hidden');
-        document.getElementById('release-date').innerHTML = `<span class="text-neutral-500">Lançamento:</span> ${game.release_date.date}`;
+        document.getElementById('release-date').innerHTML = `<span class="text-neutral-500">Lançamento:</span> ${formatarDataRelativa(game.release_date.date)}`;
         document.getElementById('modal-genres').innerHTML = `<span class="text-neutral-500">Gêneros:</span> ${game.genres.map(g => g.description).join(', ')}`;
         document.getElementById('modal-developer').innerHTML = `<span class="text-neutral-500">Desenvolvedor:</span> ${game.developers.join(', ')}`;
 
