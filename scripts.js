@@ -1,5 +1,6 @@
 let jogosCarregados = [];
-const STREAM_ID = 'feed%2Fhttps%3A%2F%2Fwww.skidrowreloaded.com%2Fcategory%2Fpc-games%2Ffeed%2F';
+let modalJogoAtual = null;
+const STREAM_ID = 'feed%2Fhttps%2F%2Fwww.skidrowreloaded.com%2Fcategory%2Fpc-games%2Ffeed%2F';
 const PROXY_BASE_URL = 'https://tracker-steam.vercel.app/api/steam-proxy?appid=';
 const CATEGORY_ICONS = {
     1: 'ico_multiPlayer.png',
@@ -139,6 +140,7 @@ async function carregarJogos() {
 
             jogosCarregados.push({
                 id: index,
+                feedlyId: item.id,
                 title: item.title,
                 cover: img,
                 postLink: postLink,
@@ -162,6 +164,13 @@ async function carregarJogos() {
                     `;
             grid.appendChild(card);
         });
+
+        const sharedId = new URLSearchParams(window.location.search).get('id');
+        if (sharedId) {
+            const index = encontrarJogoPorFeedlyId(sharedId);
+            if (index >= 0) abrirModal(index, { fromDeepLink: true });
+        }
+
         //carregarNotasEmLote();
     } catch (err) {
         console.error("Erro Feedly:", err);
@@ -196,24 +205,73 @@ async function carregarNotasEmLote() {
     } catch (e) { console.error("Erro ao buscar notas em lote", e); }
 }
 
+function encontrarJogoPorFeedlyId(feedlyId) {
+    return jogosCarregados.findIndex(j => j.feedlyId === feedlyId);
+}
+
+function getShareUrl(feedlyId) {
+    const url = new URL(window.location.origin + window.location.pathname);
+    url.searchParams.set('id', feedlyId);
+    return url.toString();
+}
+
+async function copiarLink(texto) {
+    try {
+        await navigator.clipboard.writeText(texto);
+        alert('Link copiado!');
+    } catch {
+        prompt('Copie o link:', texto);
+    }
+}
+
+async function compartilharJogoAtual() {
+    const jogo = modalJogoAtual !== null ? jogosCarregados[modalJogoAtual] : null;
+    if (!jogo) return;
+
+    const shareUrl = getShareUrl(jogo.feedlyId);
+    const shareData = {
+        title: jogo.title,
+        text: `Confira: ${jogo.title}`,
+        url: shareUrl
+    };
+
+    if (navigator.share) {
+        try {
+            await navigator.share(shareData);
+        } catch (err) {
+            if (err.name !== 'AbortError') await copiarLink(shareUrl);
+        }
+    } else {
+        await copiarLink(shareUrl);
+    }
+}
+
 window.abrirLightbox = (src) => {
     document.getElementById('lightbox-img').src = src;
     document.getElementById('lightbox').classList.remove('hidden');
 };
 function fecharLightbox() { document.getElementById('lightbox').classList.add('hidden'); }
 
-async function abrirModal(id) {
-    // Adiciona um estado ao histórico para capturar o "Voltar"
-    history.pushState({ modalOpen: true }, '', window.location.href);
-
+async function abrirModal(id, options = {}) {
     const jogo = jogosCarregados[id];
     if (!jogo) return;
+
+    modalJogoAtual = id;
+
+    const shareUrl = getShareUrl(jogo.feedlyId);
+    const historyState = { modalOpen: true, gameId: jogo.feedlyId };
+
+    if (options.fromDeepLink) {
+        history.replaceState(historyState, '', shareUrl);
+    } else {
+        history.pushState(historyState, '', shareUrl);
+    }
 
     document.getElementById('modal-title-original').textContent = jogo.title;
     document.getElementById('modal-title-release').textContent = jogo.title;
     document.getElementById('modal-cover').src = jogo.cover;
     document.getElementById('modal-hero').style.backgroundImage = 'none';
-    document.getElementById('modal-btn-skidrow').href = jogo.postLink;
+    document.getElementById('modal-btn-share').onclick = compartilharJogoAtual;
     document.getElementById('modal-description').textContent = 'Buscando informações da Steam...';
     document.getElementById('game-size').innerHTML = `<span class="text-neutral-500">Tamanho:</span> ${jogo.size}`;
 
@@ -399,19 +457,17 @@ async function buscarReviewsSteam(steamId) {
     } catch (e) { console.error("Erro ao buscar reviews", e); }
 }
 
-function fecharModal() {
-
-    // Destroi todos os players ativos do Video.js antes de fechar
+function fecharModal(fromPopstate = false) {
     if (window.videojs) {
         const players = videojs.getAllPlayers();
         players.forEach(player => player.dispose());
     }
 
-    // Se o modal foi aberto pelo pushState, volta o histórico para limpar
-    if (history.state && history.state.modalOpen) {
+    if (!fromPopstate && history.state?.modalOpen) {
         history.back();
     }
 
+    modalJogoAtual = null;
     document.body.style.overflow = '';
     document.getElementById('modal-overlay').classList.add('hidden');
 }
@@ -421,8 +477,7 @@ carregarJogos();
 
 window.addEventListener('popstate', () => {
     const modal = document.getElementById('modal-overlay');
-    // Se o modal estiver aberto, fecha sem navegar para fora da página
     if (modal && !modal.classList.contains('hidden')) {
-        fecharModal();
+        fecharModal(true);
     }
 });
