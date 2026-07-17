@@ -97,7 +97,8 @@ function formatarDataRelativa(dataString) {
     const diffMeses = Math.floor(diffDias / 30);
     if (diffMeses < 12) return `Há ${diffMeses} ${diffMeses === 1 ? 'mês' : 'meses'}`;
 
-    return dataPost.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+    return dataString;
+    //return dataPost.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
 }
 
 async function carregarJogos() {
