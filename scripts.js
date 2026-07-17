@@ -59,6 +59,27 @@ function formatarTimestamp(timestamp) {
     return `${dia} ${mes}, ${ano}`;
 }
 
+function formatarDataRelativa(dataISO) {
+    const dataPost = new Date(dataISO);
+    const hoje = new Date();
+    
+    // Zera as horas para comparar apenas os dias
+    const d1 = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+    const d2 = new Date(dataPost.getFullYear(), dataPost.getMonth(), dataPost.getDate());
+    
+    const diffTempo = d1 - d2;
+    const diffDias = Math.floor(diffTempo / (1000 * 60 * 60 * 24));
+
+    if (diffDias === 0) return 'Hoje';
+    if (diffDias === 1) return 'Ontem';
+    if (diffDias < 30) return `Há ${diffDias} dias`;
+    
+    const diffMeses = Math.floor(diffDias / 30);
+    if (diffMeses < 12) return `Há ${diffMeses} ${diffMeses === 1 ? 'mês' : 'meses'}`;
+
+    return dataPost.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+}
+
 async function carregarJogos() {
     const grid = document.getElementById('grid');
     jogosCarregados = [];
@@ -103,7 +124,7 @@ async function carregarJogos() {
                 cover: img,
                 postLink: postLink,
                 downloads,
-                date: new Date(item.published).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+                date: formatarDataRelativa(item.published),
                 steamId: steamId,
                 links,
                 size: size
@@ -117,6 +138,7 @@ async function carregarJogos() {
                             <img src="${item.visual?.url}" referrerpolicy="no-referrer" class="w-full h-full object-cover">
                         </div>
                         <div id="score-${index}" class="absolute top-2 right-2 bg-black/70 backdrop-blur px-2 py-1 rounded text-[10px] font-bold text-emerald-400 hidden"></div>
+                        <div class="absolute bottom-12 right-2 bg-black/60 backdrop-blur px-1.5 py-0.5 rounded text-[9px] text-neutral-400 z-10">${formatarDataRelativa(item.published)}</div>
                         <div class="p-3 font-bold text-xs line-clamp-2">${item.title}</div>
                     `;
             grid.appendChild(card);
