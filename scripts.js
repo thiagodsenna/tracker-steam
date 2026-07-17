@@ -59,8 +59,26 @@ function formatarTimestamp(timestamp) {
     return `${dia} ${mes}, ${ano}`;
 }
 
-function formatarDataRelativa(dataISO) {
-    const dataPost = new Date(dataISO);
+function formatarDataRelativa(dataString) {
+    let dataPost;
+    
+    // Verifica se é uma data no formato "MMM DD, YYYY" (Ex: Jul 16, 2026)
+    if (isNaN(Date.parse(dataString)) && /^[a-zA-Z]{3}\s\d{1,2},\s\d{4}$/.test(dataString)) {
+        const mesesIngles = {
+            'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5,
+            'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11
+        };
+        const partes = dataString.replace(',', '').split(' ');
+        const mes = mesesIngles[partes[0]];
+        const dia = parseInt(partes[1]);
+        const ano = parseInt(partes[2]);
+        dataPost = new Date(ano, mes, dia);
+    } else {
+        dataPost = new Date(dataString);
+    }
+
+    if (isNaN(dataPost.getTime())) return dataString; // Fallback caso falhe
+
     const hoje = new Date();
     
     // Zera as horas para comparar apenas os dias
