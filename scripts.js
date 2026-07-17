@@ -137,6 +137,7 @@ async function carregarJogos() {
                 { label: 'Atualizações', url: `https://store.steampowered.com/newshub/?appids=${steamId}` },
                 { label: 'Discussões', url: `https://steamcommunity.com/app/${steamId}/discussions/` },
                 { label: 'Skidrow', url: postLink },
+                { label: 'Steam', url: `https://store.steampowered.com/app/${steamId}` },
             ];
 
             jogosCarregados.push({
