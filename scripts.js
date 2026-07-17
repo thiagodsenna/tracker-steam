@@ -84,12 +84,9 @@ function formatarDataRelativa(dataString) {
     // Zera as horas para comparar apenas os dias
     const d1 = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
     const d2 = new Date(dataPost.getFullYear(), dataPost.getMonth(), dataPost.getDate());
-    
     const diffTempo = d1 - d2;
     const diffDias = Math.floor(diffTempo / (1000 * 60 * 60 * 24));
-    console.log('diffDias',diffDias);
-    console.log('d1',d1);
-    console.log('d2',d2);
+    
     if (diffDias === 0) return 'Hoje';
     if (diffDias === 1) return 'Ontem';
     if (diffDias < 30) return `Há ${diffDias} dias`;
