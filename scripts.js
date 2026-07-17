@@ -99,6 +99,108 @@ function formatarDataRelativa(dataString) {
     //return dataPost.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
 }
 
+function parseFeedlyItem(item, index) {
+    const doc = new DOMParser().parseFromString(item.content?.content || item.summary?.content || '', 'text/html');
+    const img = item.visual?.url || doc.querySelector('img')?.src || '';
+    const textContent = doc.body.textContent || '';
+    const sizeMatch = textContent.match(/Size:\s*([\d.,]+\s*[a-zA-Z]+)/i);
+    const size = sizeMatch ? sizeMatch[1].trim() : 'Não informado';
+
+    let downloads = [];
+    doc.querySelectorAll('a').forEach(a => {
+        const href = a.href || '';
+        if (href.includes('skidrowreloaded') || href.includes('steampowered') || href.includes('youtube')) return;
+        if (a.textContent.length > 2 && downloads.length < 16) {
+            let label = href.startsWith('magnet:') ? 'TORRENT' : new URL(a.href).hostname.replace('www.', '').toUpperCase().split('.')[0];
+            downloads.push({ label: label, url: a.href });
+        }
+    });
+
+    const steamMatch = item.content?.content?.match(/store\.steampowered\.com\/app\/(\d+)/);
+    const steamId = steamMatch ? steamMatch[1] : null;
+    const postLink = item.alternate?.[0]?.href || '#';
+
+    const links = [
+        { label: 'Atualizações', url: `https://store.steampowered.com/newshub/?appids=${steamId}` },
+        { label: 'Discussões', url: `https://steamcommunity.com/app/${steamId}/discussions/` },
+        { label: 'Skidrow', url: postLink },
+        { label: 'Steam', url: `https://store.steampowered.com/app/${steamId}` },
+    ];
+
+    return {
+        id: index,
+        feedlyId: item.id,
+        title: item.title,
+        cover: img,
+        postLink: postLink,
+        downloads,
+        date: formatarDataRelativa(item.published),
+        steamId: steamId,
+        links,
+        size: size
+    };
+}
+
+function criarCardJogo(jogo) {
+    const card = document.createElement('div');
+    card.className = 'bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden cursor-pointer relative hover:border-emerald-500/50 transition-all';
+    card.onclick = () => abrirModal(jogo.id);
+    card.innerHTML = `
+        <div class="aspect-[3/4] bg-neutral-950">
+            <img src="${jogo.cover}" referrerpolicy="no-referrer" class="w-full h-full object-cover">
+        </div>
+        <div id="score-${jogo.id}" class="absolute top-2 right-2 bg-black/70 backdrop-blur px-2 py-1 rounded text-[10px] font-bold text-emerald-400 hidden"></div>
+        <div class="absolute bottom-12 right-2 bg-black/60 backdrop-blur px-1.5 py-0.5 rounded text-[9px] text-neutral-400 z-10">${jogo.date}</div>
+        <div class="p-3 font-bold text-xs line-clamp-2">${jogo.title}</div>
+    `;
+    return card;
+}
+
+async function buscarItemFeedlyRemoto(feedlyId) {
+    const res = await fetch(`/api/feedly-entry?id=${encodeURIComponent(feedlyId)}`);
+    if (!res.ok) return null;
+    return res.json();
+}
+
+async function processarDeepLink() {
+    const sharedId = new URLSearchParams(window.location.search).get('id');
+    if (!sharedId) return;
+
+    let index = encontrarJogoPorFeedlyId(sharedId);
+    if (index >= 0) {
+        abrirModal(index, { fromDeepLink: true });
+        return;
+    }
+
+    const grid = document.getElementById('grid');
+    grid.insertAdjacentHTML('afterbegin',
+        '<div id="deep-link-loading" class="col-span-full text-center py-6 text-emerald-500 animate-pulse text-sm">Carregando jogo compartilhado...</div>'
+    );
+
+    try {
+        const item = await buscarItemFeedlyRemoto(sharedId);
+        document.getElementById('deep-link-loading')?.remove();
+
+        if (!item) {
+            grid.insertAdjacentHTML('afterbegin',
+                '<div class="col-span-full text-center py-6 text-amber-400 text-sm">Jogo compartilhado não encontrado ou indisponível.</div>'
+            );
+            return;
+        }
+
+        const jogo = parseFeedlyItem(item, jogosCarregados.length);
+        jogosCarregados.push(jogo);
+        grid.prepend(criarCardJogo(jogo));
+        abrirModal(jogo.id, { fromDeepLink: true });
+    } catch (err) {
+        console.error('Erro ao carregar deep link:', err);
+        document.getElementById('deep-link-loading')?.remove();
+        grid.insertAdjacentHTML('afterbegin',
+            '<div class="col-span-full text-center py-6 text-red-400 text-sm">Erro ao carregar o jogo compartilhado.</div>'
+        );
+    }
+}
+
 async function carregarJogos() {
     const grid = document.getElementById('grid');
     jogosCarregados = [];
@@ -111,70 +213,18 @@ async function carregarJogos() {
         grid.innerHTML = '';
 
         data.items.forEach((item, index) => {
-            const doc = new DOMParser().parseFromString(item.content?.content || item.summary?.content || '', 'text/html');
-            const img = item.visual?.url || doc.querySelector('img')?.src || '';
-            const textContent = doc.body.textContent || '';
-            const sizeMatch = textContent.match(/Size:\s*([\d.,]+\s*[a-zA-Z]+)/i);
-            const size = sizeMatch ? sizeMatch[1].trim() : 'Não informado';
-
-            let downloads = [];
-            doc.querySelectorAll('a').forEach(a => {
-                const href = a.href || '';
-                if (href.includes('skidrowreloaded') || href.includes('steampowered') || href.includes('youtube')) return;
-                if (a.textContent.length > 2 && downloads.length < 16) {
-                    let label = href.startsWith('magnet:') ? 'TORRENT' : new URL(a.href).hostname.replace('www.', '').toUpperCase().split('.')[0];
-                    downloads.push({ label: label, url: a.href });
-                }
-            });
-
-            const steamMatch = item.content?.content?.match(/store\.steampowered\.com\/app\/(\d+)/);
-            const steamId = steamMatch ? steamMatch[1] : null;
-            const postLink = item.alternate?.[0]?.href || '#';
-
-            let links = [
-                { label: 'Atualizações', url: `https://store.steampowered.com/newshub/?appids=${steamId}` },
-                { label: 'Discussões', url: `https://steamcommunity.com/app/${steamId}/discussions/` },
-                { label: 'Skidrow', url: postLink },
-                { label: 'Steam', url: `https://store.steampowered.com/app/${steamId}` },
-            ];
-
-            jogosCarregados.push({
-                id: index,
-                feedlyId: item.id,
-                title: item.title,
-                cover: img,
-                postLink: postLink,
-                downloads,
-                date: formatarDataRelativa(item.published),
-                steamId: steamId,
-                links,
-                size: size
-            });
-
-            const card = document.createElement('div');
-            card.className = 'bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden cursor-pointer relative hover:border-emerald-500/50 transition-all';
-            card.onclick = () => abrirModal(index);
-            card.innerHTML = `
-                        <div class="aspect-[3/4] bg-neutral-950">
-                            <img src="${item.visual?.url}" referrerpolicy="no-referrer" class="w-full h-full object-cover">
-                        </div>
-                        <div id="score-${index}" class="absolute top-2 right-2 bg-black/70 backdrop-blur px-2 py-1 rounded text-[10px] font-bold text-emerald-400 hidden"></div>
-                        <div class="absolute bottom-12 right-2 bg-black/60 backdrop-blur px-1.5 py-0.5 rounded text-[9px] text-neutral-400 z-10">${formatarDataRelativa(item.published)}</div>
-                        <div class="p-3 font-bold text-xs line-clamp-2">${item.title}</div>
-                    `;
-            grid.appendChild(card);
+            const jogo = parseFeedlyItem(item, index);
+            jogosCarregados.push(jogo);
+            grid.appendChild(criarCardJogo(jogo));
         });
 
-        const sharedId = new URLSearchParams(window.location.search).get('id');
-        if (sharedId) {
-            const index = encontrarJogoPorFeedlyId(sharedId);
-            if (index >= 0) abrirModal(index, { fromDeepLink: true });
-        }
+        await processarDeepLink();
 
         //carregarNotasEmLote();
     } catch (err) {
         console.error("Erro Feedly:", err);
         grid.innerHTML = `<div class="col-span-full text-red-500 text-center py-20">Erro ao carregar feeds.</div>`;
+        await processarDeepLink();
     }
 }
 
