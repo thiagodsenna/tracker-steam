@@ -42,6 +42,29 @@ const CATEGORY_ICONS = {
 
 const delay = ms => new Promise(res => setTimeout(res, ms));
 
+function renderizarDesenvolvedores(developers) {
+    if (!developers?.length) return '';
+
+    const label = developers.length > 1 ? 'Desenvolvedores' : 'Desenvolvedor';
+    const primeiro = developers[0];
+    const ocultos = developers.length - 1;
+
+    if (ocultos === 0) {
+        return `<span class="text-neutral-500">${label}:</span> ${primeiro}`;
+    }
+
+    const todos = developers.join(', ');
+    return `<span class="text-neutral-500">${label}:</span> <span id="dev-list">${primeiro}</span> <button type="button" id="dev-expand-btn" class="text-emerald-400 hover:text-emerald-300 font-bold cursor-pointer">[+${ocultos}]</button>`;
+}
+
+function configurarExpandirDesenvolvedores(developers) {
+    document.getElementById('dev-expand-btn')?.addEventListener('click', function () {
+        const devList = document.getElementById('dev-list');
+        if (devList) devList.textContent = developers.join(', ');
+        this.remove();
+    });
+}
+
 function getMetacriticColor(score) {
     if (score >= 80) return { bg: 'bg-green-600', border: 'border-green-400' };
     if (score >= 70) return { bg: 'bg-yellow-500', border: 'border-yellow-300' };
@@ -324,6 +347,7 @@ async function abrirModal(id, options = {}) {
     document.getElementById('modal-btn-share').onclick = compartilharJogoAtual;
     document.getElementById('modal-description').textContent = 'Buscando informações da Steam...';
     document.getElementById('game-size').innerHTML = `<span class="text-neutral-500">Tamanho:</span> ${jogo.size}`;
+    document.getElementById('modal-developer').innerHTML = '';
 
     document.getElementById('steam-metadata').classList.add('hidden');
     document.getElementById('modal-section-screenshots').classList.add('hidden');
@@ -373,7 +397,8 @@ async function buscarDadosSteam(steamId) {
         document.getElementById('steam-metadata').classList.remove('hidden');
         document.getElementById('release-date').innerHTML = `<span class="text-neutral-500">Lançamento:</span> ${formatarDataRelativa(game.release_date.date)}`;
         document.getElementById('modal-genres').innerHTML = `<span class="text-neutral-500">Gêneros:</span> ${game.genres.map(g => g.description).join(', ')}`;
-        document.getElementById('modal-developer').innerHTML = `<span class="text-neutral-500">Desenvolvedor:</span> ${game.developers.join(', ')}`;
+        document.getElementById('modal-developer').innerHTML = renderizarDesenvolvedores(game.developers);
+        configurarExpandirDesenvolvedores(game.developers);
 
         // Metacritic (Nota) - Badge no cabeçalho
         if (game.metacritic) {
