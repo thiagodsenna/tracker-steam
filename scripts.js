@@ -123,6 +123,45 @@ function formatarDataRelativa(dataString) {
     //return dataPost.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
 }
 
+function mapearRelease(stringEntrada) {
+    // Regex que identifica "v" seguido de números/pontos OU "Build" seguido de números
+    const regexVersao = /\b(v\d+(?:\.\d+)*|Build \d+)\b/i;
+    
+    const match = stringEntrada.match(regexVersao);
+    
+    // Caso a string não siga o padrão esperado, retorna um objeto seguro
+    if (!match) {
+        return {
+            tituloOriginal: stringEntrada.trim(),
+            versao: "",
+            tags: []
+        };
+    }
+    
+    const versao = match[0];
+    const indiceVersao = match.index;
+    
+    // O título é tudo o que está antes da versão
+    const tituloOriginal = stringEntrada.slice(0, indiceVersao).trim();
+    
+    // O resto contém as tags (o que vem depois da versão)
+    const resto = stringEntrada.slice(indiceVersao + versao.length);
+    
+    // Limpa caracteres residuais do início (como hifens ou espaços)
+    const stringTags = resto.trim().replace(/^[-]+/g, '').trim();
+    
+    // Divide as tags por hífen, remove espaços extras e ignora campos vazios
+    const tags = stringTags 
+        ? stringTags.split('-').map(tag => tag.trim()).filter(Boolean)
+        : [];
+        
+    return {
+        tituloOriginal,
+        versao,
+        tags
+    };
+}
+
 function parseFeedlyItem(item, index) {
     const doc = new DOMParser().parseFromString(item.content?.content || item.summary?.content || '', 'text/html');
     const img = item.visual?.url || doc.querySelector('img')?.src || '';
@@ -143,6 +182,8 @@ function parseFeedlyItem(item, index) {
     const steamMatch = item.content?.content?.match(/store\.steampowered\.com\/app\/(\d+)/);
     const steamId = steamMatch ? steamMatch[1] : null;
     const postLink = item.alternate?.[0]?.href || '#';
+    const release = mapearRelease(item.title);
+    console.log('release', release);
 
     const links = [
         { label: 'Atualizações', url: `https://store.steampowered.com/newshub/?appids=${steamId}` },
@@ -161,7 +202,8 @@ function parseFeedlyItem(item, index) {
         date: formatarDataRelativa(item.published),
         steamId: steamId,
         links,
-        size: size
+        size: size,
+        release
     };
 }
 
@@ -189,7 +231,7 @@ function criarCardJogoCompacto(jogo) {
             <img src="${jogo.cover}" referrerpolicy="no-referrer" class="w-full h-full object-cover">
         </div>
         <div class="flex flex-col justify-center min-w-0 flex-1 relative pr-12">
-            <div class="font-bold text-xl text-white mb-2" title="${jogo.title}">${jogo.title}</div>
+            <div class="font-bold text-lg text-white mb-2" title="${jogo.title}">${jogo.title}</div>
             <div class="text-[11px] text-neutral-400 mb-1"><span class="text-neutral-500">Lançamento:</span> ${jogo.date}</div>
             <div class="text-[11px] text-neutral-400"><span class="text-neutral-500">Tamanho:</span> ${jogo.size}</div>
         </div>
