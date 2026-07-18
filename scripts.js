@@ -265,7 +265,7 @@ function criarCardJogoCompacto(jogo) {
         </div>
         
         <!-- Container da direita -->
-        <div class="flex flex-col justify-between min-w-0 flex-1 relative pr-4 py-1">
+        <div class="flex flex-col justify-between min-w-0 flex-1 relative py-1">
             
             <!-- LINHA SUPERIOR: Título (Esquerda) + Badges de Tags (Direita) -->
             <div class="flex justify-between items-start gap-4 w-full">
