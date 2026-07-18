@@ -271,8 +271,8 @@ function criarCardJogoCompacto(jogo) {
             <div class="flex justify-between items-start gap-4 w-full">
                 
                 <!-- Título: flex-1 e min-w-0 garantem que ele quebre linha exatamente na "linha vermelha" sem empurrar as tags -->
-                <div class="font-rajdhani font-bold text-xl text-white tracking-wide flex-1 min-w-0 leading-tight" title="${jogo.title}">
-                    ${jogo.release.tituloOriginal}
+                <div class="font-rajdhani font-bold text-lg text-white tracking-wide flex-1 min-w-0 leading-tight" title="${jogo.title}">
+                    ${jogo.release.tituloOriginal.toUpperCase()}
                 </div>
                 
                 <!-- Badges: flex-col empilha as tags na vertical e items-end alinha todas à direita -->
