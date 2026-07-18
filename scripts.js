@@ -282,7 +282,7 @@ function criarCardJogoCompacto(jogo) {
     if (jogo.release.tags && jogo.release.tags.length > 0) {
         // Cria um badge separado para CADA tag e junta tudo
         html += jogo.release.tags.map(tag => `
-                    <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-semibold px-2 py-0.5 rounded shadow-sm">
+                    <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-semibold px-1 py-0.5 rounded shadow-sm">
                         ${tag}
                     </span>`).join('');
     }
