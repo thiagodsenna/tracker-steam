@@ -367,7 +367,7 @@ async function carregarJogos() {
         renderizarJogos();
         await processarDeepLink();
 
-        carregarNotasEmLote();
+        //carregarNotasEmLote();
     } catch (err) {
         console.error("Erro Feedly:", err);
         grid.innerHTML = `<div class="col-span-full text-red-500 text-center py-20">Erro ao carregar feeds.</div>`;
