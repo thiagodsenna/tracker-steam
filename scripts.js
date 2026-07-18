@@ -264,52 +264,59 @@ function criarCardJogoCompacto(jogo) {
             <img src="${jogo.cover}" referrerpolicy="no-referrer" class="w-full h-full object-cover">
         </div>
         
-        <!-- Container da direita: Alinha o título no topo e as infos na base (justify-between) -->
-        <div class="flex flex-col justify-between min-w-0 flex-1 relative pr-12 py-1">
+        <!-- Container da direita -->
+        <div class="flex flex-col justify-between min-w-0 flex-1 relative pr-4 py-1">
             
-            <!-- Título: w-full garante que ele ocupe a linha inteira sozinho -->
-            <div class="font-bold text-lg text-white w-full leading-tight" title="${jogo.title}">
-                ${jogo.release.tituloOriginal}
+            <!-- LINHA SUPERIOR: Título (Esquerda) + Badges de Tags (Direita) -->
+            <div class="flex justify-between items-start gap-4 w-full">
+                
+                <!-- Título: flex-1 e min-w-0 garantem que ele quebre linha exatamente na "linha vermelha" sem empurrar as tags -->
+                <div class="font-bold text-lg text-white flex-1 min-w-0 leading-tight" title="${jogo.title}">
+                    ${jogo.release.tituloOriginal}
+                </div>
+                
+                <!-- Badges: flex-col empilha as tags na vertical e items-end alinha todas à direita -->
+                <div class="flex flex-col items-end gap-1 shrink-0">`;
+
+    // Verifica se existem tags para renderizar os Badges
+    if (jogo.release.tags && jogo.release.tags.length > 0) {
+        // Cria um badge separado para CADA tag e junta tudo
+        html += jogo.release.tags.map(tag => `
+                    <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-semibold px-2 py-0.5 rounded shadow-sm">
+                        ${tag}
+                    </span>`).join('');
+    }
+
+    html += `
+                </div>
             </div>
             
-            <!-- Container das Infos: Alinhado na base (mt-auto) e espalhado na horizontal -->
+            <!-- LINHA INFERIOR: Apenas Versão, Lançamento e Tamanho (Tags removidas daqui) -->
             <div class="flex flex-wrap gap-x-8 gap-y-2 mt-4 w-full">`;
 
-    // 2. Adiciona as Tags se existirem (Rótulo em cima, valor embaixo)
-    if (jogo.release.tags && jogo.release.tags.length > 0) {
-        html += `
-            <div class="flex flex-col text-[11px]">
-                <span class="text-neutral-500 mb-0.5">Tags:</span>
-                <span class="text-neutral-300 font-medium">${jogo.release.tags.join(', ')}</span>
-            </div>`;
-    }
-
-    // 3. Adiciona a Versão se existir
     if (jogo.release.versao) {
         html += `
-            <div class="flex flex-col text-[11px]">
-                <span class="text-neutral-500 mb-0.5">Versão:</span>
-                <span class="text-neutral-300 font-medium">${jogo.release.versao}</span>
-            </div>`;
+                <div class="flex flex-col text-[11px]">
+                    <span class="text-neutral-500 mb-0.5">Versão:</span>
+                    <span class="text-neutral-300 font-medium">${jogo.release.versao}</span>
+                </div>`;
     }
 
-    // 4. Adiciona os campos fixos (Lançamento e Tamanho) e fecha as tags corretamente
     html += `
-            <div class="flex flex-col text-[11px]">
-                <span class="text-neutral-500 mb-0.5">Lançamento:</span>
-                <span class="text-neutral-300 font-medium">${jogo.date}</span>
-            </div>
-            <div class="flex flex-col text-[11px]">
-                <span class="text-neutral-500 mb-0.5">Tamanho:</span>
-                <span class="text-neutral-300 font-medium">${jogo.size}</span>
-            </div>
-        </div> <!-- Fecha o container das infos -->
-    </div> <!-- Fecha o container da direita -->
+                <div class="flex flex-col text-[11px]">
+                    <span class="text-neutral-500 mb-0.5">Lançamento:</span>
+                    <span class="text-neutral-300 font-medium">${jogo.date}</span>
+                </div>
+                <div class="flex flex-col text-[11px]">
+                    <span class="text-neutral-500 mb-0.5">Tamanho:</span>
+                    <span class="text-neutral-300 font-medium">${jogo.size}</span>
+                </div>
+            </div> <!-- Fecha linha inferior -->
+        </div> <!-- Fecha container da direita -->
 
-    <div id="score-${jogo.id}" class="absolute top-1/2 -translate-y-1/2 right-4 bg-black/70 backdrop-blur px-2 py-1 rounded text-[10px] font-bold text-emerald-400 hidden"></div>
+        <div id="score-${jogo.id}" class="absolute top-1/2 -translate-y-1/2 right-4 bg-black/70 backdrop-blur px-2 py-1 rounded text-[10px] font-bold text-emerald-400 hidden"></div>
     `;
 
-    // 5. Injeta o HTML completo de uma vez só para o navegador não bugar as divs
     card.innerHTML = html;
 
     return card;
