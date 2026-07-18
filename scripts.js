@@ -271,7 +271,7 @@ function criarCardJogoCompacto(jogo) {
             <div class="flex justify-between items-start gap-4 w-full">
                 
                 <!-- Título: flex-1 e min-w-0 garantem que ele quebre linha exatamente na "linha vermelha" sem empurrar as tags -->
-                <div class="font-bold text-lg text-white flex-1 min-w-0 leading-tight" title="${jogo.title}">
+                <div class="font-rajdhani font-bold text-xl text-white tracking-wide flex-1 min-w-0 leading-tight" title="${jogo.title}">
                     ${jogo.release.tituloOriginal}
                 </div>
                 
