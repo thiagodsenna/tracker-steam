@@ -172,7 +172,7 @@ function criarCardJogo(jogo) {
         <div class="aspect-[3/4] bg-neutral-950">
             <img src="${jogo.cover}" referrerpolicy="no-referrer" class="w-full h-full object-cover">
         </div>
-        <div id="score-${jogo.id}" class="absolute top-2 right-2 bg-black/70 backdrop-blur px-2 py-1 rounded text-[10px] font-bold text-emerald-400 hidden"></div>
+        <div id="score-${jogo.id}" class="absolute top-2 right-2 bg-black/70 backdrop-blur px-2 py-1 rounded text-[10px] font-bold text-emerald-400 hidden">99</div>
         <div class="absolute bottom-12 right-2 bg-black/60 backdrop-blur px-1.5 py-0.5 rounded text-[9px] text-neutral-400 z-10">${jogo.date}</div>
         <div class="p-3 font-bold text-xs line-clamp-2">${jogo.title}asda</div>
     `;
