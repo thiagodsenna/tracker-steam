@@ -124,12 +124,12 @@ function formatarDataRelativa(dataString) {
 }
 
 function mapearRelease(stringEntrada) {
-    // Regex que identifica "v" seguido de números/pontos OU "Build" seguido de números
-    const regexVersao = /\b(v\d+(?:\.\d+)*|Build \d+)\b/i;
+    // REGRA 1: v\d+[^- ]* pega o 'v' + número e continua até achar um hífen ou espaço
+    // Mantém também a regra anterior para o padrão "Build 0000"
+    const regexVersao = /\b(v\d+[^- ]*|Build \d+\b)/i;
     
     const match = stringEntrada.match(regexVersao);
     
-    // Caso a string não siga o padrão esperado, retorna um objeto seguro
     if (!match) {
         return {
             tituloOriginal: stringEntrada.trim(),
@@ -144,16 +144,31 @@ function mapearRelease(stringEntrada) {
     // O título é tudo o que está antes da versão
     const tituloOriginal = stringEntrada.slice(0, indiceVersao).trim();
     
-    // O resto contém as tags (o que vem depois da versão)
+    // O que sobra após a versão para extrairmos as tags
     const resto = stringEntrada.slice(indiceVersao + versao.length);
     
-    // Limpa caracteres residuais do início (como hifens ou espaços)
-    const stringTags = resto.trim().replace(/^[-]+/g, '').trim();
+    // Dividimos pelos hífens para isolar o que vem após cada um deles
+    const partes = resto.split('-');
+    const tags = [];
     
-    // Divide as tags por hífen, remove espaços extras e ignora campos vazios
-    const tags = stringTags 
-        ? stringTags.split('-').map(tag => tag.trim()).filter(Boolean)
-        : [];
+    partes.forEach((parte, index) => {
+        if (index === 0) {
+            // Regra já implementada: trata o texto que veio antes do primeiro hífen 
+            // (essencial para capturar "Early Access" que vem após um espaço)
+            const tagLimpa = parte.trim();
+            if (tagLimpa) {
+                tags.push(tagLimpa);
+            }
+        } else {
+            // REGRA 2: Tudo o que vier após o "-" vai apenas até o próximo "-" ou espaço " "
+            // Como o split('-') já garantiu a parada no próximo hífen, 
+            // usamos o split(' ')[0] para garantir a parada no primeiro espaço encontrado.
+            const primeiroPedaco = parte.split(' ')[0].trim();
+            if (primeiroPedaco) {
+                tags.push(primeiroPedaco);
+            }
+        }
+    });
         
     return {
         tituloOriginal,
