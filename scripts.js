@@ -261,19 +261,27 @@ function criarCardJogoCompacto(jogo) {
         <div class="w-20 h-30 shrink-0 bg-neutral-950 rounded-md overflow-hidden relative">
             <img src="${jogo.cover}" referrerpolicy="no-referrer" class="w-full h-full object-cover">
         </div>
-        <div class="flex flex-col justify-center min-w-0 flex-1 relative pr-12">
-            <div class="font-bold text-lg text-white mb-2" title="${jogo.title}">${jogo.release.tituloOriginal}</div>`;
+        <!-- Alterado para justify-between para empurrar o título para o topo e o grupo de infos para a base -->
+        <div class="flex flex-col justify-between min-w-0 flex-1 relative pr-12">
+            <div class="font-bold text-lg text-white mb-2" title="${jogo.title}">${jogo.release.tituloOriginal}</div>
+            
+            <!-- NOVO CONTAINER: Agrupa as infos na horizontal, com quebra de linha segura (flex-wrap) e margem top automática -->
+            <div class="flex flex-wrap gap-x-6 gap-y-1 mt-auto">`;
+                
     jogo.release.tags && jogo.release.tags.length > 0 ? card.innerHTML += `       
-            <div class="text-[11px] text-neutral-400 mb-1"><span class="text-neutral-500">Tags:</span> ${jogo.release.tags.join(', ')}</div>
+            <div class="text-[11px] text-neutral-400"><span class="text-neutral-500">Tags:</span> ${jogo.release.tags.join(', ')}</div>
     ` : '';
+
     jogo.release.versao ? card.innerHTML += `
-            <div class="text-[11px] text-neutral-400 mb-1"><span class="text-neutral-500">Versão:</span> ${jogo.release.versao}</div>
+            <div class="text-[11px] text-neutral-400"><span class="text-neutral-500">Versão:</span> ${jogo.release.versao}</div>
     ` : '';
+
     card.innerHTML += `        
-            <div class="text-[11px] text-neutral-400 mb-1"><span class="text-neutral-500">Lançamento:</span> ${jogo.date}</div>
+            <div class="text-[11px] text-neutral-400"><span class="text-neutral-500">Lançamento:</span> ${jogo.date}</div>
             <div class="text-[11px] text-neutral-400"><span class="text-neutral-500">Tamanho:</span> ${jogo.size}</div>
-        </div>
-        <div id="score-${jogo.id}" class="absolute top-1/2 -translate-y-1/2 right-4 bg-black/70 backdrop-blur px-2 py-1 rounded text-[10px] font-bold text-emerald-400 hidden"></div>
+        </div> <!-- Fecha o novo container de infos -->
+    </div> <!-- Fecha o flex-col principal -->
+    <div id="score-${jogo.id}" class="absolute top-1/2 -translate-y-1/2 right-4 bg-black/70 backdrop-blur px-2 py-1 rounded text-[10px] font-bold text-emerald-400 hidden"></div>
     `;
 
     return card;
