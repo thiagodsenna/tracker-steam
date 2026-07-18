@@ -257,32 +257,60 @@ function criarCardJogoCompacto(jogo) {
     const card = document.createElement('div');
     card.className = 'bg-neutral-900 border border-neutral-800 rounded-md overflow-hidden cursor-pointer relative hover:border-emerald-500/50 transition-all p-3 flex gap-5 w-full';
     card.onclick = () => abrirModal(jogo.id);
-    card.innerHTML = `
+    
+    // 1. Criamos uma variável de texto para armazenar todo o HTML sem quebrar as tags
+    let html = `
         <div class="w-20 h-30 shrink-0 bg-neutral-950 rounded-md overflow-hidden relative">
             <img src="${jogo.cover}" referrerpolicy="no-referrer" class="w-full h-full object-cover">
         </div>
-        <!-- Alterado para justify-between para empurrar o título para o topo e o grupo de infos para a base -->
-        <div class="flex flex-col justify-between min-w-0 flex-1 relative pr-12">
-            <div class="font-bold text-lg text-white mb-2" title="${jogo.title}">${jogo.release.tituloOriginal}</div>
+        
+        <!-- Container da direita: Alinha o título no topo e as infos na base (justify-between) -->
+        <div class="flex flex-col justify-between min-w-0 flex-1 relative pr-12 py-1">
             
-            <!-- NOVO CONTAINER: Agrupa as infos na horizontal, com quebra de linha segura (flex-wrap) e margem top automática -->
-            <div class="flex flex-wrap gap-x-6 gap-y-1 mt-auto">`;
-                
-    jogo.release.tags && jogo.release.tags.length > 0 ? card.innerHTML += `       
-            <div class="text-[11px] text-neutral-400"><span class="text-neutral-500">Tags:</span> ${jogo.release.tags.join(', ')}</div>
-    ` : '';
+            <!-- Título: w-full garante que ele ocupe a linha inteira sozinho -->
+            <div class="font-bold text-lg text-white w-full leading-tight" title="${jogo.title}">
+                ${jogo.release.tituloOriginal}
+            </div>
+            
+            <!-- Container das Infos: Alinhado na base (mt-auto) e espalhado na horizontal -->
+            <div class="flex flex-wrap gap-x-8 gap-y-2 mt-4 w-full">`;
 
-    jogo.release.versao ? card.innerHTML += `
-            <div class="text-[11px] text-neutral-400"><span class="text-neutral-500">Versão:</span> ${jogo.release.versao}</div>
-    ` : '';
+    // 2. Adiciona as Tags se existirem (Rótulo em cima, valor embaixo)
+    if (jogo.release.tags && jogo.release.tags.length > 0) {
+        html += `
+            <div class="flex flex-col text-[11px]">
+                <span class="text-neutral-500 mb-0.5">Tags:</span>
+                <span class="text-neutral-300 font-medium">${jogo.release.tags.join(', ')}</span>
+            </div>`;
+    }
 
-    card.innerHTML += `        
-            <div class="text-[11px] text-neutral-400"><span class="text-neutral-500">Lançamento:</span> ${jogo.date}</div>
-            <div class="text-[11px] text-neutral-400"><span class="text-neutral-500">Tamanho:</span> ${jogo.size}</div>
-        </div> <!-- Fecha o novo container de infos -->
-    </div> <!-- Fecha o flex-col principal -->
+    // 3. Adiciona a Versão se existir
+    if (jogo.release.versao) {
+        html += `
+            <div class="flex flex-col text-[11px]">
+                <span class="text-neutral-500 mb-0.5">Versão:</span>
+                <span class="text-neutral-300 font-medium">${jogo.release.versao}</span>
+            </div>`;
+    }
+
+    // 4. Adiciona os campos fixos (Lançamento e Tamanho) e fecha as tags corretamente
+    html += `
+            <div class="flex flex-col text-[11px]">
+                <span class="text-neutral-500 mb-0.5">Lançamento:</span>
+                <span class="text-neutral-300 font-medium">${jogo.date}</span>
+            </div>
+            <div class="flex flex-col text-[11px]">
+                <span class="text-neutral-500 mb-0.5">Tamanho:</span>
+                <span class="text-neutral-300 font-medium">${jogo.size}</span>
+            </div>
+        </div> <!-- Fecha o container das infos -->
+    </div> <!-- Fecha o container da direita -->
+
     <div id="score-${jogo.id}" class="absolute top-1/2 -translate-y-1/2 right-4 bg-black/70 backdrop-blur px-2 py-1 rounded text-[10px] font-bold text-emerald-400 hidden"></div>
     `;
+
+    // 5. Injeta o HTML completo de uma vez só para o navegador não bugar as divs
+    card.innerHTML = html;
 
     return card;
 }
