@@ -174,6 +174,21 @@ function criarCardJogo(jogo) {
         </div>
         <div id="score-${jogo.id}" class="absolute top-2 right-2 bg-black/70 backdrop-blur px-2 py-1 rounded text-[10px] font-bold text-emerald-400 hidden"></div>
         <div class="absolute bottom-12 right-2 bg-black/60 backdrop-blur px-1.5 py-0.5 rounded text-[9px] text-neutral-400 z-10">${jogo.date}</div>
+        <div class="p-3 font-bold text-xs line-clamp-2">${jogo.title}asda</div>
+    `;
+    return card;
+}
+
+function criarCardDetailJogo(jogo) {
+    const card = document.createElement('div');
+    card.className = 'bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden cursor-pointer relative hover:border-emerald-500/50 transition-all';
+    card.onclick = () => abrirModal(jogo.id);
+    card.innerHTML = `
+        <div class="aspect-[3/4] bg-neutral-950">
+            <img src="${jogo.cover}" referrerpolicy="no-referrer" class="w-full h-full object-cover">
+        </div>
+        <div id="score-${jogo.id}" class="absolute top-2 right-2 bg-black/70 backdrop-blur px-2 py-1 rounded text-[10px] font-bold text-emerald-400 hidden"></div>
+        <div class="absolute bottom-12 right-2 bg-black/60 backdrop-blur px-1.5 py-0.5 rounded text-[9px] text-neutral-400 z-10">${jogo.date}</div>
         <div class="p-3 font-bold text-xs line-clamp-2">${jogo.title}</div>
     `;
     return card;
