@@ -263,19 +263,11 @@ function criarCardJogoCompacto(jogo) {
         <div class="w-20 h-30 shrink-0 bg-neutral-950 rounded-md overflow-hidden relative">
             <img src="${jogo.cover}" referrerpolicy="no-referrer" class="w-full h-full object-cover">
         </div>
-        
-        <!-- Container da direita -->
         <div class="flex flex-col justify-between min-w-0 flex-1 relative py-1">
-            
-            <!-- LINHA SUPERIOR: Título (Esquerda) + Badges de Tags (Direita) -->
             <div class="flex justify-between items-start gap-4 w-full">
-                
-                <!-- Título: flex-1 e min-w-0 garantem que ele quebre linha exatamente na "linha vermelha" sem empurrar as tags -->
                 <div class="font-rajdhani font-bold text-lg text-white tracking-wide flex-1 min-w-0 leading-tight" title="${jogo.title}">
                     ${jogo.release.tituloOriginal.toUpperCase()}
                 </div>
-                
-                <!-- Badges: flex-col empilha as tags na vertical e items-end alinha todas à direita -->
                 <div class="flex flex-col items-end gap-1 shrink-0">`;
 
     // Verifica se existem tags para renderizar os Badges
@@ -290,29 +282,27 @@ function criarCardJogoCompacto(jogo) {
     html += `
                 </div>
             </div>
-            
-            <!-- LINHA INFERIOR: Apenas Versão, Lançamento e Tamanho (Tags removidas daqui) -->
             <div class="flex flex-wrap gap-x-8 gap-y-2 mt-4 w-full">`;
 
     if (jogo.release.versao) {
         html += `
                 <div class="flex flex-col text-[11px]">
-                    <span class="text-neutral-500 mb-0.5">Versão</span>
+                    <span class="text-neutral-500">Versão</span>
                     <span class="text-neutral-300 font-medium">${jogo.release.versao}</span>
                 </div>`;
     }
 
     html += `
                 <div class="flex flex-col text-[11px]">
-                    <span class="text-neutral-500 mb-0.5">Tamanho</span>
+                    <span class="text-neutral-500">Tamanho</span>
                     <span class="text-neutral-300 font-medium">${jogo.size}</span>
                 </div>
                 <div class="flex flex-col text-[11px]">
-                    <span class="text-neutral-500 mb-0.5">Lançamento</span>
+                    <span class="text-neutral-500">Lançamento</span>
                     <span class="text-neutral-300 font-medium">${jogo.date}</span>
                 </div>
-            </div> <!-- Fecha linha inferior -->
-        </div> <!-- Fecha container da direita -->
+            </div>
+        </div>
 
         <div id="score-${jogo.id}" class="absolute top-1/2 -translate-y-1/2 right-4 bg-black/70 backdrop-blur px-2 py-1 rounded text-[10px] font-bold text-emerald-400 hidden"></div>
     `;
