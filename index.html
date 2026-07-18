@@ -12,6 +12,39 @@
 </head>
 <body class="p-4 sm:p-6 min-h-screen selection:bg-emerald-500/30">
     
+    <!-- 1. Importe as fontes no <head> do seu HTML -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@700&family=Outfit:wght@700&family=Rajdhani:wght@700&family=Space+Grotesk:wght@700&family=Syne:wght@800&display=swap" rel="stylesheet">
+
+    <style>
+        /* 2. Classes utilitárias para testar no Tailwind */
+        .font-rajdhani { font-family: 'Rajdhani', sans-serif; }
+        .font-space { font-family: 'Space Grotesk', sans-serif; }
+        .font-chakra { font-family: 'Chakra Petch', sans-serif; }
+        .font-outfit { font-family: 'Outfit', sans-serif; }
+        .font-syne { font-family: 'Syne', sans-serif; }
+    </style>
+
+    <!-- ========================================================= -->
+    <!-- EXEMPLO DE PREVIEW: Apenas troque a classe na div do título -->
+    <!-- ========================================================= -->
+
+    <!-- Exemplo com RAJDHANI (Mais indicada para Games Tech) -->
+    <div class="font-rajdhani font-bold text-xl text-white tracking-wide">
+        CRIMSON DESERT
+    </div>
+
+    <!-- Exemplo com CHAKRA PETCH (Mais agressiva/Angular) -->
+    <div class="font-chakra font-bold text-lg text-white tracking-wider">
+        TRAIN SIM WORLD 6
+    </div>
+
+    <!-- Exemplo com SPACE GROTESK (Moderno e limpo) -->
+    <div class="font-space font-bold text-lg text-white">
+        CITY CAR DRIVING 2.0
+    </div>
+    
     <div id="lightbox" onclick="fecharLightbox()" class="fixed inset-0 z-[100] bg-black/95 hidden flex justify-center items-center">
         <img id="lightbox-img" class="max-w-[95%] max-h-[95%] object-contain cursor-pointer">
     </div>
