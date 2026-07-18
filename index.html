@@ -22,9 +22,19 @@
                 <h1 class="text-2xl font-bold text-white tracking-tight">Release<span class="text-emerald-500">Tracker</span></h1>
                 <p class="text-xs text-neutral-500 mt-1">Lançamentos de jogos da scene</p>
             </div>
-            <button onclick="carregarJogos()" class="bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 px-4 py-2 rounded-xl text-sm font-semibold transition-colors">
-                Atualizar
-            </button>
+            <div class="flex items-center gap-3">
+                <div class="flex items-center bg-neutral-900 border border-neutral-800 p-1 rounded-xl">
+                    <button id="btn-view-covers" onclick="setViewMode('covers')" class="p-2 rounded-lg transition-colors text-neutral-400 hover:text-white" title="Visualização em Capas (Covers)">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-layout-grid"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
+                    </button>
+                    <button id="btn-view-compact" onclick="setViewMode('compact')" class="p-2 rounded-lg transition-colors text-neutral-400 hover:text-white" title="Visualização Compacta (Compact)">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-list"><line x1="8" x1="21" y1="6" y2="6"/><line x1="8" x1="21" y1="12" y2="12"/><line x1="8" x1="21" y1="18" y2="18"/><line x1="3" x1="3.01" y1="6" y2="6"/><line x1="3" x1="3.01" y1="12" y2="12"/><line x1="3" x1="3.01" y1="18" y2="18"/></svg>
+                    </button>
+                </div>
+                <button onclick="carregarJogos()" class="bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 px-4 py-2 rounded-xl text-sm font-semibold transition-colors">
+                    Atualizar
+                </button>
+            </div>
         </header>
 
         <div id="grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">

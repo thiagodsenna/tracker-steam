@@ -1,5 +1,6 @@
 let jogosCarregados = [];
 let modalJogoAtual = null;
+let viewMode = localStorage.getItem('viewMode') || 'covers';
 const STREAM_ID = 'feed%2Fhttps%2F%2Fwww.skidrowreloaded.com%2Fcategory%2Fpc-games%2Ffeed%2F';
 const PROXY_BASE_URL = 'https://tracker-steam.vercel.app/api/steam-proxy?appid=';
 const CATEGORY_ICONS = {
@@ -172,24 +173,27 @@ function criarCardJogo(jogo) {
         <div class="aspect-[3/4] bg-neutral-950">
             <img src="${jogo.cover}" referrerpolicy="no-referrer" class="w-full h-full object-cover">
         </div>
-        <div id="score-${jogo.id}" class="absolute top-2 right-2 bg-black/70 backdrop-blur px-2 py-1 rounded text-[10px] font-bold text-emerald-400 hidden">99</div>
+        <div id="score-${jogo.id}" class="absolute top-2 right-2 bg-black/70 backdrop-blur px-2 py-1 rounded text-[10px] font-bold text-emerald-400 hidden"></div>
         <div class="absolute bottom-12 right-2 bg-black/60 backdrop-blur px-1.5 py-0.5 rounded text-[9px] text-neutral-400 z-10">${jogo.date}</div>
-        <div class="p-3 font-bold text-xs line-clamp-2">${jogo.title}asda</div>
+        <div class="p-3 font-bold text-xs line-clamp-2">${jogo.title}</div>
     `;
     return card;
 }
 
-function criarCardDetailJogo(jogo) {
+function criarCardJogoCompacto(jogo) {
     const card = document.createElement('div');
-    card.className = 'bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden cursor-pointer relative hover:border-emerald-500/50 transition-all';
+    card.className = 'bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden cursor-pointer relative hover:border-emerald-500/50 transition-all p-3 flex gap-4 w-full';
     card.onclick = () => abrirModal(jogo.id);
     card.innerHTML = `
-        <div class="aspect-[3/4] bg-neutral-950">
+        <div class="w-20 h-24 sm:w-24 sm:h-32 shrink-0 bg-neutral-950 rounded-lg overflow-hidden relative">
             <img src="${jogo.cover}" referrerpolicy="no-referrer" class="w-full h-full object-cover">
         </div>
-        <div id="score-${jogo.id}" class="absolute top-2 right-2 bg-black/70 backdrop-blur px-2 py-1 rounded text-[10px] font-bold text-emerald-400 hidden"></div>
-        <div class="absolute bottom-12 right-2 bg-black/60 backdrop-blur px-1.5 py-0.5 rounded text-[9px] text-neutral-400 z-10">${jogo.date}</div>
-        <div class="p-3 font-bold text-xs line-clamp-2">${jogo.title}</div>
+        <div class="flex flex-col justify-center min-w-0 flex-1 relative pr-12">
+            <div class="font-bold text-sm sm:text-base text-white truncate mb-1" title="${jogo.title}">${jogo.title}</div>
+            <div class="text-[11px] text-neutral-400 mb-1"><span class="text-neutral-500">Lançamento:</span> ${jogo.date}</div>
+            <div class="text-[11px] text-neutral-400"><span class="text-neutral-500">Tamanho:</span> ${jogo.size}</div>
+        </div>
+        <div id="score-${jogo.id}" class="absolute top-1/2 -translate-y-1/2 right-4 bg-black/70 backdrop-blur px-2 py-1 rounded text-[10px] font-bold text-emerald-400 hidden"></div>
     `;
     return card;
 }
@@ -228,7 +232,8 @@ async function processarDeepLink() {
 
         const jogo = parseFeedlyItem(item, jogosCarregados.length);
         jogosCarregados.push(jogo);
-        grid.prepend(criarCardJogo(jogo));
+        const card = viewMode === 'compact' ? criarCardJogoCompacto(jogo) : criarCardJogo(jogo);
+        grid.prepend(card);
         abrirModal(jogo.id, { fromDeepLink: true });
     } catch (err) {
         console.error('Erro ao carregar deep link:', err);
@@ -239,26 +244,70 @@ async function processarDeepLink() {
     }
 }
 
+function setViewMode(mode) {
+    viewMode = mode;
+    localStorage.setItem('viewMode', mode);
+    updateViewButtons();
+    renderizarJogos();
+    carregarNotasEmLote();
+}
+
+function updateViewButtons() {
+    const btnCovers = document.getElementById('btn-view-covers');
+    const btnCompact = document.getElementById('btn-view-compact');
+    if (!btnCovers || !btnCompact) return;
+
+    if (viewMode === 'compact') {
+        btnCompact.classList.add('bg-neutral-800', 'text-emerald-500');
+        btnCompact.classList.remove('text-neutral-400');
+        btnCovers.classList.remove('bg-neutral-800', 'text-emerald-500');
+        btnCovers.classList.add('text-neutral-400');
+    } else {
+        btnCovers.classList.add('bg-neutral-800', 'text-emerald-500');
+        btnCovers.classList.remove('text-neutral-400');
+        btnCompact.classList.remove('bg-neutral-800', 'text-emerald-500');
+        btnCompact.classList.add('text-neutral-400');
+    }
+}
+
+function renderizarJogos() {
+    const grid = document.getElementById('grid');
+    if (!grid) return;
+    
+    grid.innerHTML = '';
+
+    if (viewMode === 'compact') {
+        grid.className = 'grid grid-cols-1 gap-3';
+    } else {
+        grid.className = 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4';
+    }
+
+    jogosCarregados.forEach(jogo => {
+        const card = viewMode === 'compact' ? criarCardJogoCompacto(jogo) : criarCardJogo(jogo);
+        grid.appendChild(card);
+    });
+}
+
 async function carregarJogos() {
     const grid = document.getElementById('grid');
     jogosCarregados = [];
     grid.innerHTML = '<div class="col-span-full text-center py-20 text-emerald-500 animate-pulse">Carregando lançamentos...</div>';
+    
+    updateViewButtons();
 
     try {
         const res = await fetch('/api/feedly-proxy');
         const data = await res.json();
 
-        grid.innerHTML = '';
-
         data.items.forEach((item, index) => {
             const jogo = parseFeedlyItem(item, index);
             jogosCarregados.push(jogo);
-            grid.appendChild(criarCardJogo(jogo));
         });
 
+        renderizarJogos();
         await processarDeepLink();
 
-        //carregarNotasEmLote();
+        carregarNotasEmLote();
     } catch (err) {
         console.error("Erro Feedly:", err);
         grid.innerHTML = `<div class="col-span-full text-red-500 text-center py-20">Erro ao carregar feeds.</div>`;
