@@ -124,7 +124,7 @@ function formatarDataRelativa(dataString) {
 }
 
 function mapearRelease(stringEntrada) {
-    // Mantém a regra de identificação da versão
+    // Regra de identificação da versão (v0.0 ou Build 0000)
     const regexVersao = /\b(v\d+[^- ]*|Build \d+\b)/i;
     const match = stringEntrada.match(regexVersao);
     
@@ -133,45 +133,58 @@ function mapearRelease(stringEntrada) {
     let resto = "";
 
     if (match) {
-        // CASO 1: Possui versão (usa a versão como âncora de divisão)
+        // CASO 1: Possui versão
         versao = match[0];
         const indiceVersao = match.index;
         tituloOriginal = stringEntrada.slice(0, indiceVersao).trim();
         resto = stringEntrada.slice(indiceVersao + versao.length);
     } else {
-        // CASO 2: Não possui versão (Nova Regra: usa o hifen como início da tag)
-        versao = "";
+        // CASO 2: Não possui versão (usa o hífen como início da tag)
         const indiceHifen = stringEntrada.indexOf('-');
-        
         if (indiceHifen !== -1) {
             tituloOriginal = stringEntrada.slice(0, indiceHifen).trim();
-            resto = stringEntrada.slice(indiceHifen); // Pega do hifen em diante
+            resto = stringEntrada.slice(indiceHifen);
         } else {
-            // Se não tiver versão nem hífen, o texto inteiro é o título
             tituloOriginal = stringEntrada.trim();
             resto = "";
         }
     }
     
-    // Processamento das tags (Aplica as mesmas regras para ambos os casos)
+    // Processamento inicial das tags baseado em hífens e espaços
     const partes = resto.split('-');
-    const tags = [];
+    let tags = [];
     
     partes.forEach((parte, index) => {
         if (index === 0) {
-            // Texto antes do primeiro hífen (essencial para o "Early Access")
             const tagLimpa = parte.trim();
-            if (tagLimpa) {
-                tags.push(tagLimpa);
-            }
+            if (tagLimpa) tags.push(tagLimpa);
         } else {
-            // Tudo o que vem após o "-" vai apenas até o próximo "-" ou espaço " "
             const primeiroPedaco = parte.split(' ')[0].trim();
-            if (primeiroPedaco) {
-                tags.push(primeiroPedaco);
-            }
+            if (primeiroPedaco) tags.push(primeiroPedaco);
         }
     });
+
+    // ==========================================
+    // NOVA REGRA: GARANTIR "Early Access" COMO TAG
+    // ==========================================
+    const contemEarlyAccess = /early access/i.test(stringEntrada);
+
+    if (contemEarlyAccess) {
+        // 1. Se estiver no título, remove e limpa espaços/hífens órfãos que sobrarem
+        tituloOriginal = tituloOriginal
+            .replace(/early access/i, '')
+            .replace(/\s+/g, ' ')   // Remove espaços duplos internos
+            .replace(/[- ]+$/, '')   // Remove hífens ou espaços que sobraram no fim
+            .replace(/^[- ]+/, '')   // Remove hífens ou espaços que sobraram no início
+            .trim();
+
+        // 2. Remove qualquer variação antiga das tags para evitar duplicatas
+        tags = tags.filter(tag => tag.toLowerCase() !== "early access");
+        
+        // 3. Adiciona o termo padronizado como Tag
+        tags.push("Early Access");
+    }
+    // ==========================================
         
     return {
         tituloOriginal,
