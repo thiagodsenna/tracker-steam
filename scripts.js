@@ -262,7 +262,7 @@ function criarCardJogoCompacto(jogo) {
             <img src="${jogo.cover}" referrerpolicy="no-referrer" class="w-full h-full object-cover">
         </div>
         <div class="flex flex-col justify-center min-w-0 flex-1 relative pr-12">
-            <div class="font-bold text-lg text-white mb-2" title="${jogo.title}">${jogo.tituloOriginal}</div>`;
+            <div class="font-bold text-lg text-white mb-2" title="${jogo.title}">${jogo.release.tituloOriginal}</div>`;
     jogo.release.tags && jogo.release.tags.length > 0 ? card.innerHTML += `       
             <div class="text-[11px] text-neutral-400 mb-1"><span class="text-neutral-500">Tags:</span> ${jogo.release.tags.join(', ')}</div>
     ` : '';
@@ -275,7 +275,7 @@ function criarCardJogoCompacto(jogo) {
         </div>
         <div id="score-${jogo.id}" class="absolute top-1/2 -translate-y-1/2 right-4 bg-black/70 backdrop-blur px-2 py-1 rounded text-[10px] font-bold text-emerald-400 hidden"></div>
     `;
-    
+
     return card;
 }
 
