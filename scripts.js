@@ -297,19 +297,19 @@ function criarCardJogoCompacto(jogo) {
     if (jogo.release.versao) {
         html += `
                 <div class="flex flex-col text-[11px]">
-                    <span class="text-neutral-500 mb-0.5">Versão:</span>
                     <span class="text-neutral-300 font-medium">${jogo.release.versao}</span>
+                    <span class="text-neutral-500 mb-0.5">Versão</span>
                 </div>`;
     }
 
     html += `
                 <div class="flex flex-col text-[11px]">
-                    <span class="text-neutral-500 mb-0.5">Lançamento:</span>
-                    <span class="text-neutral-300 font-medium">${jogo.date}</span>
+                    <span class="text-neutral-300 font-medium">${jogo.size}</span>
+                    <span class="text-neutral-500 mb-0.5">Tamanho</span>
                 </div>
                 <div class="flex flex-col text-[11px]">
-                    <span class="text-neutral-500 mb-0.5">Tamanho:</span>
-                    <span class="text-neutral-300 font-medium">${jogo.size}</span>
+                    <span class="text-neutral-300 font-medium">${jogo.date}</span>
+                    <span class="text-neutral-500 mb-0.5">Lançamento</span>
                 </div>
             </div> <!-- Fecha linha inferior -->
         </div> <!-- Fecha container da direita -->
