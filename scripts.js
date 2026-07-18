@@ -242,7 +242,7 @@ function criarCardJogoCompacto(jogo) {
     card.className = 'bg-neutral-900 border border-neutral-800 rounded-md overflow-hidden cursor-pointer relative hover:border-emerald-500/50 transition-all p-3 flex gap-5 w-full';
     card.onclick = () => abrirModal(jogo.id);
     card.innerHTML = `
-        <div class="w-20 h-30 sm:w-24 sm:h-32 shrink-0 bg-neutral-950 rounded-md overflow-hidden relative">
+        <div class="w-20 h-30 shrink-0 bg-neutral-950 rounded-md overflow-hidden relative">
             <img src="${jogo.cover}" referrerpolicy="no-referrer" class="w-full h-full object-cover">
         </div>
         <div class="flex flex-col justify-center min-w-0 flex-1 relative pr-12">
