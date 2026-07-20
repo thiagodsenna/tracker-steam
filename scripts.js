@@ -554,8 +554,6 @@ async function abrirModal(id, options = {}) {
     }, 100);
 
     const metaScoreEl = document.getElementById('modal-metacritic-score');
-
-    const metaScoreEl = document.getElementById('modal-metacritic-score');
     metaScoreEl.className = 'absolute bottom-4 right-4 hidden h-16 w-16 flex items-center justify-center rounded-lg border-2 border-white/20 shadow-xl';
     document.getElementById('metacritic-score-value').textContent = '';
     document.getElementById('modal-links-grid').innerHTML = jogo.links.map(link => `
