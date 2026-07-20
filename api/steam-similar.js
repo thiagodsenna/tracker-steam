@@ -7,7 +7,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 1. Busca o HTML da página oficial do jogo na loja da Steam
     const storeRes = await fetch(`https://store.steampowered.com/app/${appid}`, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -19,29 +18,28 @@ export default async function handler(req, res) {
     
     const html = await storeRes.text();
     
-    // 2. Isolamos o bloco "More Like This" (Recomendados) para não pegar links aleatórios do topo/rodapé
-    // A Steam coloca essa seção em uma div com id="recommended_block" ou class="similar_grid"
-    let recommendedBlock = '';
-    const blockIndex = html.search(/id="recommended_block"|class="similar_grid"/i);
+    // 1. ISOLA A SEÇÃO DE SIMILARES (Evita pegar DLCs)
+    // Procuramos especificamente pela área "More Like This" ou blocos de grid de similares
+    let targetBlock = '';
     
-    if (blockIndex !== -1) {
-      // Recortamos 15 mil caracteres a partir de onde o bloco começa
-      recommendedBlock = html.slice(blockIndex, blockIndex + 15000);
+    // Tenta achar o bloco de similares oficial da página da Steam
+    const similarIndex = html.search(/class="carousel_items\s+similar_grid"|data-subtab="similar_games"|MoreLikeThis/i);
+    
+    if (similarIndex !== -1) {
+      targetBlock = html.slice(similarIndex, similarIndex + 20000);
     } else {
-      // Fallback de segurança: se o layout mudar, varre o HTML todo
-      recommendedBlock = html;
+      // Fallback: Procura por qualquer bloco após a menção de jogos similares
+      const altIndex = html.search(/More Like This|Ver Similares/i);
+      targetBlock = altIndex !== -1 ? html.slice(altIndex, altIndex + 25000) : html;
     }
 
-    // 3. Extraímos os IDs dos jogos dentro desse bloco via Regex nativo
-    // Padrão dos links da loja: https://store.steampowered.com/app/123456/...
+    // 2. EXTRAI APENAS APPs DE JOGOS (Exclui pacotes/sub e DLCs se possível através dos links /app/)
     const regexIds = /store\.steampowered\.com\/app\/(\d+)/gi;
     let match;
     const similarIds = [];
-    
-    // O Set garante que não haverá IDs repetidos E já exclui o próprio jogo atual da lista!
     const seenIds = new Set([appid.toString()]); 
 
-    while ((match = regexIds.exec(recommendedBlock)) !== null && similarIds.length < 6) {
+    while ((match = regexIds.exec(targetBlock)) !== null && similarIds.length < 6) {
       const foundId = match[1];
       if (!seenIds.has(foundId)) {
         seenIds.add(foundId);
@@ -49,12 +47,11 @@ export default async function handler(req, res) {
       }
     }
 
-    // Se o jogo for muito obscuro e não tiver recomendações, retorna array vazio
     if (similarIds.length === 0) {
       return res.status(200).json({ success: true, items: [] });
     }
 
-    // 4. Com os 6 IDs oficiais em mãos, buscamos Título e Capa via API leve (&filters=basic)
+    // 3. BUSCA DETALHES E USA O LINK DE CAPA ESTÁVEL DA STEAM
     const similarGames = await Promise.all(
       similarIds.map(async (id) => {
         try {
@@ -63,10 +60,15 @@ export default async function handler(req, res) {
           
           if (steamJson[id]?.success) {
             const data = steamJson[id].data;
+            
+            // Ignora se por acaso vier marcado como DLC no tipo da Steam
+            if (data.type && data.type === 'dlc') return null;
+
             return {
               id: id,
               name: data.name,
-              cover: `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${id}/header.jpg`
+              // URL padrão ultra-estável da CDN da Steam que não quebra
+              cover: `https://cdn.cloudflare.steamstatic.com/steam/apps/${id}/header.jpg`
             };
           }
           return null;
