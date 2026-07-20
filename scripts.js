@@ -753,9 +753,9 @@ async function executarBusca(termo) {
     grid.innerHTML = '<div class="col-span-full text-center py-20 text-emerald-500 animate-pulse">Buscando...</div>';
 
     if (fonteAtual === 'feedly') {
-        // Busca remota no Feedly (skidrowreloaded) via proxy
+        // Busca remota no Skidrow via Scraping (substituindo busca Feedly que dá 401)
         try {
-            const res = await fetch(`/api/feedly-proxy?query=${encodeURIComponent(termo)}`);
+            const res = await fetch(`/api/skidrow-search?query=${encodeURIComponent(termo)}`);
             const data = await res.json();
             
             jogosCarregados = [];
@@ -767,14 +767,14 @@ async function executarBusca(termo) {
             });
             
             if (jogosCarregados.length === 0) {
-                grid.innerHTML = '<div class="col-span-full text-neutral-500 text-center py-20">Nenhum resultado encontrado no Feedly.</div>';
+                grid.innerHTML = '<div class="col-span-full text-neutral-500 text-center py-20">Nenhum resultado encontrado no Skidrow.</div>';
             } else {
                 renderizarJogos();
                 carregarNotasEmLote();
             }
         } catch (err) {
-            console.error("Erro busca Feedly:", err);
-            grid.innerHTML = '<div class="col-span-full text-red-500 text-center py-20">Erro ao buscar no Feedly.</div>';
+            console.error("Erro busca Skidrow:", err);
+            grid.innerHTML = '<div class="col-span-full text-red-500 text-center py-20">Erro ao buscar no Skidrow.</div>';
         }
     } else {
         // Busca na API da Steam
