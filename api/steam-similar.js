@@ -7,21 +7,54 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 1. Busca os IDs dos jogos similares usando a API pública do SteamSpy
-    const spyRes = await fetch(`https://steamspy.com/api.php?request=appdetails&appid=${appid}`);
-    if (!spyRes.ok) throw new Error('Falha ao conectar com SteamSpy');
-    
-    const spyData = await spyRes.json();
-    
-    // O campo "similar" retorna um objeto { "appid": pontuação, ... }. Pegamos os 6 primeiros IDs.
-    const similarIds = Object.keys(spyData.similar || {}).slice(0, 6);
+    // 1. Busca o HTML da página oficial do jogo na loja da Steam
+    const storeRes = await fetch(`https://store.steampowered.com/app/${appid}`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept-Language': 'en-US,en;q=0.9,pt-BR;q=0.8'
+      }
+    });
 
+    if (!storeRes.ok) throw new Error('Falha ao acessar a loja da Steam');
+    
+    const html = await storeRes.text();
+    
+    // 2. Isolamos o bloco "More Like This" (Recomendados) para não pegar links aleatórios do topo/rodapé
+    // A Steam coloca essa seção em uma div com id="recommended_block" ou class="similar_grid"
+    let recommendedBlock = '';
+    const blockIndex = html.search(/id="recommended_block"|class="similar_grid"/i);
+    
+    if (blockIndex !== -1) {
+      // Recortamos 15 mil caracteres a partir de onde o bloco começa
+      recommendedBlock = html.slice(blockIndex, blockIndex + 15000);
+    } else {
+      // Fallback de segurança: se o layout mudar, varre o HTML todo
+      recommendedBlock = html;
+    }
+
+    // 3. Extraímos os IDs dos jogos dentro desse bloco via Regex nativo
+    // Padrão dos links da loja: https://store.steampowered.com/app/123456/...
+    const regexIds = /store\.steampowered\.com\/app\/(\d+)/gi;
+    let match;
+    const similarIds = [];
+    
+    // O Set garante que não haverá IDs repetidos E já exclui o próprio jogo atual da lista!
+    const seenIds = new Set([appid.toString()]); 
+
+    while ((match = regexIds.exec(recommendedBlock)) !== null && similarIds.length < 6) {
+      const foundId = match[1];
+      if (!seenIds.has(foundId)) {
+        seenIds.add(foundId);
+        similarIds.push(foundId);
+      }
+    }
+
+    // Se o jogo for muito obscuro e não tiver recomendações, retorna array vazio
     if (similarIds.length === 0) {
       return res.status(200).json({ success: true, items: [] });
     }
 
-    // 2. Para cada ID similar, buscamos o Nome e Capa na própria Steam em PARALELO
-    // O parâmetro &filters=basic torna a resposta da Steam ultrarrápida e leve!
+    // 4. Com os 6 IDs oficiais em mãos, buscamos Título e Capa via API leve (&filters=basic)
     const similarGames = await Promise.all(
       similarIds.map(async (id) => {
         try {
@@ -33,7 +66,6 @@ export default async function handler(req, res) {
             return {
               id: id,
               name: data.name,
-              // Usamos a capa horizontal oficial da Steam (header.jpg), ideal para grids compactos
               cover: `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${id}/header.jpg`
             };
           }
@@ -44,7 +76,6 @@ export default async function handler(req, res) {
       })
     );
 
-    // Filtra possíveis erros ou jogos removidos da loja
     const validGames = similarGames.filter(g => g !== null);
 
     return res.status(200).json({ success: true, items: validGames });
