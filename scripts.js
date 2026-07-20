@@ -142,30 +142,26 @@ function mapearRelease(stringEntrada) {
         tituloOriginal = stringEntrada.slice(0, indiceVersao).trim();
         resto = stringEntrada.slice(indiceVersao + versao.length);
     } else {
-        // CASO 2: Não possui versão (usa o hífen como início da tag)
-        const indiceHifen = stringEntrada.indexOf('-');
-        if (indiceHifen !== -1) {
-            tituloOriginal = stringEntrada.slice(0, indiceHifen).trim();
-            resto = stringEntrada.slice(indiceHifen);
+        // CASO 2: Não possui versão (usa o ÚLTIMO hífen como início da tag)
+        const ultimoIndiceHifen = stringEntrada.lastIndexOf('-');
+        if (ultimoIndiceHifen !== -1) {
+            tituloOriginal = stringEntrada.slice(0, ultimoIndiceHifen).trim();
+            resto = stringEntrada.slice(ultimoIndiceHifen);
         } else {
             tituloOriginal = stringEntrada.trim();
             resto = "";
         }
     }
     
-    // Processamento inicial das tags baseado em hífens e espaços
-    const partes = resto.split('-');
+    // Processamento do resto para capturar a tag após o último hífen
     let tags = [];
-    
-    partes.forEach((parte, index) => {
-        if (index === 0) {
-            const tagLimpa = parte.trim();
-            if (tagLimpa) tags.push(tagLimpa);
-        } else {
-            const primeiroPedaco = parte.split(' ')[0].trim();
-            if (primeiroPedaco) tags.push(primeiroPedaco);
+    if (resto) {
+        const parteLimpa = resto.replace(/^-+/, '').trim(); // Remove o hífen inicial e espaços
+        const primeiraPalavra = parteLimpa.split(' ')[0].trim();
+        if (primeiraPalavra) {
+            tags.push(primeiraPalavra);
         }
-    });
+    }
 
     // ==========================================
     // NOVA REGRA: GARANTIR "Early Access" COMO TAG
