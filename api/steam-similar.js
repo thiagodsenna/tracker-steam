@@ -1,6 +1,7 @@
 export default async function handler(req, res) {
   const { appid } = req.query;
   res.setHeader('Access-Control-Allow-Origin', '*');
+  console.log('entrou steam similar 1');
   
   if (!appid) {
     return res.status(400).json({ error: 'AppID é obrigatório' });
@@ -14,10 +15,12 @@ export default async function handler(req, res) {
       }
     });
 
+    console.log('retornou steam similar 2', storeRes);
+
     if (!storeRes.ok) throw new Error('Falha ao acessar a loja da Steam');
     
     const html = await storeRes.text();
-    console.log('steam similar html', html);
+    console.log('steam similar html 3', html);
     
     let similarIds = [];
 
