@@ -1,4 +1,7 @@
+let jogosOriginaisFeedly = [];
 let jogosCarregados = [];
+let termoPesquisado = '';
+let fonteAtual = 'feedly'; // 'feedly' ou 'steam'
 let modalJogoAtual = null;
 let viewMode = localStorage.getItem('viewMode') || 'covers';
 const STREAM_ID = 'feed%2Fhttps%2F%2Fwww.skidrowreloaded.com%2Fcategory%2Fpc-games%2Ffeed%2F';
@@ -242,9 +245,10 @@ function criarCardJogo(jogo) {
     const card = document.createElement('div');
     card.className = 'bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden cursor-pointer relative hover:border-emerald-500/50 transition-all';
     card.onclick = () => abrirModal(jogo.id);
+    const fallbackImage = jogo.steamId ? `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${jogo.steamId}/header.jpg` : 'https://store.fastly.steamstatic.com/public/images/v6/app_default_header.jpg';
     card.innerHTML = `
         <div class="aspect-[3/4] bg-neutral-950">
-            <img src="${jogo.cover}" referrerpolicy="no-referrer" class="w-full h-full object-cover">
+            <img src="${jogo.cover}" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='${fallbackImage}';" class="w-full h-full object-cover">
         </div>
         <div id="score-${jogo.id}" class="absolute top-2 right-2 bg-black/70 backdrop-blur px-2 py-1 rounded text-[10px] font-bold text-emerald-400 hidden"></div>
         <div class="absolute bottom-12 right-2 bg-black/60 backdrop-blur px-1.5 py-0.5 rounded text-[9px] text-neutral-400 z-10">${jogo.date}</div>
@@ -258,10 +262,11 @@ function criarCardJogoCompacto(jogo) {
     card.className = 'bg-neutral-900 border border-neutral-800 rounded-md overflow-hidden cursor-pointer relative hover:border-emerald-500/50 transition-all p-3 flex gap-5 w-full';
     card.onclick = () => abrirModal(jogo.id);
     
+    const fallbackImage = jogo.steamId ? `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${jogo.steamId}/header.jpg` : 'https://store.fastly.steamstatic.com/public/images/v6/app_default_header.jpg';
     // 1. Criamos uma variável de texto para armazenar todo o HTML sem quebrar as tags
     let html = `
         <div class="w-20 h-30 shrink-0 bg-neutral-950 rounded-md overflow-hidden relative">
-            <img src="${jogo.cover}" referrerpolicy="no-referrer" class="w-full h-full object-cover">
+            <img src="${jogo.cover}" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='${fallbackImage}';" class="w-full h-full object-cover">
         </div>
         <div class="flex flex-col justify-between min-w-0 flex-1 relative py-1">
             <div class="flex justify-between items-start gap-4 w-full">
@@ -417,6 +422,8 @@ async function carregarJogos() {
             const jogo = parseFeedlyItem(item, index);
             jogosCarregados.push(jogo);
         });
+
+        jogosOriginaisFeedly = [...jogosCarregados];
 
         renderizarJogos();
         await processarDeepLink();
@@ -726,6 +733,155 @@ function fecharModal(fromPopstate = false) {
 }
 function fecharModalFora(e) { if (e.target.id === 'modal-overlay') fecharModal(); }
 
+// --- Lógica de Busca ---
+
+async function executarBusca(termo) {
+    termoPesquisado = termo;
+    
+    // Mostra o container de filtros
+    const filterTag = document.getElementById('search-filter-tag');
+    if (filterTag) filterTag.classList.remove('hidden');
+    
+    // Atualiza o texto do termo pesquisado
+    const termText = document.getElementById('search-term-text');
+    if (termText) termText.textContent = `"${termo}"`;
+
+    // Atualiza o estilo visual dos botões de filtro
+    atualizarEstiloBotoesFiltro();
+
+    const grid = document.getElementById('grid');
+    grid.innerHTML = '<div class="col-span-full text-center py-20 text-emerald-500 animate-pulse">Buscando...</div>';
+
+    if (fonteAtual === 'feedly') {
+        // Busca local no Feedly (skidrowreloaded)
+        const resultados = jogosOriginaisFeedly.filter(jogo => 
+            jogo.title.toLowerCase().includes(termo.toLowerCase())
+        );
+        jogosCarregados = resultados.map((jogo, index) => ({ ...jogo, id: index }));
+        
+        if (jogosCarregados.length === 0) {
+            grid.innerHTML = '<div class="col-span-full text-neutral-500 text-center py-20">Nenhum resultado encontrado no Feedly.</div>';
+        } else {
+            renderizarJogos();
+            carregarNotasEmLote();
+        }
+    } else {
+        // Busca na API da Steam
+        try {
+            const res = await fetch(`/api/steam-search?term=${encodeURIComponent(termo)}`);
+            const data = await res.json();
+            
+            jogosCarregados = (data.items || []).map((item, index) => {
+                const steamId = item.id;
+                const cover = `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${steamId}/library_600x900.jpg`;
+                const postLink = `https://store.steampowered.com/app/${steamId}`;
+                const links = [
+                    { label: 'Atualizações', url: `https://store.steampowered.com/newshub/?appids=${steamId}` },
+                    { label: 'Discussões', url: `https://steamcommunity.com/app/${steamId}/discussions/` },
+                    { label: 'Steam', url: postLink },
+                ];
+                return {
+                    id: index,
+                    feedlyId: `steam-${steamId}`,
+                    title: item.name,
+                    cover: cover,
+                    postLink: postLink,
+                    downloads: [],
+                    date: 'Steam',
+                    steamId: steamId.toString(),
+                    links,
+                    size: 'Não informado',
+                    release: {
+                        tituloOriginal: item.name,
+                        versao: '',
+                        tags: []
+                    }
+                };
+            });
+
+            if (jogosCarregados.length === 0) {
+                grid.innerHTML = '<div class="col-span-full text-neutral-500 text-center py-20">Nenhum resultado encontrado na Steam.</div>';
+            } else {
+                renderizarJogos();
+                carregarNotasEmLote();
+            }
+        } catch (err) {
+            console.error("Erro busca Steam:", err);
+            grid.innerHTML = '<div class="col-span-full text-red-500 text-center py-20">Erro ao buscar na Steam.</div>';
+        }
+    }
+}
+
+function atualizarEstiloBotoesFiltro() {
+    const btnFeedly = document.getElementById('btn-filter-feedly');
+    const btnSteam = document.getElementById('btn-filter-steam');
+    if (!btnFeedly || !btnSteam) return;
+
+    if (fonteAtual === 'feedly') {
+        btnFeedly.className = "px-3 py-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 font-bold transition-all";
+        btnSteam.className = "px-3 py-1 rounded-lg border border-neutral-800 bg-neutral-950 text-neutral-400 hover:text-white transition-all";
+    } else {
+        btnSteam.className = "px-3 py-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 font-bold transition-all";
+        btnFeedly.className = "px-3 py-1 rounded-lg border border-neutral-800 bg-neutral-950 text-neutral-400 hover:text-white transition-all";
+    }
+}
+
+function limparBusca() {
+    termoPesquisado = '';
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) searchInput.value = '';
+
+    const filterTag = document.getElementById('search-filter-tag');
+    if (filterTag) filterTag.classList.add('hidden');
+
+    jogosCarregados = [...jogosOriginaisFeedly];
+    renderizarJogos();
+    carregarNotasEmLote();
+}
+
+// Configuração de Event Listeners de Busca
+let debounceTimer;
+document.getElementById('search-input')?.addEventListener('input', (e) => {
+    clearTimeout(debounceTimer);
+    const query = e.target.value.trim();
+    debounceTimer = setTimeout(() => {
+        if (query) {
+            executarBusca(query);
+        } else {
+            limparBusca();
+        }
+    }, 400);
+});
+
+document.getElementById('search-input')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        clearTimeout(debounceTimer);
+        const query = e.target.value.trim();
+        if (query) {
+            executarBusca(query);
+        } else {
+            limparBusca();
+        }
+    }
+});
+
+document.getElementById('btn-filter-feedly')?.addEventListener('click', () => {
+    if (fonteAtual !== 'feedly') {
+        fonteAtual = 'feedly';
+        if (termoPesquisado) executarBusca(termoPesquisado);
+    }
+});
+
+document.getElementById('btn-filter-steam')?.addEventListener('click', () => {
+    if (fonteAtual !== 'steam') {
+        fonteAtual = 'steam';
+        if (termoPesquisado) executarBusca(termoPesquisado);
+    }
+});
+
+document.getElementById('btn-clear-search')?.addEventListener('click', limparBusca);
+
+// Inicialização principal
 carregarJogos();
 
 window.addEventListener('popstate', () => {

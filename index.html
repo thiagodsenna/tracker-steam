@@ -74,11 +74,31 @@
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-list"><line x1="8" x1="21" y1="6" y2="6"/><line x1="8" x1="21" y1="12" y2="12"/><line x1="8" x1="21" y1="18" y2="18"/><line x1="3" x1="3.01" y1="6" y2="6"/><line x1="3" x1="3.01" y1="12" y2="12"/><line x1="3" x1="3.01" y1="18" y2="18"/></svg>
                     </button>
                 </div>
-                <button onclick="carregarJogos()" class="bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 px-4 py-2 rounded-xl text-sm font-semibold transition-colors">
-                    Atualizar
-                </button>
+                <div class="relative w-48 sm:w-64">
+                    <input type="text" id="search-input" placeholder="Buscar jogos..." class="w-full bg-neutral-900 border border-neutral-800 text-neutral-300 pl-9 pr-4 py-2 rounded-xl text-sm focus:outline-none focus:border-emerald-500/50 transition-colors">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-neutral-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                    </div>
+                </div>
             </div>
         </header>
+
+        <!-- Tag de filtro de pesquisa -->
+        <div id="search-filter-tag" class="hidden w-full bg-neutral-900 border border-neutral-800 rounded-xl p-3 mb-6 flex items-center justify-between text-xs sm:text-sm font-semibold">
+            <div class="flex items-center gap-2 sm:gap-3 flex-wrap text-neutral-400">
+                <span>Filtrado por: <span id="search-term-text" class="text-white font-bold">""</span></span>
+                <span class="text-neutral-700">|</span>
+                <button id="btn-filter-feedly" class="px-3 py-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 font-bold transition-all">
+                    Feedly
+                </button>
+                <button id="btn-filter-steam" class="px-3 py-1 rounded-lg border border-neutral-800 bg-neutral-950 text-neutral-400 hover:text-white transition-all">
+                    Steam
+                </button>
+            </div>
+            <button id="btn-clear-search" class="text-neutral-400 hover:text-white px-2 py-1 font-bold text-base transition-colors" title="Limpar busca">
+                ✕
+            </button>
+        </div>
 
         <div id="grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             <div class="col-span-full text-center py-20 text-emerald-500 animate-pulse">Carregando lançamentos...</div>
