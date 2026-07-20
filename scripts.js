@@ -807,7 +807,7 @@ async function buscarJogosSimilares(steamId) {
         }
 
         container.innerHTML = data.items.map(jogo => `
-            <a href="https://store.steampowered.com/app/${jogo.id}" target="_blank" title="Ver na Steam: ${jogo.name}" class="group bg-neutral-950 border border-neutral-800 rounded-lg overflow-hidden hover:border-emerald-500/50 transition-all flex flex-col justify-between shadow-md">
+            <a href="#" onclick="abrirModal(${jogo.id})" title="Ver na Steam: ${jogo.name}" class="group bg-neutral-950 border border-neutral-800 rounded-lg overflow-hidden hover:border-emerald-500/50 transition-all flex flex-col justify-between shadow-md">
                 <div class="aspect-[460/215] w-full bg-neutral-900 overflow-hidden relative">
                     <img src="${jogo.cover}" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='https://store.fastly.steamstatic.com/public/images/v6/app_default_header.jpg';" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
                 </div>
