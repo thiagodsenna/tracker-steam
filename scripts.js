@@ -543,6 +543,18 @@ async function abrirModal(id, options = {}) {
     document.getElementById('modal-section-hltb')?.classList.add('hidden');
     document.getElementById('modal-section-similares')?.classList.add('hidden');
 
+    // Esconde os botões correspondentes que são assíncronos na barra da navegação
+    ['hltb', 'recursos', 'screenshots', 'videos', 'reviews', 'similares'].forEach(sec => {
+        document.getElementById(`shortcut-${sec}`)?.classList.add('hidden');
+    });
+
+    // Inicia/reinicia a observação de scroll que prende a barra
+    setTimeout(() => {
+        iniciarMonitoramentoBarraModal();
+    }, 100);
+
+    const metaScoreEl = document.getElementById('modal-metacritic-score');
+
     const metaScoreEl = document.getElementById('modal-metacritic-score');
     metaScoreEl.className = 'absolute bottom-4 right-4 hidden h-16 w-16 flex items-center justify-center rounded-lg border-2 border-white/20 shadow-xl';
     document.getElementById('metacritic-score-value').textContent = '';
@@ -603,6 +615,7 @@ async function buscarDadosSteam(steamId) {
         // Screenshots (Todas)
         if (game.screenshots && game.screenshots.length > 0) {
             document.getElementById('modal-section-screenshots').classList.remove('hidden');
+            document.getElementById('shortcut-screenshots')?.classList.remove('hidden');
             document.getElementById('modal-screenshots-grid').innerHTML = game.screenshots.map(s =>
                 `<img src="${s.path_thumbnail}" referrerpolicy="no-referrer" onclick="abrirLightbox('${s.path_full}')" class="rounded border border-neutral-800 cursor-pointer hover:opacity-80">`
             ).join('');
@@ -611,6 +624,7 @@ async function buscarDadosSteam(steamId) {
         // Recursos (Categorias)
         if (game.categories && game.categories.length > 0) {
             document.getElementById('modal-section-recursos').classList.remove('hidden');
+            document.getElementById('shortcut-recursos')?.classList.remove('hidden');
             document.getElementById('modal-recursos-grid').innerHTML = game.categories.map(c => {
                 const iconName = CATEGORY_ICONS[c.id] || 'ico_singlePlayer.png'; // Fallback
                 const iconUrl = `https://store.fastly.steamstatic.com/public/images/v6/ico/${iconName}`;
@@ -626,6 +640,7 @@ async function buscarDadosSteam(steamId) {
         // Trailers (Todos)
         if (game.movies && game.movies.length > 0) {
             document.getElementById('modal-section-videos').classList.remove('hidden');
+            document.getElementById('shortcut-videos')?.classList.remove('hidden');
             const container = document.getElementById('modal-youtube-container');
             container.innerHTML = ''; // Limpa container
 
@@ -683,6 +698,7 @@ async function buscarReviewsSteam(steamId) {
             document.getElementById('total-reviews').innerHTML = `<span class="text-neutral-500">Avaliações:</span> ${json.query_summary.total_reviews.toLocaleString('pt-BR')}`;
 
             section.classList.remove('hidden');
+            document.getElementById('shortcut-reviews')?.classList.remove('hidden');
             // Filtra para manter apenas PT-BR e Inglês
             const filteredReviews = json.reviews.filter(review =>
                 review.language === 'brazilian' || review.language === 'english'
@@ -785,6 +801,7 @@ async function buscarHowLongToBeat(steamId) {
 
         // Revela a seção no modal
         section.classList.remove('hidden');
+        document.getElementById('shortcut-hltb')?.classList.remove('hidden');
     } catch (e) {
         console.log("Sem dados no How Long to Beat para este jogo:", steamId);
     }
@@ -819,6 +836,7 @@ async function buscarJogosSimilares(steamId) {
         `).join('');
 
         section.classList.remove('hidden');
+        document.getElementById('shortcut-similares')?.classList.remove('hidden');
     } catch (e) {
         console.log("Falha ao carregar jogos similares para:", steamId);
     }
@@ -828,6 +846,14 @@ function fecharModal(fromPopstate = false) {
     if (window.videojs) {
         const players = videojs.getAllPlayers();
         players.forEach(player => player.dispose());
+    }
+
+    // Desconecta a rolagem e reseta a barra de atalhos no topo do modal
+    if (observadorBarra) observadorBarra.disconnect();
+    const nav = document.getElementById('modal-nav-shortcuts');
+    if (nav) {
+        nav.classList.remove('fixed', 'top-0', 'left-0', 'right-0', 'shadow-xl', 'bg-neutral-950/98', 'max-w-4xl', 'mx-auto', 'sm:rounded-t-2xl');
+        nav.classList.add('w-full');
     }
 
     if (!fromPopstate && history.state?.modalOpen) {
@@ -955,6 +981,60 @@ function limparBusca() {
     jogosCarregados = [...jogosOriginaisFeedly];
     renderizarJogos();
     carregarNotasEmLote();
+}
+
+// --- LÓGICA DA BARRA DE ATALHOS NO MODAL ---
+
+// 1. Função que rola suavemente para o destino escolhido compensando a altura da barra
+function rolarParaSecaoModal(elementId) {
+    const alvo = document.getElementById(elementId);
+    if (!alvo) return;
+    
+    // Calcula um desconto no scroll em pixels para a barra flutuante não sobrepor o topo da seção
+    const compensacao = 60; 
+    
+    // Se o clique for em "Topo", vai para o topo absoluto do modal (ou rola a janela de dentro)
+    if (elementId === 'modal-content') {
+        alvo.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+        const elementoTop = alvo.getBoundingClientRect().top;
+        const modalContainer = document.getElementById('modal-overlay');
+        const atualTop = modalContainer.scrollTop;
+        
+        modalContainer.scrollTo({
+            top: atualTop + elementoTop - compensacao,
+            behavior: 'smooth'
+        });
+    }
+}
+
+// 2. Observer que controla a adesão flutuante (Sticky) da barra ao rolar a tela
+let observadorBarra = null;
+function iniciarMonitoramentoBarraModal() {
+    const hero = document.getElementById('modal-hero');
+    const nav = document.getElementById('modal-nav-shortcuts');
+    const modalContent = document.getElementById('modal-content');
+    
+    if (!hero || !nav) return;
+    if (observadorBarra) observadorBarra.disconnect();
+    
+    observadorBarra = new IntersectionObserver((entries) => {
+        const heroInView = entries[0].isIntersecting;
+        if (!heroInView) {
+            // Hero saiu da tela: fixa no topo acompanhando o scroll
+            nav.classList.add('fixed', 'top-0', 'left-0', 'right-0', 'shadow-xl', 'bg-neutral-950/98', 'max-w-4xl', 'mx-auto', 'sm:rounded-t-2xl');
+            nav.classList.remove('w-full');
+        } else {
+            // Hero visível: volta ao estado nativo anexado abaixo da imagem
+            nav.classList.remove('fixed', 'top-0', 'left-0', 'right-0', 'shadow-xl', 'bg-neutral-950/98', 'max-w-4xl', 'mx-auto', 'sm:rounded-t-2xl');
+            nav.classList.add('w-full');
+        }
+    }, {
+        root: document.getElementById('modal-overlay'), // Observa na barra de scroll do modal
+        threshold: 0
+    });
+    
+    observadorBarra.observe(hero);
 }
 
 // Configuração de Event Listeners de Busca
