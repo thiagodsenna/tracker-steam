@@ -34,11 +34,15 @@
 }
 
 #lightbox-img {
-    transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease-in-out;
     opacity: 1;
-    transform: scale(1);
+    transform: translateX(0) scale(1);
 }
-#lightbox-img.trocando-imagem {
+#lightbox-img.slide-left {
     opacity: 0;
-    transform: scale(0.96);
+    transform: translateX(-40px) scale(0.96);
+}
+#lightbox-img.slide-right {
+    opacity: 0;
+    transform: translateX(40px) scale(0.96);
 }

@@ -38,7 +38,7 @@
     
     <div id="lightbox" onclick="fecharLightbox(event)" class="fixed inset-0 z-[100] bg-black/95 backdrop-blur-md hidden flex justify-center items-center select-none">
         <!-- Botão Fechar -->
-        <button onclick="fecharLightbox(event, true)" class="absolute top-4 right-4 text-white hover:text-emerald-400 p-3 text-lg z-20 font-bold transition-colors">✕</button>
+        <button onclick="fecharLightbox(event, true)" class="absolute top-4 right-4 text-white hover:text-emerald-400 p-3 text-base z-20 font-bold transition-colors">✕</button>
 
         <!-- Botão Anterior (Esquerda) -->
         <button id="lightbox-prev" onclick="navegarLightbox(event, -1)" class="absolute left-2 sm:left-6 text-white hover:text-emerald-400 p-3 sm:p-4 text-3xl sm:text-4xl z-20 transition-transform active:scale-95">
@@ -48,7 +48,7 @@
         <!-- Imagem Principal -->
         <div class="relative max-w-[95%] max-h-[90%] flex items-center justify-center">
             <img id="lightbox-img" class="max-w-full max-h-[85vh] object-contain rounded shadow-2xl transition-all duration-200">
-            <div id="lightbox-counter" class="absolute -bottom-8 left-1/2 -translate-x-1/2 text-neutral-400 text-xs font-mono bg-neutral-900/80 px-3 py-1 mt-2 rounded-full border border-neutral-800"></div>
+            <div id="lightbox-counter" class="absolute -bottom-8 left-1/2 -translate-x-1/2 text-neutral-400 text-xs font-mono bg-neutral-900/80 px-3 py-1 mt-4 rounded-full border border-neutral-800"></div>
         </div>
 
         <!-- Botão Próximo (Direita) -->

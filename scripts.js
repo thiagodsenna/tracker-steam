@@ -521,6 +521,9 @@ window.abrirLightbox = (index, lista) => {
     
     const lightboxEl = document.getElementById('lightbox');
     lightboxEl.classList.remove('hidden');
+
+    // Adiciona estado ao histórico para que o botão "Voltar" do navegador feche o lightbox
+    history.pushState({ lightboxOpen: true }, '', window.location.href);
     
     // Registra navegação por teclado (Setas)
     window.addEventListener('keydown', lidarTecladoLightbox);
@@ -551,16 +554,22 @@ window.navegarLightbox = (e, direcao) => {
     const imgEl = document.getElementById('lightbox-img');
     
     if (imgEl) {
-        // 1. Aplica o estado de transição (desaparece suavemente)
-        imgEl.classList.add('trocando-imagem');
+        // Define a classe de slide com base na direção (1 = próximo/esquerda, -1 = anterior/direita)
+        const classeSlide = direcao > 0 ? 'slide-left' : 'slide-right';
+        imgEl.classList.add(classeSlide);
         
-        // 2. Aguarda a animação de saída concluir (150ms) para trocar a imagem
         setTimeout(() => {
             lightboxIndexAtual = (lightboxIndexAtual + direcao + lightboxLista.length) % lightboxLista.length;
             atualizarLightbox();
             
-            // 3. Remove a classe para a nova imagem reaparecer suavemente
-            imgEl.classList.remove('trocando-imagem');
+            // Remove a classe de saída e aplica um leve efeito de entrada fluida oposta
+            imgEl.classList.remove(classeSlide);
+            const classeEntrada = direcao > 0 ? 'slide-right' : 'slide-left';
+            imgEl.classList.add(classeEntrada);
+            
+            setTimeout(() => {
+                imgEl.classList.remove(classeEntrada);
+            }, 20);
         }, 150);
     } else {
         lightboxIndexAtual = (lightboxIndexAtual + direcao + lightboxLista.length) % lightboxLista.length;
@@ -568,12 +577,19 @@ window.navegarLightbox = (e, direcao) => {
     }
 };
 
-window.fecharLightbox = (e, forcar = false) => {
+window.fecharLightbox = (e, forcar = false, viaPopstate = false) => {
     // Se o clique for direto na imagem ou nos botões de controle, ignora
-    if (!forcar && e && e.target.id !== 'lightbox') return;
+    if (!forcar && !viaPopstate && e && e.target.id !== 'lightbox') return;
     
     const lightboxEl = document.getElementById('lightbox');
-    lightboxEl.classList.add('hidden');
+    if (!lightboxEl.classList.contains('hidden')) {
+        lightboxEl.classList.add('hidden');
+        
+        // Se fechou por interação do usuário (clique/tecla), remove o estado extra do histórico
+        if (!viaPopstate && history.state?.lightboxOpen) {
+            history.back();
+        }
+    }
     
     // Remove listeners acumulados
     window.removeEventListener('keydown', lidarTecladoLightbox);
@@ -603,7 +619,7 @@ function lidarTouchEnd(e) {
 }
 
 function lidarSwipe() {
-    const limiteMinimoSwipe = 50; // Distância mínima em pixels para considerar swipe
+    const limiteMinimoSwipe = 50;
     const diferenca = touchEndX - touchStartX;
     
     if (Math.abs(diferenca) > limiteMinimoSwipe) {
@@ -1150,6 +1166,12 @@ document.getElementById('btn-clear-search')?.addEventListener('click', limparBus
 carregarJogos();
 
 window.addEventListener('popstate', () => {
+    const lightbox = document.getElementById('lightbox');
+    if (lightbox && !lightbox.classList.contains('hidden')) {
+        fecharLightbox(null, true, true);
+        return;
+    }
+
     const modal = document.getElementById('modal-overlay');
     if (modal && !modal.classList.contains('hidden')) {
         fecharModal(true);
