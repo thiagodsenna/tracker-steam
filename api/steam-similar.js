@@ -1,7 +1,6 @@
 export default async function handler(req, res) {
   const { appid } = req.query;
   res.setHeader('Access-Control-Allow-Origin', '*');
-  console.log('entrou steam similar 1');
   
   if (!appid) {
     return res.status(400).json({ error: 'AppID é obrigatório' });
@@ -15,12 +14,9 @@ export default async function handler(req, res) {
       }
     });
 
-    console.log('retornou steam similar 2', storeRes);
-
     if (!storeRes.ok) throw new Error('Falha ao acessar a loja da Steam');
     
     const html = await storeRes.text();
-    console.log('steam similar html 3', html);
     
     let similarIds = [];
 
@@ -57,7 +53,7 @@ export default async function handler(req, res) {
     const topSimilarIds = similarIds.slice(0, 6);
 
     if (topSimilarIds.length === 0) {
-      return res.status(200).json({ success: true, items: [], html: html });
+      return res.status(200).json({ success: true, items: [] });
     }
 
     // 3. BUSCA OS DETALHES DE CADA JOGO EM PARALELO (&filters=basic)
@@ -89,7 +85,7 @@ export default async function handler(req, res) {
 
     const validGames = similarGames.filter(g => g !== null);
 
-    return res.status(200).json({ success: true, items: validGames, html: html });
+    return res.status(200).json({ success: true, items: validGames });
   } catch (error) {
     console.error("Erro em jogos similares:", error);
     return res.status(500).json({ error: 'Falha ao buscar jogos similares' });

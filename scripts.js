@@ -796,10 +796,8 @@ async function buscarJogosSimilares(steamId) {
     if (!section || !container) return;
 
     try {
-        console.log('entrou buscarJogosSimilares 1');
         const res = await fetch(`/api/steam-similar?appid=${steamId}`);
         if (!res.ok) throw new Error("Erro ao buscar similares");
-        console.log('entrou buscarJogosSimilares 2', res);
         
         const data = await res.json();
         
