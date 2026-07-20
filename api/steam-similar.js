@@ -25,28 +25,27 @@ export default async function handler(req, res) {
     let similarIds = [];
 
     // 1. CAPTURA INTELIGENTE PELO DATA-PROPS:
-    // Procura pela tag que possui o título "Ver similares" e extrai o JSON contido em data-props
+    // Corrigido para buscar o título em inglês "More like this" que é o padrão retornado pelo Steam no HTML fornecido
     const regexProps = /data-featuretarget="storeitems-carousel"[^>]*data-props="([^"]+)"/gi;
     let match;
 
     while ((match = regexProps.exec(html)) !== null) {
       try {
-        // Como o HTML usa entidades HTML escapadas (&quot;), nós as convertemos para aspas normais
+        // Converte as entidades HTML escapadas (&quot;) para aspas normais
         const decodedJson = match[1].replace(/&quot;/g, '"');
         const props = JSON.parse(decodedJson);
 
-        // Verifica se é o carrossel correspondente a "Ver similares" e se possui o array appIDs
-        if (props.title === "Ver similares" && Array.isArray(props.appIDs)) {
+        // Verifica se o carrossel corresponde a "More like this" e se possui o array appIDs
+        if (props.title === "More like this" && Array.isArray(props.appIDs)) {
           similarIds = props.appIDs;
-          break; // Achou exatamente o que queríamos, pode parar a busca!
+          break; // Achou exatamente o carrossel de similares, encerra a busca
         }
       } catch (err) {
-        // Se falhar o parse de um bloco específico, continua procurando nos outros
         continue;
       }
     }
 
-    // 2. FALLBACK DE SEGURANÇA (Caso o layout da Steam mude no futuro)
+    // 2. FALLBACK DE SEGURANÇA (Caso o layout mude ou o título varie)
     if (similarIds.length === 0) {
       const fallbackMatch = html.match(/"appIDs":\s*\[([\d,\s]+)\]/);
       if (fallbackMatch) {
@@ -54,7 +53,7 @@ export default async function handler(req, res) {
       }
     }
 
-    // Pega apenas os primeiros 6 jogos para preencher o grid do modal com agilidade
+    // Pega apenas os primeiros 6 jogos para preencher o grid com agilidade
     const topSimilarIds = similarIds.slice(0, 6);
 
     if (topSimilarIds.length === 0) {
