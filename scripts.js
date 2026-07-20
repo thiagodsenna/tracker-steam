@@ -727,7 +727,7 @@ async function buscarHowLongToBeat(steamId) {
 
     try {
         // Tenta buscar da API do Codepotatoes
-        const res = await fetch(`/api/hltb?appid=${steamId}`);
+        const res = await fetch(`/api/hltb-proxy?appid=${steamId}`);
         if (!res.ok) throw new Error("HLTB não encontrado");
         const data = await res.json();
 
