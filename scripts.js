@@ -304,7 +304,7 @@ function criarCardJogoCompacto(jogo) {
                     <span class="text-neutral-300 font-medium">${jogo.size}</span>
                 </div>
                 <div class="flex flex-col text-[11px]">
-                    <span class="text-neutral-500">Lançamento</span>
+                    <span class="text-neutral-500">Postado</span>
                     <span class="text-neutral-300 font-medium">${jogo.date}</span>
                 </div>
             </div>
@@ -411,7 +411,7 @@ function renderizarJogos() {
 async function carregarJogos() {
     const grid = document.getElementById('grid');
     jogosCarregados = [];
-    grid.innerHTML = '<div class="col-span-full text-center py-20 text-emerald-500 animate-pulse">Carregando lançamentos...</div>';
+    grid.innerHTML = '<div class="col-span-full text-center py-20 text-emerald-500 animate-pulse">Carregando releases...</div>';
     
     updateViewButtons();
 
