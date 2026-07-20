@@ -976,7 +976,7 @@ function rolarParaSecaoModal(elementId) {
     if (!alvo) return;
     
     // Altura da barra compacta em pixels para que o título da seção não fique escondido sob ela
-    const compensacao = 50; 
+    const compensacao = 65; 
     
     const modalContainer = document.getElementById('modal-overlay');
     
