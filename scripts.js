@@ -753,17 +753,28 @@ async function executarBusca(termo) {
     grid.innerHTML = '<div class="col-span-full text-center py-20 text-emerald-500 animate-pulse">Buscando...</div>';
 
     if (fonteAtual === 'feedly') {
-        // Busca local no Feedly (skidrowreloaded)
-        const resultados = jogosOriginaisFeedly.filter(jogo => 
-            jogo.title.toLowerCase().includes(termo.toLowerCase())
-        );
-        jogosCarregados = resultados.map((jogo, index) => ({ ...jogo, id: index }));
-        
-        if (jogosCarregados.length === 0) {
-            grid.innerHTML = '<div class="col-span-full text-neutral-500 text-center py-20">Nenhum resultado encontrado no Feedly.</div>';
-        } else {
-            renderizarJogos();
-            carregarNotasEmLote();
+        // Busca remota no Feedly (skidrowreloaded) via proxy
+        try {
+            const res = await fetch(`/api/feedly-proxy?query=${encodeURIComponent(termo)}`);
+            const data = await res.json();
+            
+            jogosCarregados = [];
+            const items = data.items || [];
+            
+            items.forEach((item, index) => {
+                const jogo = parseFeedlyItem(item, index);
+                jogosCarregados.push(jogo);
+            });
+            
+            if (jogosCarregados.length === 0) {
+                grid.innerHTML = '<div class="col-span-full text-neutral-500 text-center py-20">Nenhum resultado encontrado no Feedly.</div>';
+            } else {
+                renderizarJogos();
+                carregarNotasEmLote();
+            }
+        } catch (err) {
+            console.error("Erro busca Feedly:", err);
+            grid.innerHTML = '<div class="col-span-full text-red-500 text-center py-20">Erro ao buscar no Feedly.</div>';
         }
     } else {
         // Busca na API da Steam
