@@ -548,11 +548,6 @@ async function abrirModal(id, options = {}) {
         document.getElementById(`shortcut-${sec}`)?.classList.add('hidden');
     });
 
-    // Inicia/reinicia a observação de scroll que prende a barra
-    setTimeout(() => {
-        iniciarMonitoramentoBarraModal();
-    }, 100);
-
     const metaScoreEl = document.getElementById('modal-metacritic-score');
     metaScoreEl.className = 'absolute bottom-4 right-4 hidden h-16 w-16 flex items-center justify-center rounded-lg border-2 border-white/20 shadow-xl';
     document.getElementById('metacritic-score-value').textContent = '';
@@ -846,14 +841,6 @@ function fecharModal(fromPopstate = false) {
         players.forEach(player => player.dispose());
     }
 
-    // Desconecta a rolagem e reseta a barra de atalhos no topo do modal
-    if (observadorBarra) observadorBarra.disconnect();
-    const nav = document.getElementById('modal-nav-shortcuts');
-    if (nav) {
-        nav.classList.remove('fixed', 'top-0', 'left-0', 'right-0', 'shadow-xl', 'bg-neutral-950/98', 'max-w-4xl', 'mx-auto', 'sm:rounded-t-2xl');
-        nav.classList.add('w-full');
-    }
-
     if (!fromPopstate && history.state?.modalOpen) {
         history.back();
     }
@@ -983,20 +970,21 @@ function limparBusca() {
 
 // --- LÓGICA DA BARRA DE ATALHOS NO MODAL ---
 
-// 1. Função que rola suavemente para o destino escolhido compensando a altura da barra
+// Função que rola suavemente para o destino escolhido compensando a altura da barra minimalista
 function rolarParaSecaoModal(elementId) {
     const alvo = document.getElementById(elementId);
     if (!alvo) return;
     
-    // Calcula um desconto no scroll em pixels para a barra flutuante não sobrepor o topo da seção
-    const compensacao = 60; 
+    // Altura da barra compacta em pixels para que o título da seção não fique escondido sob ela
+    const compensacao = 50; 
     
-    // Se o clique for em "Topo", vai para o topo absoluto do modal (ou rola a janela de dentro)
+    const modalContainer = document.getElementById('modal-overlay');
+    
+    // Se o clique for em "Topo", rola diretamente para o início absoluto do modal
     if (elementId === 'modal-content') {
-        alvo.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        modalContainer.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
         const elementoTop = alvo.getBoundingClientRect().top;
-        const modalContainer = document.getElementById('modal-overlay');
         const atualTop = modalContainer.scrollTop;
         
         modalContainer.scrollTo({
@@ -1004,35 +992,6 @@ function rolarParaSecaoModal(elementId) {
             behavior: 'smooth'
         });
     }
-}
-
-// 2. Observer que controla a adesão flutuante (Sticky) da barra ao rolar a tela
-let observadorBarra = null;
-function iniciarMonitoramentoBarraModal() {
-    const hero = document.getElementById('modal-hero');
-    const nav = document.getElementById('modal-nav-shortcuts');
-    const modalContent = document.getElementById('modal-content');
-    
-    if (!hero || !nav) return;
-    if (observadorBarra) observadorBarra.disconnect();
-    
-    observadorBarra = new IntersectionObserver((entries) => {
-        const heroInView = entries[0].isIntersecting;
-        if (!heroInView) {
-            // Hero saiu da tela: fixa no topo acompanhando o scroll
-            nav.classList.add('fixed', 'top-0', 'left-0', 'right-0', 'shadow-xl', 'bg-neutral-950/98', 'max-w-4xl', 'mx-auto', 'sm:rounded-t-2xl');
-            nav.classList.remove('w-full');
-        } else {
-            // Hero visível: volta ao estado nativo anexado abaixo da imagem
-            nav.classList.remove('fixed', 'top-0', 'left-0', 'right-0', 'shadow-xl', 'bg-neutral-950/98', 'max-w-4xl', 'mx-auto', 'sm:rounded-t-2xl');
-            nav.classList.add('w-full');
-        }
-    }, {
-        root: document.getElementById('modal-overlay'), // Observa na barra de scroll do modal
-        threshold: 0
-    });
-    
-    observadorBarra.observe(hero);
 }
 
 // Configuração de Event Listeners de Busca
