@@ -58,7 +58,7 @@ export default async function handler(req, res) {
     const topSimilarIds = similarIds.slice(0, 6);
 
     if (topSimilarIds.length === 0) {
-      return res.status(200).json({ success: true, items: [] });
+      return res.status(200).json({ success: true, items: [], html: html });
     }
 
     // 3. BUSCA OS DETALHES DE CADA JOGO EM PARALELO (&filters=basic)
@@ -90,7 +90,7 @@ export default async function handler(req, res) {
 
     const validGames = similarGames.filter(g => g !== null);
 
-    return res.status(200).json({ success: true, items: validGames });
+    return res.status(200).json({ success: true, items: validGames, html: html });
   } catch (error) {
     console.error("Erro em jogos similares:", error);
     return res.status(500).json({ error: 'Falha ao buscar jogos similares' });
