@@ -505,11 +505,102 @@ async function compartilharJogoAtual() {
     }
 }
 
-window.abrirLightbox = (src) => {
-    document.getElementById('lightbox-img').src = src;
-    document.getElementById('lightbox').classList.remove('hidden');
+// Variáveis Globais de controle da galeria do Lightbox
+let lightboxLista = [];
+let lightboxIndexAtual = 0;
+let touchStartX = 0;
+let touchEndX = 0;
+
+window.abrirLightbox = (index, lista) => {
+    if (!lista || lista.length === 0) return;
+    
+    lightboxLista = lista;
+    lightboxIndexAtual = index;
+    
+    atualizarLightbox();
+    
+    const lightboxEl = document.getElementById('lightbox');
+    lightboxEl.classList.remove('hidden');
+    
+    // Registra navegação por teclado (Setas)
+    window.addEventListener('keydown', lidarTecladoLightbox);
+    
+    // Configura os ouvintes de gestos touch para mobile
+    lightboxEl.addEventListener('touchstart', lidarTouchStart, { passive: true });
+    lightboxEl.addEventListener('touchend', lidarTouchEnd, { passive: true });
 };
-function fecharLightbox() { document.getElementById('lightbox').classList.add('hidden'); }
+
+function atualizarLightbox() {
+    const imgEl = document.getElementById('lightbox-img');
+    const counterEl = document.getElementById('lightbox-counter');
+    
+    if (imgEl && lightboxLista[lightboxIndexAtual]) {
+        imgEl.src = lightboxLista[lightboxIndexAtual];
+    }
+    
+    if (counterEl) {
+        counterEl.textContent = `${lightboxIndexAtual + 1} / ${lightboxLista.length}`;
+    }
+}
+
+window.navegarLightbox = (e, direcao) => {
+    if (e) e.stopPropagation(); // Evita fechar o lightbox ao clicar nas setas
+    
+    if (lightboxLista.length <= 1) return;
+    
+    // Calcula o próximo índice (com rotação circular)
+    lightboxIndexAtual = (lightboxIndexAtual + direcao + lightboxLista.length) % lightboxLista.length;
+    atualizarLightbox();
+};
+
+window.fecharLightbox = (e, forcar = false) => {
+    // Se o clique for direto na imagem ou nos botões de controle, ignora
+    if (!forcar && e && e.target.id !== 'lightbox') return;
+    
+    const lightboxEl = document.getElementById('lightbox');
+    lightboxEl.classList.add('hidden');
+    
+    // Remove listeners acumulados
+    window.removeEventListener('keydown', lidarTecladoLightbox);
+    lightboxEl.removeEventListener('touchstart', lidarTouchStart);
+    lightboxEl.removeEventListener('touchend', lidarTouchEnd);
+};
+
+// Navegação via teclado
+function lidarTecladoLightbox(e) {
+    if (e.key === 'ArrowLeft') {
+        navegarLightbox(null, -1);
+    } else if (e.key === 'ArrowRight') {
+        navegarLightbox(null, 1);
+    } else if (e.key === 'Escape') {
+        fecharLightbox(null, true);
+    }
+}
+
+// Gestos Touch (Swipe) para dispositivos móveis
+function lidarTouchStart(e) {
+    touchStartX = e.changedTouches[0].screenX;
+}
+
+function lidarTouchEnd(e) {
+    touchEndX = e.changedTouches[0].screenX;
+    lidarSwipe();
+}
+
+function lidarSwipe() {
+    const limiteMinimoSwipe = 50; // Distância mínima em pixels para considerar swipe
+    const diferenca = touchEndX - touchStartX;
+    
+    if (Math.abs(diferenca) > limiteMinimoSwipe) {
+        if (diferenca < 0) {
+            // Deslizou para a esquerda -> Próxima imagem
+            navegarLightbox(null, 1);
+        } else {
+            // Deslizou para a direita -> Imagem anterior
+            navegarLightbox(null, -1);
+        }
+    }
+}
 
 async function abrirModal(id, options = {}) {
     const jogo = jogosCarregados[id];
@@ -609,8 +700,12 @@ async function buscarDadosSteam(steamId) {
         if (game.screenshots && game.screenshots.length > 0) {
             document.getElementById('modal-section-screenshots').classList.remove('hidden');
             document.getElementById('shortcut-screenshots')?.classList.remove('hidden');
-            document.getElementById('modal-screenshots-grid').innerHTML = game.screenshots.map(s =>
-                `<img src="${s.path_thumbnail}" referrerpolicy="no-referrer" onclick="abrirLightbox('${s.path_full}')" class="rounded border border-neutral-800 cursor-pointer hover:opacity-80">`
+            
+            // Mapeia todas as URLs em alta resolução
+            const listaUrls = game.screenshots.map(s => s.path_full);
+
+            document.getElementById('modal-screenshots-grid').innerHTML = game.screenshots.map((s, idx) =>
+                `<img src="${s.path_thumbnail}" referrerpolicy="no-referrer" onclick="abrirLightbox(${idx}, ${JSON.stringify(listaUrls).replace(/"/g, '&quot;')})" class="rounded border border-neutral-800 cursor-pointer hover:opacity-80 transition-opacity">`
             ).join('');
         }
 
