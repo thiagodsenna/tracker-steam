@@ -21,27 +21,24 @@ export default async function handler(req, res) {
     let similarIds = [];
 
     // 1. CAPTURA INTELIGENTE PELO DATA-PROPS:
-    // Corrigido para buscar o título em inglês "More like this" que é o padrão retornado pelo Steam no HTML fornecido
     const regexProps = /data-featuretarget="storeitems-carousel"[^>]*data-props="([^"]+)"/gi;
     let match;
 
     while ((match = regexProps.exec(html)) !== null) {
       try {
-        // Converte as entidades HTML escapadas (&quot;) para aspas normais
         const decodedJson = match[1].replace(/&quot;/g, '"');
         const props = JSON.parse(decodedJson);
 
-        // Verifica se o carrossel corresponde a "More like this" e se possui o array appIDs
         if (props.title === "More like this" && Array.isArray(props.appIDs)) {
           similarIds = props.appIDs;
-          break; // Achou exatamente o carrossel de similares, encerra a busca
+          break;
         }
       } catch (err) {
         continue;
       }
     }
 
-    // 2. FALLBACK DE SEGURANÇA (Caso o layout mude ou o título varie)
+    // 2. FALLBACK DE SEGURANÇA PARA OS IDS
     if (similarIds.length === 0) {
       const fallbackMatch = html.match(/"appIDs":\s*\[([\d,\s]+)\]/);
       if (fallbackMatch) {
@@ -49,14 +46,13 @@ export default async function handler(req, res) {
       }
     }
 
-    // Pega apenas os primeiros 10 jogos para preencher o grid com agilidade
     const topSimilarIds = similarIds.slice(0, 10);
 
     if (topSimilarIds.length === 0) {
       return res.status(200).json({ success: true, items: [] });
     }
 
-    // 3. BUSCA OS DETALHES DE CADA JOGO EM PARALELO (&filters=basic)
+    // 3. BUSCA OS DETALHES DE CADA JOGO COM FALLBACK DE CAPAS
     const similarGames = await Promise.all(
       topSimilarIds.map(async (id) => {
         try {
@@ -66,14 +62,20 @@ export default async function handler(req, res) {
           if (steamJson[id]?.success) {
             const data = steamJson[id].data;
             
-            // Garante que não é uma DLC perdida no meio dos IDs
             if (data.type && data.type === 'dlc') return null;
+
+            // Estratégia de Fallback para a Capa:
+            // 1. Tenta usar a imagem de cabeçalho oficial fornecida diretamente pela API da Steam
+            // 2. Se não houver, recorre ao CDN padrão do Cloudflare
+            // 3. Como último caso, aponta para o header genérico da store
+            const coverImage = data.header_image 
+              || `https://cdn.cloudflare.steamstatic.com/steam/apps/${id}/header.jpg`
+              || `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${id}/header.jpg`;
 
             return {
               id: id,
               name: data.name,
-              // URL oficial e estável da Cloudflare/Steam para a capa horizontal
-              cover: `https://cdn.cloudflare.steamstatic.com/steam/apps/${id}/header.jpg`
+              cover: coverImage
             };
           }
           return null;
