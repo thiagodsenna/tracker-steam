@@ -49,8 +49,8 @@ export default async function handler(req, res) {
       }
     }
 
-    // Pega apenas os primeiros 6 jogos para preencher o grid com agilidade
-    const topSimilarIds = similarIds.slice(0, 6);
+    // Pega apenas os primeiros 10 jogos para preencher o grid com agilidade
+    const topSimilarIds = similarIds.slice(0, 10);
 
     if (topSimilarIds.length === 0) {
       return res.status(200).json({ success: true, items: [] });
