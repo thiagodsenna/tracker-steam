@@ -240,7 +240,7 @@ function parseFeedlyItem(item, index) {
 
 function criarCardJogo(jogo) {
     const card = document.createElement('div');
-    card.className = 'bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden cursor-pointer relative hover:border-emerald-500/50 transition-all';
+    card.className = 'bg-neutral-900 border border-neutral-800 rounded-lg overflow-hidden cursor-pointer relative hover:border-emerald-500/50 transition-all';
     card.onclick = () => abrirModal(jogo.id);
     const fallbackImage = jogo.steamId ? `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${jogo.steamId}/header.jpg` : 'https://store.fastly.steamstatic.com/public/images/v6/app_default_header.jpg';
     card.innerHTML = `
