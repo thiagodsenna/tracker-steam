@@ -4,13 +4,23 @@ export default async function handler(req, res) {
   let url = 'https://api.feedly.com/v3/streams/contents?streamId=feed%2Fhttps%3A%2F%2Fwww.skidrowreloaded.com%2Fcategory%2Fpc-games%2Ffeed%2F&count=200&ranked=newest&similar=true&ct=feedly.desktop&cv=31.0.3081';
 
   if (query) {
-    // Para busca, usamos o endpoint de busca do feedly filtrando pelo streamId do Skidrow
-    url = `https://api.feedly.com/v3/search/contents?query=${encodeURIComponent(query)}&streamId=feed%2Fhttps%3A%2F%2Fwww.skidrowreloaded.com%2Fcategory%2Fpc-games%2Ffeed%2F&count=200`;
+    // A API de busca pública do Feedly (v3/search/contents) requer Token. 
+    // Como alternativa, usaremos o filtro local na listagem completa do stream que já funciona sem token.
+    url = 'https://api.feedly.com/v3/streams/contents?streamId=feed%2Fhttps%3A%2F%2Fwww.skidrowreloaded.com%2Fcategory%2Fpc-games%2Ffeed%2F&count=1000&ranked=newest&ct=feedly.desktop&cv=31.0.3081';
   }
 
   try {
     const response = await fetch(url);
-    const data = await response.json();
+    let data = await response.json();
+
+    if (query && data.items) {
+      const q = query.toLowerCase();
+      data.items = data.items.filter(item => 
+        (item.title && item.title.toLowerCase().includes(q)) || 
+        (item.summary && item.summary.content && item.summary.content.toLowerCase().includes(q)) ||
+        (item.content && item.content.content && item.content.content.toLowerCase().includes(q))
+      );
+    }
     
     // Libera o CORS para o seu site
     res.setHeader('Access-Control-Allow-Origin', '*');
