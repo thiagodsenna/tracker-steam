@@ -16,7 +16,6 @@ export default async function handler(req, res) {
     const urlPage1 = `https://www.skidrowreloaded.com/?s=${encodedQuery}`;
     const urlPage2 = `https://www.skidrowreloaded.com/page/2/?s=${encodedQuery}`;
 
-    // 1. Busca Página 1 e Página 2 EM PARALELO para não perder tempo
     const [resPage1, resPage2] = await Promise.all([
       fetch(urlPage1, { headers }).catch(() => null),
       fetch(urlPage2, { headers }).catch(() => null)
@@ -30,16 +29,12 @@ export default async function handler(req, res) {
       throw new Error('Não foi possível obter o HTML das páginas de busca.');
     }
 
-    // 2. REGEX DE DATA CORRIGIDO:
-    // Captura o link (Grupo 1), o título (Grupo 2) e a data exata do "Posted [Data] in" (Grupo 3)
-    // Exemplo capturado no Grupo 3: "July 15, 2026"
     const regexPosts = /<h2>\s*<a href="([^"]+)"[^>]*>([^<]+)<\/a>[\s\S]*?Posted\s+([A-Za-z]+\s+\d{1,2},\s+\d{4})/gi;
     
     let match;
     const postLinks = [];
-    const seenUrls = new Set(); // Evita jogos repetidos caso apareçam nas duas páginas
+    const seenUrls = new Set();
 
-    // Limita a 25 jogos (somando as 2 páginas) para manter o Vercel ultrarrápido (< 2 segundos)
     while ((match = regexPosts.exec(combinedHtml)) !== null && postLinks.length < 25) {
       const url = match[1];
       if (!seenUrls.has(url)) {
@@ -47,12 +42,11 @@ export default async function handler(req, res) {
         postLinks.push({
           url: url,
           titleFallback: match[2].trim(),
-          dateFallback: match[3].trim() // Aqui entra exatamente a string "July 15, 2026"
+          dateFallback: match[3].trim()
         });
       }
     }
 
-    // Fallback de segurança: caso a estrutura mude, pega pelo menos os links simples
     if (postLinks.length === 0) {
       const regexSimple = /<h2>\s*<a href="([^"]+)"[^>]*>([^<]+)<\/a>/gi;
       while ((match = regexSimple.exec(combinedHtml)) !== null && postLinks.length < 25) {
@@ -64,7 +58,6 @@ export default async function handler(req, res) {
       }
     }
 
-    // 3. Acessa os detalhes de cada jogo para extrair SteamID, Tamanho e Imagem
     const postsDetailed = await Promise.all(
       postLinks.map(async ({ url, titleFallback, dateFallback }) => {
         try {
@@ -72,10 +65,24 @@ export default async function handler(req, res) {
           if (!detailRes.ok) return null;
           const detailHtml = await detailRes.text();
 
-          const titleMatch = detailHtml.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i) || detailHtml.match(/<title>([\s\S]*?)<\/title>/i);
-          let title = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '').replace(/ - Skidrow Reloaded.*/i, '').trim() : titleFallback;
+          // ===== LIMPEZA DEFINITIVA DO TÍTULO =====
+          const titleMatch = detailHtml.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
+          let title = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '').trim() : titleFallback;
 
-          // Busca a data "Posted ... in" também na página interna como garantia
+          // Remove códigos HTML (&amp;, &#8211; etc) e qualquer variação de Skidrow Reloaded do final
+          title = title
+            .replace(/&#\d+;|&[a-z]+;/gi, ' ') // Transforma entidades HTML em espaços
+            .replace(/[-–—]\s*(?:Skidrow|Reloaded|Games|Scene|PC|FREE|DOWNLOAD).*/i, '')
+            .replace(/Skidrow\s*&?\s*Reloaded\s*Games.*/i, '')
+            .replace(/\s+/g, ' ') // Remove espaços duplos
+            .trim();
+          
+          // Se depois de limpar tudo ficar vazio, usa o fallback original da busca limpo
+          if (!title) {
+              title = titleFallback.replace(/&#\d+;|&[a-z]+;/gi, ' ').trim();
+          }
+          // ========================================
+
           const dateMatch = detailHtml.match(/Posted\s+([A-Za-z]+\s+\d{1,2},\s+\d{4})/i);
           const published = dateMatch ? dateMatch[1].trim() : dateFallback;
 
@@ -87,7 +94,6 @@ export default async function handler(req, res) {
             contentHtml = detailHtml;
           }
 
-          // Filtro Inteligente de Imagem (ignora logo do skidrow, avatares, ícones)
           const imgMatches = [...contentHtml.matchAll(/<img[^>]+src="([^"]+)"/gi)];
           let imgUrl = '';
           
@@ -111,7 +117,7 @@ export default async function handler(req, res) {
             title: title,
             visual: { url: imgUrl },
             alternate: [{ href: url }],
-            published: published, // Retorna a string exata (ex: "July 15, 2026") para o seu front-end
+            published: published,
             content: { content: contentHtml } 
           };
         } catch (e) {
