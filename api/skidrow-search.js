@@ -21,17 +21,14 @@ export default async function handler(req, res) {
 
     const html = await response.text();
 
-    // 1. Extrai os links dos posts da busca usando Regex simples nativo
     const regexLinks = /<h2>\s*<a href="([^"]+)"[^>]*>([^<]+)<\/a>/g;
     let match;
     const postLinks = [];
 
-    // Limita a buscar detalhes de até 15 jogos para ser ultrarrápido
     while ((match = regexLinks.exec(html)) !== null && postLinks.length < 15) {
       postLinks.push({ url: match[1], titleFallback: match[2] });
     }
 
-    // 2. Acessa a página de DETALHES de cada jogo em PARALELO
     const postsDetailed = await Promise.all(
       postLinks.map(async ({ url, titleFallback }) => {
         try {
@@ -42,28 +39,40 @@ export default async function handler(req, res) {
           });
           const detailHtml = await detailRes.text();
 
-          // Extrai o Título limpo
           const titleMatch = detailHtml.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i) || detailHtml.match(/<title>([\s\S]*?)<\/title>/i);
           let title = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '').replace(/ - Skidrow Reloaded.*/i, '').trim() : titleFallback;
 
-          // Extrai a Data (Ex: "July 16, 2026")
           const timeMatch = detailHtml.match(/<time[^>]+datetime="([^"]+)"/i) || detailHtml.match(/class="time"[^>]*>([^<]+)<\//i);
           const published = timeMatch ? timeMatch[1].trim() : new Date().toISOString();
 
-          // CORTE DE TEXTO INTELIGENTE:
-          // Em vez de usar bibliotecas pesadas de parser no servidor, procuramos onde começa 
-          // o conteúdo do post no HTML e recortamos um bloco de 20 mil caracteres!
           let contentHtml = '';
           const contentStart = detailHtml.search(/class="(?:post|entry)-content|post-excerpt/i);
           if (contentStart !== -1) {
             contentHtml = detailHtml.slice(contentStart, contentStart + 20000);
           } else {
-            contentHtml = detailHtml; // Fallback se não achar a classe
+            contentHtml = detailHtml;
           }
 
-          // Pega a URL da imagem da capa
-          const imgMatch = contentHtml.match(/<img[^>]+src="([^"]+)"/i);
-          const imgUrl = imgMatch ? imgMatch[1] : '';
+          // ===== NOVO FILTRO DE IMAGEM INTELIGENTE =====
+          // Varre todas as imagens e ignora logos do site, avatares e ícones do tema
+          const imgMatches = [...contentHtml.matchAll(/<img[^>]+src="([^"]+)"/gi)];
+          let imgUrl = '';
+          
+          for (const m of imgMatches) {
+            const urlLower = m[1].toLowerCase();
+            if (
+              !urlLower.includes('logo') && 
+              !urlLower.includes('avatar') && 
+              !urlLower.includes('icon') && 
+              !urlLower.includes('themes') && 
+              !urlLower.includes('plugins') &&
+              !urlLower.includes('smiley')
+            ) {
+              imgUrl = m[1];
+              break; // Achou a capa legítima do jogo, pode parar de procurar!
+            }
+          }
+          // =============================================
 
           return {
             id: `skidrow-${url}`,
@@ -71,8 +80,6 @@ export default async function handler(req, res) {
             visual: { url: imgUrl },
             alternate: [{ href: url }],
             published: published,
-            // Mandamos o bloco HTML dentro de 'content'. O seu front-end (scripts.js)
-            // vai ler isso com o DOMParser e achar o Steam ID e Tamanho na hora!
             content: { content: contentHtml } 
           };
         } catch (e) {
@@ -82,7 +89,6 @@ export default async function handler(req, res) {
       })
     );
 
-    // Filtra possíveis erros e retorna o JSON limpo
     const validPosts = postsDetailed.filter(p => p !== null);
 
     return res.status(200).json({ items: validPosts });
