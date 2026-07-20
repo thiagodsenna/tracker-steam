@@ -548,9 +548,24 @@ window.navegarLightbox = (e, direcao) => {
     
     if (lightboxLista.length <= 1) return;
     
-    // Calcula o próximo índice (com rotação circular)
-    lightboxIndexAtual = (lightboxIndexAtual + direcao + lightboxLista.length) % lightboxLista.length;
-    atualizarLightbox();
+    const imgEl = document.getElementById('lightbox-img');
+    
+    if (imgEl) {
+        // 1. Aplica o estado de transição (desaparece suavemente)
+        imgEl.classList.add('trocando-imagem');
+        
+        // 2. Aguarda a animação de saída concluir (150ms) para trocar a imagem
+        setTimeout(() => {
+            lightboxIndexAtual = (lightboxIndexAtual + direcao + lightboxLista.length) % lightboxLista.length;
+            atualizarLightbox();
+            
+            // 3. Remove a classe para a nova imagem reaparecer suavemente
+            imgEl.classList.remove('trocando-imagem');
+        }, 150);
+    } else {
+        lightboxIndexAtual = (lightboxIndexAtual + direcao + lightboxLista.length) % lightboxLista.length;
+        atualizarLightbox();
+    }
 };
 
 window.fecharLightbox = (e, forcar = false) => {

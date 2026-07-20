@@ -32,3 +32,13 @@
     -ms-overflow-style: none !important;  /* Internet Explorer e Edge antigo */
     scrollbar-width: none !important;  /* Firefox */
 }
+
+#lightbox-img {
+    transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
+    opacity: 1;
+    transform: scale(1);
+}
+#lightbox-img.trocando-imagem {
+    opacity: 0;
+    transform: scale(0.96);
+}
