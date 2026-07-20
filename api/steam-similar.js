@@ -18,42 +18,48 @@ export default async function handler(req, res) {
     
     const html = await storeRes.text();
     
-    // 1. ISOLA A SEÇÃO DE SIMILARES (Evita pegar DLCs)
-    // Procuramos especificamente pela área "More Like This" ou blocos de grid de similares
-    let targetBlock = '';
-    
-    // Tenta achar o bloco de similares oficial da página da Steam
-    const similarIndex = html.search(/class="carousel_items\s+similar_grid"|data-subtab="similar_games"|MoreLikeThis/i);
-    
-    if (similarIndex !== -1) {
-      targetBlock = html.slice(similarIndex, similarIndex + 20000);
-    } else {
-      // Fallback: Procura por qualquer bloco após a menção de jogos similares
-      const altIndex = html.search(/More Like This|Ver Similares/i);
-      targetBlock = altIndex !== -1 ? html.slice(altIndex, altIndex + 25000) : html;
-    }
+    let similarIds = [];
 
-    // 2. EXTRAI APENAS APPs DE JOGOS (Exclui pacotes/sub e DLCs se possível através dos links /app/)
-    const regexIds = /store\.steampowered\.com\/app\/(\d+)/gi;
+    // 1. CAPTURA INTELIGENTE PELO DATA-PROPS:
+    // Procura pela tag que possui o título "Ver similares" e extrai o JSON contido em data-props
+    const regexProps = /data-featuretarget="storeitems-carousel"[^>]*data-props="([^"]+)"/gi;
     let match;
-    const similarIds = [];
-    const seenIds = new Set([appid.toString()]); 
 
-    while ((match = regexIds.exec(targetBlock)) !== null && similarIds.length < 6) {
-      const foundId = match[1];
-      if (!seenIds.has(foundId)) {
-        seenIds.add(foundId);
-        similarIds.push(foundId);
+    while ((match = regexProps.exec(html)) !== null) {
+      try {
+        // Como o HTML usa entidades HTML escapadas (&quot;), nós as convertemos para aspas normais
+        const decodedJson = match[1].replace(/&quot;/g, '"');
+        const props = JSON.parse(decodedJson);
+
+        // Verifica se é o carrossel correspondente a "Ver similares" e se possui o array appIDs
+        if (props.title === "Ver similares" && Array.isArray(props.appIDs)) {
+          similarIds = props.appIDs;
+          break; // Achou exatamente o que queríamos, pode parar a busca!
+        }
+      } catch (err) {
+        // Se falhar o parse de um bloco específico, continua procurando nos outros
+        continue;
       }
     }
 
+    // 2. FALLBACK DE SEGURANÇA (Caso o layout da Steam mude no futuro)
     if (similarIds.length === 0) {
+      const fallbackMatch = html.match(/"appIDs":\s*\[([\d,\s]+)\]/);
+      if (fallbackMatch) {
+        similarIds = fallbackMatch[1].split(',').map(id => id.trim());
+      }
+    }
+
+    // Pega apenas os primeiros 6 jogos para preencher o grid do modal com agilidade
+    const topSimilarIds = similarIds.slice(0, 6);
+
+    if (topSimilarIds.length === 0) {
       return res.status(200).json({ success: true, items: [] });
     }
 
-    // 3. BUSCA DETALHES E USA O LINK DE CAPA ESTÁVEL DA STEAM
+    // 3. BUSCA OS DETALHES DE CADA JOGO EM PARALELO (&filters=basic)
     const similarGames = await Promise.all(
-      similarIds.map(async (id) => {
+      topSimilarIds.map(async (id) => {
         try {
           const steamRes = await fetch(`https://store.steampowered.com/api/appdetails?appids=${id}&filters=basic`);
           const steamJson = await steamRes.json();
@@ -61,13 +67,13 @@ export default async function handler(req, res) {
           if (steamJson[id]?.success) {
             const data = steamJson[id].data;
             
-            // Ignora se por acaso vier marcado como DLC no tipo da Steam
+            // Garante que não é uma DLC perdida no meio dos IDs
             if (data.type && data.type === 'dlc') return null;
 
             return {
               id: id,
               name: data.name,
-              // URL padrão ultra-estável da CDN da Steam que não quebra
+              // URL oficial e estável da Cloudflare/Steam para a capa horizontal
               cover: `https://cdn.cloudflare.steamstatic.com/steam/apps/${id}/header.jpg`
             };
           }
