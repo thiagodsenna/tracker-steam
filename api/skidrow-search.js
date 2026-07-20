@@ -10,29 +10,38 @@ export default async function handler(req, res) {
     const searchUrl = `https://www.skidrowreloaded.com/?s=${encodeURIComponent(query)}`;
     const response = await fetch(searchUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        // User-Agent completo para evitar bloqueios de segurança do site
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
       }
     });
+    
+    if (!response.ok) {
+        throw new Error(`O servidor retornou status: ${response.status}`);
+    }
+
     const html = await response.text();
 
-    // Regex para capturar os links dos posts, títulos e imagens
-    // O Skidrow usa <div class="post-thumb"> para a imagem e <h2 class="post-title"> para o título
-    const postBlockRegex = /<div class="post-thumb">[\s\S]*?<img[\s\S]*?src="([^"]+)"[\s\S]*?<h2 class="post-title">\s*<a href="([^"]+)"[^>]*>([^<]+)<\/a>/g;
+    // REGEX CORRIGIDO:
+    // 1. Busca o <h2> contendo o link (href) e o título (Grupo 1 = Link, Grupo 2 = Título)
+    // 2. Avança até a <div class="post-excerpt">
+    // 3. Captura o src da primeira imagem (Grupo 3 = Imagem)
+    const postRegex = /<h2>\s*<a href="([^"]+)"[^>]*>([^<]+)<\/a>\s*<\/h2>[\s\S]*?<div class="post-excerpt">[\s\S]*?<img[^>]+src="([^"]+)"/g;
     
     let matches;
     const posts = [];
 
-    while ((matches = postBlockRegex.exec(html)) !== null && posts.length < 30) {
-      const imgUrl = matches[1];
-      const postUrl = matches[2];
-      const title = matches[3];
+    while ((matches = postRegex.exec(html)) !== null && posts.length < 30) {
+      const postUrl = matches[1];
+      const title = matches[2];
+      const imgUrl = matches[3];
       
       posts.push({
         id: `skidrow-${postUrl}`,
-        title: title,
+        title: title.trim(),
         visual: { url: imgUrl },
         alternate: [{ href: postUrl }],
-        published: new Date().toISOString() // Fallback data
+        published: new Date().toISOString()
       });
     }
 
