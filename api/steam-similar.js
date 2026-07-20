@@ -17,6 +17,7 @@ export default async function handler(req, res) {
     if (!storeRes.ok) throw new Error('Falha ao acessar a loja da Steam');
     
     const html = await storeRes.text();
+    console.log('steam similar html', html);
     
     let similarIds = [];
 
