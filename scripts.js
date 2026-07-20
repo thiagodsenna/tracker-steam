@@ -541,6 +541,7 @@ async function abrirModal(id, options = {}) {
     document.getElementById('modal-section-reviews').classList.add('hidden');
     document.getElementById('modal-section-videos').classList.add('hidden');
     document.getElementById('modal-section-hltb')?.classList.add('hidden');
+    document.getElementById('modal-section-similares')?.classList.add('hidden');
 
     const metaScoreEl = document.getElementById('modal-metacritic-score');
     metaScoreEl.className = 'absolute bottom-4 right-4 hidden h-16 w-16 flex items-center justify-center rounded-lg border-2 border-white/20 shadow-xl';
@@ -563,6 +564,7 @@ async function abrirModal(id, options = {}) {
         buscarDadosSteam(jogo.steamId);
         buscarHowLongToBeat(jogo.steamId);
         buscarReviewsSteam(jogo.steamId);
+        buscarJogosSimilares(jogo.steamId);
     } else {
         document.getElementById('modal-description').textContent = "Sem ID Steam detectado no post original.";
     }
@@ -785,6 +787,40 @@ async function buscarHowLongToBeat(steamId) {
         section.classList.remove('hidden');
     } catch (e) {
         console.log("Sem dados no How Long to Beat para este jogo:", steamId);
+    }
+}
+
+async function buscarJogosSimilares(steamId) {
+    const section = document.getElementById('modal-section-similares');
+    const container = document.getElementById('modal-similares-grid');
+    if (!section || !container) return;
+
+    try {
+        const res = await fetch(`/api/steam-similar?appid=${steamId}`);
+        if (!res.ok) throw new Error("Erro ao buscar similares");
+        
+        const data = await res.json();
+        
+        // Se não encontrar jogos similares, mantém a seção oculta
+        if (!data.success || !data.items || data.items.length === 0) {
+            return;
+        }
+
+        container.innerHTML = data.items.map(jogo => `
+            <a href="https://store.steampowered.com/app/${jogo.id}" target="_blank" title="Ver na Steam: ${jogo.name}" class="group bg-neutral-950 border border-neutral-800 rounded-lg overflow-hidden hover:border-emerald-500/50 transition-all flex flex-col justify-between shadow-md">
+                <div class="aspect-[460/215] w-full bg-neutral-900 overflow-hidden relative">
+                    <img src="${jogo.cover}" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='https://store.fastly.steamstatic.com/public/images/v6/app_default_header.jpg';" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                </div>
+                <div class="p-2.5 flex items-center justify-between gap-2">
+                    <span class="font-bold text-xs text-neutral-300 group-hover:text-white truncate block">${jogo.name}</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-neutral-500 group-hover:text-emerald-400 shrink-0 transition-colors"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                </div>
+            </a>
+        `).join('');
+
+        section.classList.remove('hidden');
+    } catch (e) {
+        console.log("Falha ao carregar jogos similares para:", steamId);
     }
 }
 
