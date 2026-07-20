@@ -206,18 +206,19 @@ function parseFeedlyItem(item, index) {
     let downloads = [];
     doc.querySelectorAll('a').forEach(a => {
         const href = a.href || '';
-        if (href.includes('skidrowreloaded') || href.includes('steampowered') || href.includes('youtube')) return;
+        if (href.includes('skidrowreloaded') || href.includes('steampowered') || href.includes('youtube') || href.includes('steamcommunity')) return;
         if (a.textContent.length > 2 && downloads.length < 16) {
             let label = href.startsWith('magnet:') ? 'TORRENT' : new URL(a.href).hostname.replace('www.', '').toUpperCase().split('.')[0];
             downloads.push({ label: label, url: a.href });
         }
     });
 
-    const steamMatch = item.content?.content?.match(/store\.steampowered\.com\/app\/(\d+)/);
+    // REGEX MELHORADO: Busca o ID da Steam em links da Loja (store) OU da Comunidade (steamcommunity)
+    const steamMatch = item.content?.content?.match(/(?:store\.steampowered\.com|steamcommunity\.com)\/app\/(\d+)/i) 
+                    || textContent.match(/(?:store\.steampowered\.com|steamcommunity\.com)\/app\/(\d+)/i);
     const steamId = steamMatch ? steamMatch[1] : null;
     const postLink = item.alternate?.[0]?.href || '#';
     const release = mapearRelease(item.title);
-    console.log('release', release);
 
     const links = [
         { label: 'Atualizações', url: `https://store.steampowered.com/newshub/?appids=${steamId}` },
