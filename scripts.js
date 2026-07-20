@@ -540,6 +540,7 @@ async function abrirModal(id, options = {}) {
     document.getElementById('modal-section-recursos').classList.add('hidden');
     document.getElementById('modal-section-reviews').classList.add('hidden');
     document.getElementById('modal-section-videos').classList.add('hidden');
+    document.getElementById('modal-section-hltb')?.classList.add('hidden');
 
     const metaScoreEl = document.getElementById('modal-metacritic-score');
     metaScoreEl.className = 'absolute bottom-4 right-4 hidden h-16 w-16 flex items-center justify-center rounded-lg border-2 border-white/20 shadow-xl';
@@ -560,6 +561,7 @@ async function abrirModal(id, options = {}) {
 
     if (jogo.steamId) {
         buscarDadosSteam(jogo.steamId);
+        buscarHowLongToBeat(jogo.steamId);
         buscarReviewsSteam(jogo.steamId);
     } else {
         document.getElementById('modal-description').textContent = "Sem ID Steam detectado no post original.";
@@ -716,6 +718,74 @@ async function buscarReviewsSteam(steamId) {
             }).join('');
         }
     } catch (e) { console.error("Erro ao buscar reviews", e); }
+}
+
+async function buscarHowLongToBeat(steamId) {
+    const section = document.getElementById('modal-section-hltb');
+    const container = document.getElementById('modal-hltb-grid');
+    if (!section || !container) return;
+
+    try {
+        // Tenta buscar da API do Codepotatoes
+        const res = await fetch(`/api/hltb?appid=${steamId}`);
+        if (!res.ok) throw new Error("HLTB não encontrado");
+        const data = await res.json();
+
+        // Converte para números e garante fallback zero se vier vazio/null
+        const main = Number(data.mainStory) || 0;
+        const extras = Number(data.mainStoryWithExtras) || 0;
+        const comp = Number(data.completionist) || 0;
+
+        // Se o jogo não tiver nenhum tempo registrado, não exibe a seção
+        if (main === 0 && extras === 0 && comp === 0) {
+            return;
+        }
+
+        // Pega o maior tempo para ser a referência dos 100% de largura da barra
+        const maxTime = Math.max(main, extras, comp, 1);
+
+        // Helper para formatar decimal em horas e minutos (Ex: 25.5 => "25h 30m")
+        const formatarHoras = (h) => {
+            if (!h || h === 0) return 'N/A';
+            const horas = Math.floor(h);
+            const minutos = Math.round((h - horas) * 60);
+            if (minutos === 0) return `${horas}h`;
+            return `${horas}h ${minutos}m`;
+        };
+
+        // Configuração visual de cada barra com cores distintas do Tailwind
+        const barras = [
+            { label: 'História Principal', tempo: main, cor: 'from-emerald-600 to-emerald-400', bgDot: 'bg-emerald-500', textCor: 'text-emerald-400' },
+            { label: 'História + Extras', tempo: extras, cor: 'from-sky-600 to-sky-400', bgDot: 'bg-sky-500', textCor: 'text-sky-400' },
+            { label: 'Completista (100%)', tempo: comp, cor: 'from-purple-600 to-purple-400', bgDot: 'bg-purple-500', textCor: 'text-purple-400' }
+        ].filter(item => item.tempo > 0); // Filtra para mostrar apenas o que tem dados
+
+        // Renderiza as barras horizontais
+        container.innerHTML = barras.map(b => {
+            // Calcula a porcentagem da barra (com mínimo de 8% para a animação ficar bonita mesmo em números baixos)
+            const porcentagem = Math.max((b.tempo / maxTime) * 100, 8); 
+            
+            return `
+                <div class="space-y-1.5">
+                    <div class="flex justify-between items-center text-xs font-bold">
+                        <span class="text-neutral-300 flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full ${b.bgDot} inline-block shadow-sm"></span>
+                            ${b.label}
+                        </span>
+                        <span class="${b.textCor} font-mono text-xs sm:text-sm bg-neutral-900 px-2.5 py-0.5 rounded border border-neutral-800">${formatarHoras(b.tempo)}</span>
+                    </div>
+                    <div class="w-full bg-neutral-900/90 h-2.5 rounded-full overflow-hidden border border-neutral-800 p-0.5">
+                        <div class="bg-gradient-to-r ${b.cor} h-full rounded-full transition-all duration-1000 ease-out shadow-sm" style="width: ${porcentagem}%"></div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        // Revela a seção no modal
+        section.classList.remove('hidden');
+    } catch (e) {
+        console.log("Sem dados no How Long to Beat para este jogo:", steamId);
+    }
 }
 
 function fecharModal(fromPopstate = false) {
