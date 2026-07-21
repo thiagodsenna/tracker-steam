@@ -365,7 +365,7 @@ function setViewMode(mode) {
     localStorage.setItem('viewMode', mode);
     updateViewButtons();
     renderizarJogos();
-    carregarNotasEmLote();
+    //carregarNotasEmLote();
 }
 
 function updateViewButtons() {
@@ -1010,7 +1010,7 @@ async function executarBusca(termo) {
                 grid.innerHTML = '<div class="col-span-full text-neutral-500 text-center py-20">Nenhum resultado encontrado no Skidrow.</div>';
             } else {
                 renderizarJogos();
-                carregarNotasEmLote();
+                //carregarNotasEmLote();
             }
         } catch (err) {
             console.error("Erro busca Skidrow:", err);
@@ -1054,7 +1054,7 @@ async function executarBusca(termo) {
                 grid.innerHTML = '<div class="col-span-full text-neutral-500 text-center py-20">Nenhum resultado encontrado na Steam.</div>';
             } else {
                 renderizarJogos();
-                carregarNotasEmLote();
+                //carregarNotasEmLote();
             }
         } catch (err) {
             console.error("Erro busca Steam:", err);
@@ -1087,7 +1087,7 @@ function limparBusca() {
 
     jogosCarregados = [...jogosOriginaisFeedly];
     renderizarJogos();
-    carregarNotasEmLote();
+    //carregarNotasEmLote();
 }
 
 // --- LÓGICA DA BARRA DE ATALHOS NO MODAL ---
