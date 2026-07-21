@@ -984,7 +984,7 @@ async function executarBusca(termo) {
     
     // Atualiza o texto do termo pesquisado
     const termText = document.getElementById('search-term-text');
-    if (termText) termText.textContent = `"${termo}"`;
+    if (termText) termText.textContent = `${termo}`;
 
     // Atualiza o estilo visual dos botões de filtro
     atualizarEstiloBotoesFiltro();
