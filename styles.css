@@ -64,3 +64,7 @@ div#modal-description h2 {
 div#modal-description p.bb_paragraph {
     margin-bottom: 15px;
 }
+
+div#modal-description strong {
+    color: white;
+}
