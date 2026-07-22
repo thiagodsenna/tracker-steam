@@ -303,14 +303,14 @@ function criarCardJogo(jogo) {
 
 function criarCardJogoCompacto(jogo) {
     const card = document.createElement('div');
-    card.className = 'bg-neutral-900 border border-neutral-800 rounded-md overflow-hidden cursor-pointer relative hover:border-emerald-500/50 transition-all p-3 flex gap-5 w-full';
+    card.className = 'bg-neutral-900 border border-neutral-800 rounded-md overflow-hidden cursor-pointer relative hover:border-emerald-500/50 transition-all p-2.5 flex gap-5 w-full';
     card.onclick = () => abrirModal(jogo.id);
     
     // Define o fallback padrão final de segurança
     const fallbackFinal = jogo.fallbackImage || (jogo.steamId ? `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${jogo.steamId}/header.jpg` : 'https://store.fastly.steamstatic.com/public/images/v6/app_default_header.jpg');
     
     let html = `
-        <div class="w-20 h-30 shrink-0 bg-neutral-950 rounded-md overflow-hidden relative">
+        <div class="w-20 h-30 shrink-0 bg-neutral-950 rounded overflow-hidden relative">
             <img src="${jogo.cover}" 
                  referrerpolicy="no-referrer" 
                  onerror="
