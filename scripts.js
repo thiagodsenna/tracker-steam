@@ -324,7 +324,7 @@ function criarCardJogoCompacto(jogo) {
                  " 
                  class="w-full h-full object-cover">
         </div>
-        <div class="flex flex-col justify-between min-w-0 flex-1 relative py-1">
+        <div class="flex flex-col justify-between min-w-0 flex-1 relative py-0">
             <div class="flex justify-between items-start gap-4 w-full">
                 <div class="font-rajdhani font-bold text-base text-white tracking-tight flex-1 min-w-0 leading-tight" title="${jogo.title}">
                     ${jogo.release.tituloOriginal.toUpperCase()}
