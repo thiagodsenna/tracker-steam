@@ -32,19 +32,26 @@ const CATEGORY_ICONS = {
     31: 'ico_vr.png',
     32: 'ico_multiPlayer.png',
     35: 'ico_cart.png',
-    36: 'ico_pvp.png',
-    37: 'ico_pvp.png',
+    36: 'ico_multiPlayer.png',
+    37: 'ico_multiPlayer.png',
     38: 'ico_coop.png',
     39: 'ico_coop.png',
     41: 'ico_remote_play.png',
     42: 'ico_remote_play.png',
     43: 'ico_remote_play.png',
     44: 'ico_remote_play_together.png',
-    47: 'ico_pvp.png',
+    47: 'ico_multiPlayer.png',
     48: 'ico_coop.png',
-    49: 'ico_pvp.png',
+    49: 'ico_multiPlayer.png',
     51: 'ico_workshop.png',
-    61: 'ico_hdr.png'
+    55: 'ico_controller.png',
+    56: 'ico_controller.png',
+    57: 'ico_controller.png',
+    58: 'ico_controller.png',
+    59: 'ico_controller.png',
+    60: 'ico_controller.png',
+    61: 'ico_hdr.png',
+    62: 'ico_familysharing.png',
 };
 
 
@@ -734,6 +741,7 @@ async function abrirModal(id, options = {}) {
 
     document.getElementById('modal-overlay').classList.remove('hidden');
     document.body.style.overflow = 'hidden';
+    rolarParaSecaoModal('modal-content');
 
     if (jogo.steamId) {
         buscarDadosSteam(jogo.steamId);
@@ -785,7 +793,7 @@ async function buscarDadosSteam(steamId) {
             document.getElementById('modal-section-recursos').classList.remove('hidden');
             document.getElementById('shortcut-recursos')?.classList.remove('hidden');
             document.getElementById('modal-recursos-grid').innerHTML = game.categories.map(c => {
-                const iconName = CATEGORY_ICONS[c.id] || 'ico_singlePlayer.png'; // Fallback
+                const iconName = CATEGORY_ICONS[c.id] || 'ico_achievements.png';
                 const iconUrl = `https://store.fastly.steamstatic.com/public/images/v6/ico/${iconName}`;
 
                 return `
