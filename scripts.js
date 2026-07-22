@@ -285,7 +285,7 @@ function parseFeedlyItem(item, index) {
 function criarCardJogo(jogo) {
     const card = document.createElement('div');
     card.className = 'bg-neutral-900 border border-neutral-800 rounded-lg overflow-hidden cursor-pointer relative hover:border-emerald-500/50 transition-all';
-    card.onclick = () => abrirModal(jogo.id);
+    card.onclick = () => abrirModal(jogosCarregados.findIndex(j => j.feedlyId === jogo.feedlyId));
     
     // Define o fallback padrão final de segurança (massa de manobra se tudo falhar)
     const fallbackFinal = jogo.fallbackImage || (jogo.steamId ? `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${jogo.steamId}/header.jpg` : 'https://store.fastly.steamstatic.com/public/images/v6/app_default_header.jpg');
@@ -324,7 +324,7 @@ function criarCardJogo(jogo) {
 function criarCardJogoCompacto(jogo) {
     const card = document.createElement('div');
     card.className = 'bg-neutral-900 border border-neutral-800 rounded-md overflow-hidden cursor-pointer relative hover:border-emerald-500/50 transition-all p-2.5 flex gap-5 w-full';
-    card.onclick = () => abrirModal(jogo.id);
+    card.onclick = () => abrirModal(jogosCarregados.findIndex(j => j.feedlyId === jogo.feedlyId));
     
     // Define o fallback padrão final de segurança
     const fallbackFinal = jogo.fallbackImage || (jogo.steamId ? `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${jogo.steamId}/header.jpg` : 'https://store.fastly.steamstatic.com/public/images/v6/app_default_header.jpg');
