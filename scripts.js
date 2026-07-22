@@ -261,7 +261,7 @@ function criarCardJogo(jogo) {
     const fallbackImage = jogo.steamId ? `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${jogo.steamId}/header.jpg` : 'https://store.fastly.steamstatic.com/public/images/v6/app_default_header.jpg';
     card.innerHTML = `
         <div class="aspect-[3/4] bg-neutral-950">
-            <img src="${jogo.cover}" referrerpolicy="no-referrer" onerror="if(this.src!=='${jogo.rawCover}'){this.src='${jogo.rawCover}';}else{this.onerror=null; this.src='${fallbackImage}';}" class="w-full h-full object-cover">
+            <img src="${jogo.cover}" referrerpolicy="no-referrer" onerror="if(this.src!=='${jogo.rawCover}'){this.src='${jogo.rawCover}';}else{this.onerror=null; this.src='${fallbackImage}';}" class="w-full object-cover">
         </div>
         <div id="score-${jogo.id}" class="absolute top-2 right-2 bg-black/70 backdrop-blur px-2 py-1 rounded text-[10px] font-bold text-emerald-400 hidden"></div>
         <div class="absolute bottom-12 right-2 bg-black/60 backdrop-blur px-1.5 py-0.5 rounded text-[9px] text-neutral-400 z-10">${jogo.date}</div>
