@@ -889,7 +889,7 @@ async function buscarReviewsSteam(steamId) {
                 const dataFormatada = formatarTimestamp(r.timestamp_updated || r.timestamp_created);
 
                 return `
-                        <div class="bg-neutral-800/30 border border-neutral-800 p-4 rounded-xl">
+                        <div class="bg-neutral-800/30 border border-neutral-800 p-4 rounded-md">
                             <div class="flex items-center gap-2 mb-2 flex-wrap">
                                 <span class="${r.voted_up ? 'text-emerald-500' : 'text-red-500'} font-bold text-[10px] tracking-wider uppercase flex items-center">
                                     ${iconHtml} ${r.voted_up ? ' RECOMENDADO' : ' NÃO RECOMENDADO'}
