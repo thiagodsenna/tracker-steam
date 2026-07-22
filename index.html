@@ -41,18 +41,54 @@
             <img id="lightbox-img" class="max-w-full max-h-[85vh] object-contain rounded shadow-2xl transition-all duration-200">
             <div id="lightbox-counter" class="absolute -bottom-12 left-1/2 -translate-x-1/2 text-neutral-400 text-xs font-mono bg-neutral-900/80 px-3 py-1 rounded-full border border-neutral-800"></div>
         </div>
-
+        
         <!-- Botão Próximo (Direita) -->
         <button id="lightbox-next" onclick="navegarLightbox(event, 1)" class="absolute right-2 sm:right-6 text-white hover:text-emerald-400 p-3 sm:p-4 text-3xl sm:text-4xl z-20 transition-transform active:scale-95">
             ›
         </button>
     </div>
 
+    <!-- Modal Sincronização Wishlist (QR Code & Token) -->
+    <div id="modal-sync-overlay" onclick="if(event.target.id === 'modal-sync-overlay') fecharModalSync();" class="fixed inset-0 z-[90] bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="bg-neutral-900 border border-neutral-800 max-w-md w-full rounded-2xl p-6 shadow-2xl relative space-y-5 animate-modal">
+            <button onclick="fecharModalSync()" class="absolute top-4 right-4 text-neutral-500 hover:text-white transition-colors">✕</button>
+            
+            <div class="space-y-1">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+                    Sincronizar Wishlist
+                </h3>
+                <p class="text-xs text-neutral-400 leading-relaxed">Escaneie o QR Code ou use o seu Token para acessar sua Wishlist em qualquer computador ou celular, sem precisar de senha.</p>
+            </div>
+
+            <div class="flex flex-col items-center justify-center bg-neutral-950 p-4 rounded-xl border border-neutral-800 space-y-3">
+                <div class="bg-white p-2 rounded-lg">
+                    <img id="qr-code-img" src="" alt="QR Code de Sincronização" class="w-40 h-40 object-contain">
+                </div>
+                <div class="text-center w-full">
+                    <span class="text-[11px] text-neutral-500 uppercase font-mono tracking-wider block mb-1">Seu Token de Acesso</span>
+                    <div class="flex items-center gap-2 bg-neutral-900 px-3 py-1.5 rounded border border-neutral-800">
+                        <code id="user-token-display" class="text-emerald-400 font-mono text-sm font-bold flex-1 text-center truncate">---</code>
+                        <button onclick="copiarTokenWishlist()" class="text-neutral-400 hover:text-white p-1 text-xs font-bold bg-neutral-800 hover:bg-neutral-700 px-2 rounded transition-colors" title="Copiar Token">Copiar</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="border-t border-neutral-800 pt-4 space-y-3">
+                <span class="text-xs font-bold text-neutral-300 block">Já tem um código de outro dispositivo?</span>
+                <div class="flex gap-2">
+                    <input type="text" id="input-sync-token" placeholder="Cole seu código (ex: RT-XXXX-XXXX)" class="flex-1 bg-neutral-950 border border-neutral-800 rounded-lg px-3 py-1.5 text-xs text-white uppercase font-mono focus:outline-none focus:border-emerald-500">
+                    <button onclick="vincularNovoToken()" class="bg-emerald-500 hover:bg-emerald-600 text-neutral-950 font-bold text-xs px-4 py-1.5 rounded-lg transition-colors shrink-0">Vincular</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="max-w-6xl mx-auto">
         <!-- Cabeçalho Home -->
-        <header class="flex flex-row justify-between items-center gap-4 mb-8 border-b border-neutral-800 pb-4">
-            <div class="shrink-0">
-                <h1 class="text-2xl sm:text-2xl font-bold text-white tracking-tight">
+        <header class="flex flex-row justify-between items-center gap-3 mb-8 border-b border-neutral-800 pb-4">
+            <div class="shrink-0 min-w-0">
+                <h1 class="text-2xl sm:text-2xl font-bold text-white tracking-tight truncate">
                     <a href="#" onclick="limparBusca(); return false;" class="hover:opacity-80 transition-opacity">
                         Releases<span class="text-emerald-500">Tracker</span>
                     </a>
@@ -60,7 +96,14 @@
                 <p class="hidden sm:block text-xs text-neutral-500 mt-1">Lançamentos de jogos da scene</p>
             </div>
             
-            <div class="flex items-center gap-1.5 sm:gap-3 justify-end shrink-0">
+            <div class="flex items-center gap-1.5 sm:gap-2.5 justify-end shrink-0">
+                <!-- Botão Wishlist -->
+                <button id="btn-header-wishlist" onclick="alternarModoWishlist()" class="bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 px-1.5 py-1.5 sm:px-3 sm:py-1.5 rounded-lg text-neutral-300 hover:text-emerald-400 transition-all flex items-center gap-1.5 shrink-0 shadow-sm group" title="Ver minha Wishlist">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-500 group-hover:scale-110 transition-transform"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+                    <span class="hidden md:inline font-bold text-xs">Wishlist</span>
+                    <span id="wishlist-count" class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[11px] font-bold px-1.5 py-0.5 rounded-full leading-none min-w-[1.25rem] text-center">0</span>
+                </button>
+
                 <!-- View Modes-->
                 <div class="flex items-center bg-neutral-900 border border-neutral-800 px-[3px] py-[3px] sm:px-1.5 sm:py-1.5 rounded-lg gap-1 shrink-0">
                     <button id="btn-view-covers" onclick="setViewMode('covers')" class="p-1 rounded-md transition-colors text-neutral-400 hover:text-white flex items-center justify-center" title="Visualização em Capas (Covers)">
@@ -71,9 +114,9 @@
                     </button>
                 </div>
                 
-                <!-- Pesquisa-->
-                <div class="relative w-24 sm:w-64 focus-within:w-44 transition-all duration-300">
-                    <input type="text" id="search-input" placeholder="Pesquisa" class="w-full bg-neutral-900 border border-neutral-800 text-neutral-300 pl-8 pr-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm focus:outline-none focus:border-emerald-500/50 transition-colors">
+                <!-- Pesquisa (Largura reduzida para acomodar o botão Wishlist no mobile) -->
+                <div class="relative w-20 sm:w-56 focus-within:w-36 sm:focus-within:w-64 transition-all duration-300">
+                    <input type="text" id="search-input" placeholder="Pesquisar..." class="w-full bg-neutral-900 border border-neutral-800 text-neutral-300 pl-8 pr-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm focus:outline-none focus:border-emerald-500/50 transition-colors">
                     <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-neutral-500">
                         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sm:w-3.5 sm:h-3.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
                     </div>
@@ -86,15 +129,25 @@
             <div class="flex items-center gap-2 sm:gap-3 flex-wrap text-neutral-400">
                 <span>Filtrado por: <span id="search-term-text" class="text-white font-bold">""</span></span>
                 <span class="text-neutral-700">|</span>
-                <button id="btn-filter-feedly" class="px-3 py-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 font-bold transition-all">
-                    Releases
-                </button>
-                <button id="btn-filter-steam" class="px-3 py-1 rounded-lg border border-neutral-800 bg-neutral-950 text-neutral-400 hover:text-white transition-all">
-                    Steam
+                <button id="btn-filter-feedly" class="px-3 py-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 font-bold transition-all">Releases</button>
+                <button id="btn-filter-steam" class="px-3 py-1 rounded-lg border border-neutral-800 bg-neutral-950 text-neutral-400 hover:text-white transition-all">Steam</button>
+            </div>
+            <button id="btn-clear-search" class="text-neutral-400 hover:text-white px-2 py-1 font-bold text-xs transition-colors" title="Limpar busca">✕</button>
+        </div>
+
+        <!-- Caixa de status da Wishlist -->
+        <div id="wishlist-filter-tag" class="hidden w-full bg-emerald-950/20 border border-emerald-500/30 rounded-lg p-3 py-2 mb-6 flex items-center justify-between text-xs sm:text-sm font-semibold shadow-sm">
+            <div class="flex items-center gap-2 sm:gap-3 flex-wrap text-emerald-300">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" class="text-emerald-400"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+                <span>Exibindo sua Wishlist (<span id="wishlist-tag-count" class="text-white font-bold">0</span> jogos)</span>
+                <span class="text-neutral-700">|</span>
+                <button onclick="abrirModalSync()" class="text-xs bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2.5 py-1 rounded-md transition-colors flex items-center gap-1.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+                    Sincronizar Dispositivos
                 </button>
             </div>
-            <button id="btn-clear-search" class="text-neutral-400 hover:text-white px-2 py-1 font-bold text-xs transition-colors" title="Limpar busca">
-                ✕
+            <button onclick="fecharModoWishlist()" class="text-neutral-400 hover:text-white px-2 py-1 font-bold text-xs transition-colors flex items-center gap-1" title="Sair da Wishlist">
+                <span>Voltar</span> ✕
             </button>
         </div>
 
@@ -190,15 +243,14 @@
 
                 <div class="p-5 sm:p-8 space-y-7">
                     <div class="flex flex-row items-start gap-4">
-                        <!-- Cover -->
                         <div class="w-32 sm:w-32 bg-neutral-950 rounded-md overflow-hidden shrink-0 border border-neutral-800 shadow-2xl">
                             <img id="modal-cover" src="" class="w-full h-full object-cover">
                         </div>
                         
                         <!-- Detalhes -->
-                        <div class="flex-1 space-y-4">
+                        <div class="flex-1 space-y-4 min-w-0">
                             <div class="bg-neutral-950/50 p-4 rounded-md border border-neutral-800">
-                                <h3 id="modal-title-release" class="text-sm font-bold text-white mb-3"></h3>
+                                <h3 id="modal-title-release" class="text-sm font-bold text-white mb-3 break-words"></h3>
                                 <div id="steam-metadata" class="text-xs text-neutral-400 space-y-1 hidden">
                                     <p id="game-size"></p>
                                     <p id="release-date"></p>
@@ -207,10 +259,20 @@
                                     <p id="modal-developer"></p>
                                 </div>
                             </div>
-                            <button id="modal-btn-share" type="button" class="inline-flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-600 text-neutral-950 font-bold text-xs px-4 py-2 rounded-lg transition-colors">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-                                Compartilhar
-                            </button>
+                            
+                            <!-- Botões de Ação do Modal -->
+                            <div class="flex flex-wrap items-center gap-2">
+                                <button id="modal-btn-share" type="button" class="inline-flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-600 text-neutral-950 font-bold text-xs px-4 py-2 rounded-lg transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                                    Compartilhar
+                                </button>
+
+                                <!-- Botão Wishlist (+ / -) -->
+                                <button id="modal-btn-wishlist" type="button" onclick="alternarWishlistJogoAtual()" class="inline-flex items-center gap-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 border border-neutral-700 font-bold text-xs px-4 py-2 rounded-lg transition-all">
+                                    <span id="wishlist-btn-icon" class="font-mono font-bold text-emerald-400">+</span>
+                                    <span id="wishlist-btn-text">Wishlist</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -226,7 +288,7 @@
                     <!-- Seção: Descrição -->
                     <div id="modal-section-descricao" class="space-y-3 pb-6">
                         <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2 flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform group-hover:scale-110"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
                             Descrição
                         </h4>
                         <div id="modal-description" class="text-[12px] text-neutral-400 [&_p:my-[15px] [&_img]:my-[15px]"></div>
@@ -235,7 +297,7 @@
                     <!-- Seção: Recursos -->
                     <div id="modal-section-recursos" class="hidden space-y-3 pb-6">
                         <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2 flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform group-hover:scale-110"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                             Recursos
                         </h4>
                         <div id="modal-recursos-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-2"></div>
@@ -244,7 +306,7 @@
                     <!-- Seção: Screenshots -->
                     <div id="modal-section-screenshots" class="hidden space-y-3 pb-6">
                         <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2 flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform group-hover:scale-110"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
                             Screenshots
                         </h4>
                         <div id="modal-screenshots-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-4"></div>
@@ -253,7 +315,7 @@
                     <!-- Seção: Vídeos -->
                     <div id="modal-section-videos" class="hidden space-y-3 pb-6">
                         <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2 flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform group-hover:scale-110"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                             Vídeos
                         </h4>
                         <div id="modal-youtube-container"></div>
@@ -263,7 +325,7 @@
                     <div id="modal-section-reviews" class="hidden space-y-3 pb-6">
                         <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2 flex items-center justify-between gap-2 w-full">
                             <div class="flex items-center gap-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform group-hover:scale-110"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                                 <span>Avaliações</span>
                             </div>
                             <span id="reviews-section-score" class="hidden px-1.5 py-0.5 rounded border text-base font-black text-white shadow-md leading-none ml-auto [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] tracking-tight"></span>
@@ -283,7 +345,7 @@
                     <!-- Seção: Links -->
                     <div id="modal-section-links" class="space-y-3 pb-6">
                         <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2 flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform group-hover:scale-110"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
                             Links
                         </h4>
                         <div id="modal-links-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-2"></div>
@@ -292,7 +354,7 @@
                     <!-- Seção: Downloads -->
                     <div id="modal-section-downloads" class="space-y-3 pb-6">
                         <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2 flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform group-hover:scale-110"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                             Downloads
                         </h4>
                         <div id="modal-downloads-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-2"></div>
@@ -305,6 +367,4 @@
     <script src="scripts.js"></script>
 
 </body>
-
 </html>
-

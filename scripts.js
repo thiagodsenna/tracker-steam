@@ -4,6 +4,17 @@ let termoPesquisado = '';
 let fonteAtual = 'feedly'; // 'feedly' ou 'steam'
 let modalJogoAtual = null;
 let viewMode = localStorage.getItem('viewMode') || 'covers';
+
+// --- INÍCIO: IMPLEMENTAÇÃO DA WISHLIST (VARIÁVEIS E TOKEN) ---
+let wishlistJogos = [];
+let userToken = localStorage.getItem('rt_user_token');
+
+if (!userToken) {
+    userToken = 'RT-' + Math.random().toString(36).substring(2, 6).toUpperCase() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+    localStorage.setItem('rt_user_token', userToken);
+}
+// --- FIM: IMPLEMENTAÇÃO DA WISHLIST ---
+
 const IS_LOCAL = window.location.hostname === 'localhost' || 
                  window.location.hostname === '127.0.0.1' || 
                  window.location.protocol === 'file:';
@@ -279,8 +290,17 @@ function criarCardJogo(jogo) {
     // Define o fallback padrão final de segurança (massa de manobra se tudo falhar)
     const fallbackFinal = jogo.fallbackImage || (jogo.steamId ? `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${jogo.steamId}/header.jpg` : 'https://store.fastly.steamstatic.com/public/images/v6/app_default_header.jpg');
     
+    // --- INÍCIO: ÍCONE DE REMOÇÃO DA WISHLIST ---
+    const removeBtnHtml = fonteAtual === 'wishlist' ? `
+        <button onclick="removerDaWishlist('${jogo.feedlyId}', event)" title="Remover da Wishlist" class="absolute top-2 left-2 z-20 bg-black/80 hover:bg-red-600/90 text-neutral-300 hover:text-white p-1.5 rounded-full transition-all shadow-md">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+        </button>
+    ` : '';
+    // --- FIM: ÍCONE DE REMOÇÃO DA WISHLIST ---
+
     card.innerHTML = `
-        <div class="aspect-[3/4] bg-neutral-950">
+        <div class="aspect-[3/4] bg-neutral-950 relative">
+            ${removeBtnHtml}
             <img src="${jogo.cover}" 
                  referrerpolicy="no-referrer" 
                  onerror="
@@ -292,7 +312,7 @@ function criarCardJogo(jogo) {
                        this.onerror = null;
                    }
                  " 
-                 class="w-full object-cover">
+                 class="w-full h-full object-cover">
         </div>
         <div id="score-${jogo.id}" class="absolute top-2 right-2 bg-black/70 backdrop-blur px-2 py-1 rounded text-[10px] font-bold text-emerald-400 hidden"></div>
         <div class="absolute bottom-12 right-2 bg-black/60 backdrop-blur px-1.5 py-0.5 rounded text-[9px] text-neutral-400 z-10">${jogo.date}</div>
@@ -309,6 +329,14 @@ function criarCardJogoCompacto(jogo) {
     // Define o fallback padrão final de segurança
     const fallbackFinal = jogo.fallbackImage || (jogo.steamId ? `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${jogo.steamId}/header.jpg` : 'https://store.fastly.steamstatic.com/public/images/v6/app_default_header.jpg');
     
+    // --- INÍCIO: ÍCONE DE REMOÇÃO DA WISHLIST (COMPACTO) ---
+    const removeBtnHtml = fonteAtual === 'wishlist' ? `
+        <button onclick="removerDaWishlist('${jogo.feedlyId}', event)" title="Remover da Wishlist" class="text-neutral-500 hover:text-red-400 p-2 rounded-lg hover:bg-neutral-800 transition-colors shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+        </button>
+    ` : '';
+    // --- FIM: ÍCONE DE REMOÇÃO DA WISHLIST (COMPACTO) ---
+
     let html = `
         <div class="w-20 h-30 shrink-0 bg-neutral-950 rounded overflow-hidden relative">
             <img src="${jogo.cover}" 
@@ -364,7 +392,7 @@ function criarCardJogoCompacto(jogo) {
                 </div>
             </div>
         </div>
-
+        ${removeBtnHtml}
         <div id="score-${jogo.id}" class="absolute top-1/2 -translate-y-1/2 right-4 bg-black/70 backdrop-blur px-2 py-1 rounded text-[10px] font-bold text-emerald-400 hidden"></div>
     `;
 
@@ -451,6 +479,15 @@ function renderizarJogos() {
     
     grid.innerHTML = '';
 
+    // --- INÍCIO: CHECAGEM DE WISHLIST VAZIA ---
+    if (jogosCarregados.length === 0) {
+        if (fonteAtual === 'wishlist') {
+            grid.innerHTML = '<div class="col-span-full text-center py-20 text-neutral-500 text-sm">Sua Wishlist está vazia no momento.<br><span class="text-xs text-neutral-600">Adicione jogos acessando os detalhes de qualquer release.</span></div>';
+            return;
+        }
+    }
+    // --- FIM: CHECAGEM DE WISHLIST VAZIA ---
+
     if (viewMode === 'compact') {
         grid.className = 'grid grid-cols-1 gap-3';
     } else {
@@ -469,6 +506,10 @@ async function carregarJogos() {
     grid.innerHTML = '<div class="col-span-full text-center py-20 text-emerald-500 animate-pulse">Carregando releases...</div>';
     
     updateViewButtons();
+    // --- INÍCIO: CARREGAMENTO DE DADOS DA WISHLIST ---
+    verificarTokenSincroniaURL();
+    carregarWishlistDoServidor();
+    // --- FIM: CARREGAMENTO DE DADOS DA WISHLIST ---
 
     try {
         const res = await fetch(`${API_BASE_URL}/api/feedly-proxy`);
@@ -693,6 +734,10 @@ async function abrirModal(id, options = {}) {
     if (!jogo) return;
 
     modalJogoAtual = id;
+    
+    // --- INÍCIO: CHECAR SE O JOGO ATUAL ESTÁ NA WISHLIST ---
+    atualizarBotaoWishlistModal(estaNaWishlist(jogo.feedlyId));
+    // --- FIM: CHECAR SE O JOGO ATUAL ESTÁ NA WISHLIST ---
 
     const shareUrl = getShareUrl(jogo.feedlyId);
     const historyState = { modalOpen: true, gameId: jogo.feedlyId };
@@ -1040,6 +1085,10 @@ function fecharModalFora(e) { if (e.target.id === 'modal-overlay') fecharModal()
 async function executarBusca(termo) {
     termoPesquisado = termo;
     
+    // --- INÍCIO: ESCONDER BANNER WISHLIST NA BUSCA ---
+    document.getElementById('wishlist-filter-tag')?.classList.add('hidden');
+    // --- FIM: ESCONDER BANNER WISHLIST NA BUSCA ---
+    
     // Mostra o container de filtros
     const filterTag = document.getElementById('search-filter-tag');
     if (filterTag) filterTag.classList.remove('hidden');
@@ -1159,7 +1208,14 @@ function limparBusca() {
     const filterTag = document.getElementById('search-filter-tag');
     if (filterTag) filterTag.classList.add('hidden');
 
-    jogosCarregados = [...jogosOriginaisFeedly];
+    // --- INÍCIO: ALTERAR COMPORTAMENTO LIMPAR BUSCA PARA WISHLIST ---
+    if (fonteAtual === 'wishlist') {
+        jogosCarregados = [...wishlistJogos];
+    } else {
+        jogosCarregados = [...jogosOriginaisFeedly];
+    }
+    // --- FIM: ALTERAR COMPORTAMENTO LIMPAR BUSCA PARA WISHLIST ---
+    
     renderizarJogos();
     //carregarNotasEmLote();
 }
@@ -1256,3 +1312,188 @@ if ('serviceWorker' in navigator) {
         .catch(err => console.log('Erro ao registrar Service Worker:', err));
     });
 }
+
+// --- INÍCIO: NOVAS FUNÇÕES EXCLUSIVAS PARA CONTROLE DA WISHLIST ---
+async function carregarWishlistDoServidor() {
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/wishlist?token=${encodeURIComponent(userToken)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data && data.wishlist && Array.isArray(data.wishlist)) {
+            wishlistJogos = data.wishlist;
+            atualizarContadorWishlist();
+            if (fonteAtual === 'wishlist') renderizarJogos();
+        }
+    } catch (err) {
+        console.error("Erro ao carregar Wishlist remota:", err);
+        const savedLocal = localStorage.getItem('rt_wishlist_backup');
+        if (savedLocal) {
+            wishlistJogos = JSON.parse(savedLocal);
+            atualizarContadorWishlist();
+        }
+    }
+}
+
+async function salvarWishlistNoServidor() {
+    localStorage.setItem('rt_wishlist_backup', JSON.stringify(wishlistJogos));
+    atualizarContadorWishlist();
+    try {
+        await fetch(`${API_BASE_URL}/api/wishlist`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: userToken, wishlist: wishlistJogos })
+        });
+    } catch (err) {
+        console.error("Erro ao sincronizar Wishlist com servidor:", err);
+    }
+}
+
+function atualizarContadorWishlist() {
+    const countEl = document.getElementById('wishlist-count');
+    const tagCountEl = document.getElementById('wishlist-tag-count');
+    if (countEl) countEl.textContent = wishlistJogos.length;
+    if (tagCountEl) tagCountEl.textContent = wishlistJogos.length;
+}
+
+function estaNaWishlist(feedlyId) {
+    return wishlistJogos.some(j => j.feedlyId === feedlyId);
+}
+
+function alternarWishlist(jogo) {
+    if (!jogo) return;
+    const index = wishlistJogos.findIndex(j => j.feedlyId === jogo.feedlyId);
+    if (index >= 0) {
+        wishlistJogos.splice(index, 1);
+    } else {
+        wishlistJogos.unshift(jogo);
+    }
+    salvarWishlistNoServidor();
+    
+    if (fonteAtual === 'wishlist') {
+        jogosCarregados = [...wishlistJogos];
+        renderizarJogos();
+    }
+    return index < 0;
+}
+
+function alternarWishlistJogoAtual() {
+    if (modalJogoAtual === null || !jogosCarregados[modalJogoAtual]) return;
+    const jogo = jogosCarregados[modalJogoAtual];
+    const adicionado = alternarWishlist(jogo);
+    atualizarBotaoWishlistModal(adicionado);
+}
+
+function atualizarBotaoWishlistModal(ativo) {
+    const btn = document.getElementById('modal-btn-wishlist');
+    const icon = document.getElementById('wishlist-btn-icon');
+    const text = document.getElementById('wishlist-btn-text');
+    if (!btn || !icon || !text) return;
+
+    if (ativo) {
+        btn.className = "inline-flex items-center gap-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 font-bold text-xs px-4 py-2 rounded-lg transition-all";
+        icon.textContent = "-";
+        icon.className = "font-mono font-bold text-red-400";
+        text.textContent = "Na Wishlist";
+    } else {
+        btn.className = "inline-flex items-center gap-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 border border-neutral-700 font-bold text-xs px-4 py-2 rounded-lg transition-all";
+        icon.textContent = "+";
+        icon.className = "font-mono font-bold text-emerald-400";
+        text.textContent = "Wishlist";
+    }
+}
+
+function removerDaWishlist(feedlyId, event) {
+    if (event) event.stopPropagation();
+    const index = wishlistJogos.findIndex(j => j.feedlyId === feedlyId);
+    if (index >= 0) {
+        wishlistJogos.splice(index, 1);
+        salvarWishlistNoServidor();
+        if (fonteAtual === 'wishlist') {
+            jogosCarregados = [...wishlistJogos];
+            renderizarJogos();
+        }
+    }
+}
+
+function alternarModoWishlist() {
+    if (fonteAtual === 'wishlist') {
+        fecharModoWishlist();
+    } else {
+        abrirModoWishlist();
+    }
+}
+
+function abrirModoWishlist() {
+    fonteAtual = 'wishlist';
+    document.getElementById('search-filter-tag')?.classList.add('hidden');
+    document.getElementById('wishlist-filter-tag')?.classList.remove('hidden');
+    const btnWishlist = document.getElementById('btn-header-wishlist');
+    if (btnWishlist) btnWishlist.classList.add('border-emerald-500/50', 'bg-emerald-950/30');
+    
+    jogosCarregados = [...wishlistJogos];
+    renderizarJogos();
+}
+
+function fecharModoWishlist() {
+    fonteAtual = 'feedly';
+    document.getElementById('wishlist-filter-tag')?.classList.add('hidden');
+    const btnWishlist = document.getElementById('btn-header-wishlist');
+    if (btnWishlist) btnWishlist.classList.remove('border-emerald-500/50', 'bg-emerald-950/30');
+    
+    if (termoPesquisado) {
+        executarBusca(termoPesquisado);
+    } else {
+        jogosCarregados = [...jogosOriginaisFeedly];
+        renderizarJogos();
+    }
+}
+
+function abrirModalSync() {
+    document.getElementById('user-token-display').textContent = userToken;
+    const syncUrl = `${window.location.origin}${window.location.pathname}?sync_token=${userToken}`;
+    const qrImg = document.getElementById('qr-code-img');
+    if (qrImg) qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=0&data=${encodeURIComponent(syncUrl)}`;
+    document.getElementById('modal-sync-overlay').classList.remove('hidden');
+}
+
+function fecharModalSync() {
+    document.getElementById('modal-sync-overlay').classList.add('hidden');
+}
+
+async function copiarTokenWishlist() {
+    try {
+        await navigator.clipboard.writeText(userToken);
+        alert('Token copiado para a área de transferência!');
+    } catch {
+        prompt('Copie seu token:', userToken);
+    }
+}
+
+function vincularNovoToken() {
+    const input = document.getElementById('input-sync-token');
+    if (!input || !input.value.trim()) return;
+    const novoToken = input.value.trim().toUpperCase();
+    if (novoToken === userToken) {
+        alert('Este já é o seu token atual!');
+        return;
+    }
+    userToken = novoToken;
+    localStorage.setItem('rt_user_token', userToken);
+    alert(`Dispositivo vinculado com sucesso ao Token: ${userToken}\nCarregando sua Wishlist...`);
+    fecharModalSync();
+    carregarWishlistDoServidor();
+}
+
+function verificarTokenSincroniaURL() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const syncToken = urlParams.get('sync_token');
+    if (syncToken && syncToken.trim()) {
+        userToken = syncToken.trim().toUpperCase();
+        localStorage.setItem('rt_user_token', userToken);
+        urlParams.delete('sync_token');
+        const novaUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
+        history.replaceState({}, '', novaUrl);
+        alert(`Sincronizado com sucesso via QR Code!\nToken: ${userToken}`);
+    }
+}
+// --- FIM: NOVAS FUNÇÕES EXCLUSIVAS PARA CONTROLE DA WISHLIST ---
