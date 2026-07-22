@@ -113,7 +113,7 @@
                     <div class="absolute inset-0 bg-gradient-to-t via-neutral-900/40 to-transparent"></div>
                     <h2 id="modal-title-original" class="text-4xl font-bold text-white relative z-0 game-header-text" style="display:none">Carregando...</h2>
                     <div id="modal-metacritic-score" class="absolute bottom-4 right-4 hidden h-16 w-16 flex items-center justify-center rounded-lg border-2 border-white/20 shadow-xl">
-                        <span id="metacritic-score-value" class="text-2xl font-black text-white"></span>
+                        <span id="metacritic-score-value" class="text-3xl font-black text-white"></span>
                     </div>
                 </div>
 
@@ -252,9 +252,12 @@
                     </div>
 
                     <div id="modal-section-reviews" class="hidden space-y-3">
-                        <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2 flex items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform group-hover:scale-110"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                            Avaliações (Steam)
+                        <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2 flex items-center justify-between gap-2 w-full">
+                            <div class="flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform group-hover:scale-110"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                <span>Avaliações (Steam)</span>
+                            </div>
+                            <span id="reviews-section-score" class="hidden px-1.5 py-0.5 rounded border text-base font-black text-white shadow-md leading-none ml-auto [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] tracking-tight"></span>
                         </h4>
                         <div id="modal-reviews-list" class="space-y-4"></div>
                     </div>

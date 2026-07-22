@@ -728,6 +728,7 @@ async function abrirModal(id, options = {}) {
     const metaScoreEl = document.getElementById('modal-metacritic-score');
     metaScoreEl.className = 'absolute bottom-4 right-4 hidden h-16 w-16 flex items-center justify-center rounded-lg border-2 border-white/20 shadow-xl';
     document.getElementById('metacritic-score-value').textContent = '';
+    document.getElementById('reviews-section-score')?.classList.add('hidden');
     document.getElementById('modal-links-grid').innerHTML = jogo.links.map(link => `
                 <a href="${link.url}" target="_blank" class="bg-neutral-800 hover:bg-neutral-700 p-2 flex items-center gap-2 rounded text-xs font-bold text-neutral-300 border border-neutral-700">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
@@ -854,12 +855,21 @@ async function buscarReviewsSteam(steamId) {
             const section = document.getElementById('modal-section-reviews');
             const list = document.getElementById('modal-reviews-list');
 
-            //Nota cabeçalho
+            //Nota cabeçalho e seção de avaliações
             let notaSteam = Math.trunc((json.query_summary.total_positive * 100) / json.query_summary.total_reviews);
             const { bg, border } = getMetacriticColor(notaSteam);
+
+            // 1. Atualiza a nota do Hero/Cabeçalho
             const metaScoreEl = document.getElementById('modal-metacritic-score');
-            metaScoreEl.className = `absolute bottom-4 right-4 h-16 w-16 flex flex-col items-center justify-center rounded-lg border-2 ${border} ${bg} shadow-xl`;
+            metaScoreEl.className = `absolute bottom-4 right-4 h-16 w-16 flex flex-col items-center justify-center rounded-lg border-2 ${border} ${bg} shadow-xl backdrop-blur-sm`;
             document.getElementById('metacritic-score-value').textContent = notaSteam;
+
+            // 2. Atualiza a nota na Seção de Avaliações (Sombra, fonte maior e alinhado à direita)
+            const reviewsSectionScoreEl = document.getElementById('reviews-section-score');
+            if (reviewsSectionScoreEl) {
+                reviewsSectionScoreEl.textContent = `${notaSteam}`;
+                reviewsSectionScoreEl.className = `inline-flex items-center justify-center ${bg} border ${border} px-1.5 py-0.5 rounded text-base font-black text-white shadow-md leading-none ml-auto [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] tracking-tight`;
+            }
 
             //Total avaliações
             document.getElementById('total-reviews').innerHTML = `<span class="text-neutral-500">Avaliações:</span> ${json.query_summary.total_reviews.toLocaleString('pt-BR')}`;
