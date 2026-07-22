@@ -254,7 +254,6 @@ function parseFeedlyItem(item, index) {
 }
 
 function criarCardJogo(jogo) {
-    console.log('jogo',jogo);
     const card = document.createElement('div');
     card.className = 'bg-neutral-900 border border-neutral-800 rounded-lg overflow-hidden cursor-pointer relative hover:border-emerald-500/50 transition-all';
     card.onclick = () => abrirModal(jogo.id);
