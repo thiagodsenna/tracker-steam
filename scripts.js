@@ -199,12 +199,14 @@ function mapearRelease(stringEntrada) {
 function parseFeedlyItem(item, index) {
     const doc = new DOMParser().parseFromString(item.content?.content || item.summary?.content || '', 'text/html');
     
-    // Captura a URL original da imagem
-    const rawImg = item.visual?.url || doc.querySelector('img')?.src || '';
+    // Captura a URL original da imagem da postagem
+    const imgDoDoc = doc.querySelector('img[src*="wp-content"], img[src*="skidrowreloaded"]')?.src 
+                  || doc.querySelector('img')?.src;
+    const rawImg = imgDoDoc || item.visual?.url || '';
     
-    // Se for uma imagem do Skidrow/WordPress, envia através do cover-proxy
+    // Garante que qualquer imagem extraída da postagem passe pelo cover-proxy
     let img = rawImg;
-    if (rawImg && (rawImg.includes('skidrowreloaded') || rawImg.includes('wp-content'))) {
+    if (rawImg && rawImg.startsWith('http')) {
         img = `${API_BASE_URL}/api/cover-proxy?url=${encodeURIComponent(rawImg)}`;
     }
 
@@ -240,6 +242,7 @@ function parseFeedlyItem(item, index) {
         feedlyId: item.id,
         title: item.title,
         cover: img,
+        rawCover: rawImg,
         postLink: postLink,
         downloads,
         date: formatarDataRelativa(item.published),
@@ -251,13 +254,14 @@ function parseFeedlyItem(item, index) {
 }
 
 function criarCardJogo(jogo) {
+    console.log('jogo',jogo);
     const card = document.createElement('div');
     card.className = 'bg-neutral-900 border border-neutral-800 rounded-lg overflow-hidden cursor-pointer relative hover:border-emerald-500/50 transition-all';
     card.onclick = () => abrirModal(jogo.id);
     const fallbackImage = jogo.steamId ? `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${jogo.steamId}/header.jpg` : 'https://store.fastly.steamstatic.com/public/images/v6/app_default_header.jpg';
     card.innerHTML = `
         <div class="aspect-[3/4] bg-neutral-950">
-            <img src="${jogo.cover}" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='${fallbackImage}';" class="w-full h-full object-cover">
+            <img src="${jogo.cover}" referrerpolicy="no-referrer" onerror="if(this.src!=='${jogo.rawCover}'){this.src='${jogo.rawCover}';}else{this.onerror=null; this.src='${fallbackImage}';}" class="w-full h-full object-cover">
         </div>
         <div id="score-${jogo.id}" class="absolute top-2 right-2 bg-black/70 backdrop-blur px-2 py-1 rounded text-[10px] font-bold text-emerald-400 hidden"></div>
         <div class="absolute bottom-12 right-2 bg-black/60 backdrop-blur px-1.5 py-0.5 rounded text-[9px] text-neutral-400 z-10">${jogo.date}</div>
@@ -270,12 +274,11 @@ function criarCardJogoCompacto(jogo) {
     const card = document.createElement('div');
     card.className = 'bg-neutral-900 border border-neutral-800 rounded-md overflow-hidden cursor-pointer relative hover:border-emerald-500/50 transition-all p-3 flex gap-5 w-full';
     card.onclick = () => abrirModal(jogo.id);
-    
     const fallbackImage = jogo.steamId ? `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${jogo.steamId}/header.jpg` : 'https://store.fastly.steamstatic.com/public/images/v6/app_default_header.jpg';
-    // 1. Criamos uma variável de texto para armazenar todo o HTML sem quebrar as tags
+    
     let html = `
         <div class="w-20 h-30 shrink-0 bg-neutral-950 rounded-md overflow-hidden relative">
-            <img src="${jogo.cover}" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='${fallbackImage}';" class="w-full h-full object-cover">
+            <img src="${jogo.cover}" referrerpolicy="no-referrer" onerror="if(this.src!=='${jogo.rawCover}'){this.src='${jogo.rawCover}';}else{this.onerror=null; this.src='${fallbackImage}';}" class="w-full h-full object-cover">
         </div>
         <div class="flex flex-col justify-between min-w-0 flex-1 relative py-1">
             <div class="flex justify-between items-start gap-4 w-full">
