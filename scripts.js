@@ -199,9 +199,20 @@ function mapearRelease(stringEntrada) {
 function parseFeedlyItem(item, index) {
     const doc = new DOMParser().parseFromString(item.content?.content || item.summary?.content || '', 'text/html');
     
-    // Captura a URL original da imagem da postagem
-    const imgDoDoc = doc.querySelector('img[src*="wp-content"], img[src*="skidrowreloaded"]')?.src 
-                  || doc.querySelector('img')?.src;
+    // Seleciona todas as imagens do post HTML
+    const imagens = Array.from(doc.querySelectorAll('img'));
+
+    // Filtra logos do tema, avatares ou ícones do Skidrow
+    const capaValida = imagens.find(img => {
+        const src = img.src.toLowerCase();
+        return !src.includes('logo') && 
+               !src.includes('theme') && 
+               !src.includes('header') && 
+               !src.includes('avatar') &&
+               !src.includes('steamstatic'); // Ignora as screenshots de 1080p da Steam no Feedly
+    });
+
+    const imgDoDoc = capaValida?.src || doc.querySelector('img')?.src;
     const rawImg = imgDoDoc || item.visual?.url || '';
     
     // Garante que qualquer imagem extraída da postagem passe pelo cover-proxy
@@ -257,10 +268,24 @@ function criarCardJogo(jogo) {
     const card = document.createElement('div');
     card.className = 'bg-neutral-900 border border-neutral-800 rounded-lg overflow-hidden cursor-pointer relative hover:border-emerald-500/50 transition-all';
     card.onclick = () => abrirModal(jogo.id);
-    const fallbackImage = jogo.steamId ? `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${jogo.steamId}/header.jpg` : 'https://store.fastly.steamstatic.com/public/images/v6/app_default_header.jpg';
+    
+    // Define o fallback padrão final de segurança (massa de manobra se tudo falhar)
+    const fallbackFinal = jogo.fallbackImage || (jogo.steamId ? `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${jogo.steamId}/header.jpg` : 'https://store.fastly.steamstatic.com/public/images/v6/app_default_header.jpg');
+    
     card.innerHTML = `
         <div class="aspect-[3/4] bg-neutral-950">
-            <img src="${jogo.cover}" referrerpolicy="no-referrer" onerror="if(this.src!=='${jogo.rawCover}'){this.src='${jogo.rawCover}';}else{this.onerror=null; this.src='${fallbackImage}';}" class="w-full object-cover">
+            <img src="${jogo.cover}" 
+                 referrerpolicy="no-referrer" 
+                 onerror="
+                   if (this.src !== '${jogo.rawCover}' && '${jogo.rawCover}' !== '') {
+                       this.src = '${jogo.rawCover}';
+                   } else if (this.src !== '${fallbackFinal}') {
+                       this.src = '${fallbackFinal}';
+                   } else {
+                       this.onerror = null;
+                   }
+                 " 
+                 class="w-full object-cover">
         </div>
         <div id="score-${jogo.id}" class="absolute top-2 right-2 bg-black/70 backdrop-blur px-2 py-1 rounded text-[10px] font-bold text-emerald-400 hidden"></div>
         <div class="absolute bottom-12 right-2 bg-black/60 backdrop-blur px-1.5 py-0.5 rounded text-[9px] text-neutral-400 z-10">${jogo.date}</div>
@@ -273,11 +298,24 @@ function criarCardJogoCompacto(jogo) {
     const card = document.createElement('div');
     card.className = 'bg-neutral-900 border border-neutral-800 rounded-md overflow-hidden cursor-pointer relative hover:border-emerald-500/50 transition-all p-3 flex gap-5 w-full';
     card.onclick = () => abrirModal(jogo.id);
-    const fallbackImage = jogo.steamId ? `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${jogo.steamId}/header.jpg` : 'https://store.fastly.steamstatic.com/public/images/v6/app_default_header.jpg';
+    
+    // Define o fallback padrão final de segurança
+    const fallbackFinal = jogo.fallbackImage || (jogo.steamId ? `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${jogo.steamId}/header.jpg` : 'https://store.fastly.steamstatic.com/public/images/v6/app_default_header.jpg');
     
     let html = `
         <div class="w-20 h-30 shrink-0 bg-neutral-950 rounded-md overflow-hidden relative">
-            <img src="${jogo.cover}" referrerpolicy="no-referrer" onerror="if(this.src!=='${jogo.rawCover}'){this.src='${jogo.rawCover}';}else{this.onerror=null; this.src='${fallbackImage}';}" class="w-full h-full object-cover">
+            <img src="${jogo.cover}" 
+                 referrerpolicy="no-referrer" 
+                 onerror="
+                   if (this.src !== '${jogo.rawCover}' && '${jogo.rawCover}' !== '') {
+                       this.src = '${jogo.rawCover}';
+                   } else if (this.src !== '${fallbackFinal}') {
+                       this.src = '${fallbackFinal}';
+                   } else {
+                       this.onerror = null;
+                   }
+                 " 
+                 class="w-full h-full object-cover">
         </div>
         <div class="flex flex-col justify-between min-w-0 flex-1 relative py-1">
             <div class="flex justify-between items-start gap-4 w-full">
@@ -1030,18 +1068,30 @@ async function executarBusca(termo) {
             
             jogosCarregados = (data.items || []).map((item, index) => {
                 const steamId = item.id;
+                
+                // 1ª opção: Capa Vertical HD
                 const cover = `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${steamId}/library_600x900.jpg`;
+                
+                // 2ª opção (Fallback 1): Capa Vertical Padrão
+                const rawCover = `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${steamId}/library_capsule.jpg`;
+                
+                // 3ª opção (Fallback 2): Header Horizontal HD ou a tiny_image original do retorno da API
+                const fallbackImage = item.tiny_image || `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${steamId}/header.jpg`;
+
                 const postLink = `https://store.steampowered.com/app/${steamId}`;
                 const links = [
                     { label: 'Atualizações', url: `https://store.steampowered.com/newshub/?appids=${steamId}` },
                     { label: 'Discussões', url: `https://steamcommunity.com/app/${steamId}/discussions/` },
                     { label: 'Steam', url: postLink },
                 ];
+
                 return {
                     id: index,
                     feedlyId: `steam-${steamId}`,
                     title: item.name,
                     cover: cover,
+                    rawCover: rawCover,
+                    fallbackImage: fallbackImage,
                     postLink: postLink,
                     downloads: [],
                     date: 'Steam',
