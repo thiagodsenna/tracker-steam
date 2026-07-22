@@ -4,8 +4,12 @@ let termoPesquisado = '';
 let fonteAtual = 'feedly'; // 'feedly' ou 'steam'
 let modalJogoAtual = null;
 let viewMode = localStorage.getItem('viewMode') || 'covers';
+const IS_LOCAL = window.location.hostname === 'localhost' || 
+                 window.location.hostname === '127.0.0.1' || 
+                 window.location.protocol === 'file:';
+const API_BASE_URL = IS_LOCAL ? 'https://tracker-steam.vercel.app' : '';
 const STREAM_ID = 'feed%2Fhttps%2F%2Fwww.skidrowreloaded.com%2Fcategory%2Fpc-games%2Ffeed%2F';
-const PROXY_BASE_URL = 'https://tracker-steam.vercel.app/api/steam-proxy?appid=';
+const PROXY_BASE_URL = `${API_BASE_URL}/api/steam-proxy?appid=`;
 const CATEGORY_ICONS = {
     1: 'ico_multiPlayer.png',
     2: 'ico_singlePlayer.png',
@@ -194,7 +198,16 @@ function mapearRelease(stringEntrada) {
 
 function parseFeedlyItem(item, index) {
     const doc = new DOMParser().parseFromString(item.content?.content || item.summary?.content || '', 'text/html');
-    const img = item.visual?.url || doc.querySelector('img')?.src || '';
+    
+    // Captura a URL original da imagem
+    const rawImg = item.visual?.url || doc.querySelector('img')?.src || '';
+    
+    // Se for uma imagem do Skidrow/WordPress, envia através do cover-proxy
+    let img = rawImg;
+    if (rawImg && (rawImg.includes('skidrowreloaded') || rawImg.includes('wp-content'))) {
+        img = `${API_BASE_URL}/api/cover-proxy?url=${encodeURIComponent(rawImg)}`;
+    }
+
     const textContent = doc.body.textContent || '';
     const sizeMatch = textContent.match(/Size:\s*([\d.,]+\s*[a-zA-Z]+)/i);
     const size = sizeMatch ? sizeMatch[1].trim() : 'Não informado';
@@ -209,7 +222,6 @@ function parseFeedlyItem(item, index) {
         }
     });
 
-    // REGEX MELHORADO: Busca o ID da Steam em links da Loja (store) OU da Comunidade (steamcommunity)
     const steamMatch = item.content?.content?.match(/(?:store\.steampowered\.com|steamcommunity\.com)\/app\/(\d+)/i) 
                     || textContent.match(/(?:store\.steampowered\.com|steamcommunity\.com)\/app\/(\d+)/i);
     const steamId = steamMatch ? steamMatch[1] : null;
@@ -315,7 +327,7 @@ function criarCardJogoCompacto(jogo) {
 }
 
 async function buscarItemFeedlyRemoto(feedlyId) {
-    const res = await fetch(`/api/feedly-entry?id=${encodeURIComponent(feedlyId)}`);
+    const res = await fetch(`${API_BASE_URL}/api/feedly-entry?id=${encodeURIComponent(feedlyId)}`);
     if (!res.ok) return null;
     return res.json();
 }
@@ -412,7 +424,7 @@ async function carregarJogos() {
     updateViewButtons();
 
     try {
-        const res = await fetch('/api/feedly-proxy');
+        const res = await fetch(`${API_BASE_URL}/api/feedly-proxy`);
         const data = await res.json();
 
         data.items.forEach((item, index) => {
@@ -439,7 +451,7 @@ async function carregarNotasEmLote() {
 
     try {
         // Chamada única para o novo endpoint batch
-        const res = await fetch('/api/steam-batch?ids=' + steamIds.join(','));
+        const res = await fetch(`${API_BASE_URL}/api/steam-batch?ids=` + steamIds.join(','));
         const json = await res.json();
 
         jogosCarregados.forEach((jogo, index) => {
@@ -713,14 +725,6 @@ async function buscarDadosSteam(steamId) {
         document.getElementById('modal-developer').innerHTML = renderizarDesenvolvedores(game.developers);
         configurarExpandirDesenvolvedores(game.developers);
 
-        // Metacritic (Nota) - Badge no cabeçalho
-        if (game.metacritic) {
-            /* const { bg, border } = getMetacriticColor(game.metacritic.score);
-            const metaScoreEl = document.getElementById('modal-metacritic-score');
-            metaScoreEl.className = `absolute bottom-4 right-4 h-16 w-16 flex flex-col items-center justify-center rounded-lg border-2 ${border} ${bg} shadow-xl`;
-            document.getElementById('metacritic-score-value').textContent = game.metacritic.score; */
-        }
-
         document.getElementById('modal-description').innerHTML = game.detailed_description || game.short_description || "Sem descrição disponível.";
 
         // Screenshots (Todas)
@@ -795,7 +799,7 @@ async function buscarDadosSteam(steamId) {
 
 async function buscarReviewsSteam(steamId) {
     try {
-        const res = await fetch(`/api/steam-reviews?appid=${steamId}`);
+        const res = await fetch(`${API_BASE_URL}/api/steam-reviews?appid=${steamId}`);
         const json = await res.json();
 
         if (json.success && json.reviews && json.reviews.length > 0) {
@@ -860,7 +864,7 @@ async function buscarHowLongToBeat(steamId) {
 
     try {
         // Tenta buscar da API do Codepotatoes
-        const res = await fetch(`/api/hltb-proxy?appid=${steamId}`);
+        const res = await fetch(`${API_BASE_URL}/api/hltb-proxy?appid=${steamId}`);
         if (!res.ok) throw new Error("HLTB não encontrado");
         const data = await res.json();
 
@@ -928,7 +932,7 @@ async function buscarJogosSimilares(steamId) {
     if (!section || !container) return;
 
     try {
-        const res = await fetch(`/api/steam-similar?appid=${steamId}`);
+        const res = await fetch(`${API_BASE_URL}/api/steam-similar?appid=${steamId}`);
         if (!res.ok) throw new Error("Erro ao buscar similares");
         
         const data = await res.json();
@@ -995,7 +999,7 @@ async function executarBusca(termo) {
     if (fonteAtual === 'feedly') {
         // Busca remota no Skidrow via Scraping (substituindo busca Feedly que dá 401)
         try {
-            const res = await fetch(`/api/skidrow-search?query=${encodeURIComponent(termo)}`);
+            const res = await fetch(`${API_BASE_URL}/api/skidrow-search?query=${encodeURIComponent(termo)}`);
             const data = await res.json();
             
             jogosCarregados = [];
@@ -1019,7 +1023,7 @@ async function executarBusca(termo) {
     } else {
         // Busca na API da Steam
         try {
-            const res = await fetch(`/api/steam-search?term=${encodeURIComponent(termo)}`);
+            const res = await fetch(`${API_BASE_URL}/api/steam-search?term=${encodeURIComponent(termo)}`);
             const data = await res.json();
             
             jogosCarregados = (data.items || []).map((item, index) => {
