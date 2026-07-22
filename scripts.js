@@ -312,7 +312,7 @@ function criarCardJogo(jogo) {
                        this.onerror = null;
                    }
                  " 
-                 class="w-full h-full object-cover">
+                 class="w-full object-cover">
         </div>
         <div id="score-${jogo.id}" class="absolute top-2 right-2 bg-black/70 backdrop-blur px-2 py-1 rounded text-[10px] font-bold text-emerald-400 hidden"></div>
         <div class="absolute bottom-12 right-2 bg-black/60 backdrop-blur px-1.5 py-0.5 rounded text-[9px] text-neutral-400 z-10">${jogo.date}</div>
@@ -323,55 +323,39 @@ function criarCardJogo(jogo) {
 
 function criarCardJogoCompacto(jogo) {
     const card = document.createElement('div');
-    card.className = 'bg-neutral-900 border border-neutral-800 rounded-md overflow-hidden cursor-pointer relative hover:border-emerald-500/50 transition-all p-2.5 flex gap-5 w-full';
+    card.className = 'bg-neutral-900 border border-neutral-800 rounded-md overflow-hidden cursor-pointer relative hover:border-emerald-500/50 transition-all p-2.5 flex gap-4 sm:gap-5 w-full group/card';
     card.onclick = () => abrirModal(jogosCarregados.findIndex(j => j.feedlyId === jogo.feedlyId));
     
-    // Define o fallback padrão final de segurança
     const fallbackFinal = jogo.fallbackImage || (jogo.steamId ? `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${jogo.steamId}/header.jpg` : 'https://store.fastly.steamstatic.com/public/images/v6/app_default_header.jpg');
     
-    // --- INÍCIO: ÍCONE DE REMOÇÃO DA WISHLIST (COMPACTO) ---
     const removeBtnHtml = fonteAtual === 'wishlist' ? `
-        <button onclick="removerDaWishlist('${jogo.feedlyId}', event)" title="Remover da Wishlist" class="text-neutral-500 hover:text-red-400 p-2 rounded-lg hover:bg-neutral-800 transition-colors shrink-0">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+        <button onclick="removerDaWishlist('${jogo.feedlyId}', event)" title="Remover da Wishlist" class="absolute bottom-2.5 right-2.5 text-neutral-500 hover:text-red-400 p-1.5 rounded-md hover:bg-neutral-800 transition-colors z-20">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
         </button>
     ` : '';
-    // --- FIM: ÍCONE DE REMOÇÃO DA WISHLIST (COMPACTO) ---
 
-    let html = `
-        <div class="w-20 h-30 shrink-0 bg-neutral-950 rounded overflow-hidden relative">
-            <img src="${jogo.cover}" 
-                 referrerpolicy="no-referrer" 
-                 onerror="
-                   if (this.src !== '${jogo.rawCover}' && '${jogo.rawCover}' !== '') {
-                       this.src = '${jogo.rawCover}';
-                   } else if (this.src !== '${fallbackFinal}') {
-                       this.src = '${fallbackFinal}';
-                   } else {
-                       this.onerror = null;
-                   }
-                 " 
-                 class="w-full h-full object-cover">
-        </div>
-        <div class="flex flex-col justify-between min-w-0 flex-1 relative py-0">
-            <div class="flex justify-between items-start gap-4 w-full">
-                <div class="font-rajdhani font-bold text-base text-white tracking-tight flex-1 min-w-0 leading-tight" title="${jogo.title}">
-                    ${jogo.release.tituloOriginal.toUpperCase()}
-                </div>
-                <div class="flex flex-col items-end gap-1 shrink-0">`;
-
-    // Verifica se existem tags para renderizar os Badges
+    let tagsHtml = '';
     if (jogo.release.tags && jogo.release.tags.length > 0) {
-        // Cria um badge separado para CADA tag e junta tudo
-        html += jogo.release.tags.map(tag => `
-                    <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-semibold px-1 py-0.5 mb-1 rounded shadow-sm">
-                        ${tag.toUpperCase()}
-                    </span>`).join('');
+        tagsHtml = jogo.release.tags.map(tag => `
+            <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-semibold px-1 py-0.5 rounded shadow-sm block mb-1">
+                ${tag.toUpperCase()}
+            </span>`).join('');
     }
 
-    html += `
+    let html = `
+        <div class="w-16 h-24 sm:w-20 sm:h-30 shrink-0 bg-neutral-950 rounded overflow-hidden relative">
+            <img src="${jogo.cover}" 
+                 referrerpolicy="no-referrer" 
+                 onerror="if (this.src !== '${jogo.rawCover}' && '${jogo.rawCover}' !== '') { this.src = '${jogo.rawCover}'; } else if (this.src !== '${fallbackFinal}') { this.src = '${fallbackFinal}'; } else { this.onerror = null; }" 
+                 class="w-full h-full object-cover">
+        </div>
+        <div class="flex flex-col justify-between min-w-0 flex-1 relative py-0 pr-12">
+            <div class="w-full pr-12">
+                <div class="font-rajdhani font-bold text-base text-white tracking-tight leading-tight truncate" title="${jogo.title}">
+                    ${jogo.release.tituloOriginal.toUpperCase()}
                 </div>
             </div>
-            <div class="flex flex-wrap gap-x-8 gap-y-2 mt-4 w-full">`;
+            <div class="flex flex-wrap gap-x-6 sm:gap-x-8 gap-y-1.5 mt-3 sm:mt-4 w-full">`;
 
     if (jogo.release.versao) {
         html += `
@@ -392,12 +376,12 @@ function criarCardJogoCompacto(jogo) {
                 </div>
             </div>
         </div>
+        ${tagsHtml ? `<div class="absolute top-2.5 right-2.5 flex flex-col items-end z-10">${tagsHtml}</div>` : ''}
         ${removeBtnHtml}
-        <div id="score-${jogo.id}" class="absolute top-1/2 -translate-y-1/2 right-4 bg-black/70 backdrop-blur px-2 py-1 rounded text-[10px] font-bold text-emerald-400 hidden"></div>
+        <div id="score-${jogo.id}" class="absolute top-1/2 -translate-y-1/2 right-12 bg-black/70 backdrop-blur px-2 py-1 rounded text-[10px] font-black text-emerald-400 hidden"></div>
     `;
 
     card.innerHTML = html;
-
     return card;
 }
 
