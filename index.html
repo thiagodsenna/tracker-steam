@@ -119,47 +119,47 @@
 
                 <!-- Barra de Atalhos -->
                 <nav id="modal-nav-shortcuts" class="sticky top-0 z-50 w-full bg-neutral-950/85 backdrop-blur-md border-b border-neutral-800/80 shadow-lg transition-all">
-                    <div class="flex items-center justify-start sm:justify-center overflow-x-auto no-scrollbar py-1.5 px-2 sm:gap-2.5 max-w-4xl mx-auto">
+                    <div class="flex items-center justify-start sm:justify-center overflow-x-auto no-scrollbar py-0.5 px-2 sm:gap-2.5 max-w-4xl mx-auto">
                         
                         <!-- Topo -->
                         <button onclick="rolarParaSecaoModal('modal-content')" class="group flex items-center gap-2 sm:gap-2.5 p-1 text-neutral-400 hover:text-emerald-400 transition-all shrink-0" title="Voltar ao Topo">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform group-hover:-translate-y-0.5"><path d="m18 15-6-6-6 6"/></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform"><path d="m18 15-6-6-6 6"/></svg>
                             <span class="text-neutral-800 font-extralight select-none">|</span>
                         </button>
 
                         <!-- HLTB -->
                         <button id="shortcut-hltb" onclick="rolarParaSecaoModal('modal-section-hltb')" class="group flex items-center gap-2 sm:gap-2.5 p-1 text-neutral-400 hover:text-emerald-400 transition-all shrink-0 hidden" title="How Long to Beat">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform group-hover:scale-110"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                             <span class="text-neutral-800 font-extralight select-none">|</span>
                         </button>
 
                         <!-- Descrição -->
                         <button id="shortcut-descricao" onclick="rolarParaSecaoModal('modal-section-descricao')" class="group flex items-center gap-2 sm:gap-2.5 p-1 text-neutral-400 hover:text-emerald-400 transition-all shrink-0" title="Descrição">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform group-hover:scale-110"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
                             <span class="text-neutral-800 font-extralight select-none">|</span>
                         </button>
 
                         <!-- Recursos -->
                         <button id="shortcut-recursos" onclick="rolarParaSecaoModal('modal-section-recursos')" class="group flex items-center gap-2 sm:gap-2.5 p-1 text-neutral-400 hover:text-emerald-400 transition-all shrink-0 hidden" title="Recursos">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform group-hover:scale-110"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                             <span class="text-neutral-800 font-extralight select-none">|</span>
                         </button>
 
                         <!-- Screenshots -->
                         <button id="shortcut-screenshots" onclick="rolarParaSecaoModal('modal-section-screenshots')" class="group flex items-center gap-2 sm:gap-2.5 p-1 text-neutral-400 hover:text-emerald-400 transition-all shrink-0 hidden" title="Screenshots">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform group-hover:scale-110"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
                             <span class="text-neutral-800 font-extralight select-none">|</span>
                         </button>
 
                         <!-- Vídeos -->
                         <button id="shortcut-videos" onclick="rolarParaSecaoModal('modal-section-videos')" class="group flex items-center gap-2 sm:gap-2.5 p-1 text-neutral-400 hover:text-emerald-400 transition-all shrink-0 hidden" title="Vídeos">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform group-hover:scale-110"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                             <span class="text-neutral-800 font-extralight select-none">|</span>
                         </button>
 
                         <!-- Avaliações -->
                         <button id="shortcut-reviews" onclick="rolarParaSecaoModal('modal-section-reviews')" class="group flex items-center gap-2 sm:gap-2.5 p-1 text-neutral-400 hover:text-emerald-400 transition-all shrink-0 hidden" title="Avaliações">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform group-hover:scale-110"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                             <span class="text-neutral-800 font-extralight select-none">|</span>
                         </button>
 
@@ -171,18 +171,18 @@
 
                         <!-- Links -->
                         <button id="shortcut-links" onclick="rolarParaSecaoModal('modal-section-links')" class="group flex items-center gap-2 sm:gap-2.5 p-1 text-neutral-400 hover:text-emerald-400 transition-all shrink-0" title="Links">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform group-hover:scale-110"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
                             <span class="text-neutral-800 font-extralight select-none">|</span>
                         </button>
 
                         <!-- Download -->
                         <button id="shortcut-downloads" onclick="rolarParaSecaoModal('modal-section-downloads')" class="group flex items-center p-1 text-neutral-400 hover:text-emerald-400 transition-all shrink-0" title="Download">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform group-hover:scale-110"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                         </button>
 
                         <!-- Fechar -->
                         <button onclick="fecharModal()" class="group flex items-center p-1 text-neutral-500 hover:text-red-400 transition-all shrink-0 ml-auto pl-2" title="Fechar Modal">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform group-hover:rotate-90 group-hover:scale-110"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform group-hover:rotate-90"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                         </button>
 
                     </div>
@@ -190,9 +190,12 @@
 
                 <div class="p-5 sm:p-8 space-y-7">
                     <div class="flex flex-row items-start gap-4">
+                        <!-- Cover -->
                         <div class="w-32 sm:w-32 bg-neutral-950 rounded-md overflow-hidden shrink-0 border border-neutral-800 shadow-2xl">
                             <img id="modal-cover" src="" class="w-full h-full object-cover">
                         </div>
+                        
+                        <!-- Detalhes -->
                         <div class="flex-1 space-y-4">
                             <div class="bg-neutral-950/50 p-4 rounded-md border border-neutral-800">
                                 <h3 id="modal-title-release" class="text-sm font-bold text-white mb-3"></h3>
@@ -211,7 +214,8 @@
                         </div>
                     </div>
 
-                    <div id="modal-section-hltb" class="hidden space-y-3">
+                    <!-- Seção: How Long to Beat -->
+                    <div id="modal-section-hltb" class="hidden space-y-3 pb-6">
                         <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2 flex items-center gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                             How Long to Beat
@@ -219,7 +223,8 @@
                         <div id="modal-hltb-grid" class="bg-neutral-950/60 border border-neutral-800/80 rounded-xl p-4 sm:p-5 space-y-4 shadow-inner"></div>
                     </div>
                     
-                    <div id="modal-section-descricao" class="space-y-3">
+                    <!-- Seção: Descrição -->
+                    <div id="modal-section-descricao" class="space-y-3 pb-6">
                         <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2 flex items-center gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform group-hover:scale-110"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
                             Descrição
@@ -227,7 +232,8 @@
                         <div id="modal-description" class="text-[12px] text-neutral-400 [&_p:my-[15px] [&_img]:my-[15px]"></div>
                     </div>
 
-                    <div id="modal-section-recursos" class="hidden space-y-3">
+                    <!-- Seção: Recursos -->
+                    <div id="modal-section-recursos" class="hidden space-y-3 pb-6">
                         <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2 flex items-center gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform group-hover:scale-110"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                             Recursos
@@ -235,7 +241,8 @@
                         <div id="modal-recursos-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-2"></div>
                     </div>
 
-                    <div id="modal-section-screenshots" class="hidden space-y-3">
+                    <!-- Seção: Screenshots -->
+                    <div id="modal-section-screenshots" class="hidden space-y-3 pb-6">
                         <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2 flex items-center gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform group-hover:scale-110"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
                             Screenshots
@@ -243,7 +250,8 @@
                         <div id="modal-screenshots-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-4"></div>
                     </div>
 
-                    <div id="modal-section-videos" class="hidden space-y-3">
+                    <!-- Seção: Vídeos -->
+                    <div id="modal-section-videos" class="hidden space-y-3 pb-6">
                         <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2 flex items-center gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform group-hover:scale-110"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                             Vídeos
@@ -251,18 +259,20 @@
                         <div id="modal-youtube-container"></div>
                     </div>
 
-                    <div id="modal-section-reviews" class="hidden space-y-3">
+                    <!-- Seção: Avaliações -->
+                    <div id="modal-section-reviews" class="hidden space-y-3 pb-6">
                         <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2 flex items-center justify-between gap-2 w-full">
                             <div class="flex items-center gap-2">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform group-hover:scale-110"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                                <span>Avaliações (Steam)</span>
+                                <span>Avaliações</span>
                             </div>
                             <span id="reviews-section-score" class="hidden px-1.5 py-0.5 rounded border text-base font-black text-white shadow-md leading-none ml-auto [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] tracking-tight"></span>
                         </h4>
                         <div id="modal-reviews-list" class="space-y-4"></div>
                     </div>
 
-                    <div id="modal-section-similares" class="hidden space-y-3">
+                    <!-- Seção: Jogos Similares -->
+                    <div id="modal-section-similares" class="hidden space-y-3 pb-6">
                         <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2 flex items-center gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="12" x2="10" y2="12"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="15" y1="13" x2="15.01" y2="13"/><line x1="18" y1="11" x2="18.01" y2="11"/><path d="M17.32 5H6.68a4 4 0 0 0-3.97 3.55l-.6 6.06A4 4 0 0 0 6 19h12a4 4 0 0 0 3.89-4.39l-.6-6.06A4 4 0 0 0 17.32 5z"/></svg>
                             Jogos Similares
@@ -270,7 +280,8 @@
                         <div id="modal-similares-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3"></div>
                     </div>
 
-                    <div id="modal-section-links" class="space-y-3 pb-8">
+                    <!-- Seção: Links -->
+                    <div id="modal-section-links" class="space-y-3 pb-6">
                         <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2 flex items-center gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform group-hover:scale-110"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
                             Links
@@ -278,10 +289,11 @@
                         <div id="modal-links-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-2"></div>
                     </div>
 
-                    <div id="modal-section-downloads" class="space-y-3 pb-8">
+                    <!-- Seção: Downloads -->
+                    <div id="modal-section-downloads" class="space-y-3 pb-6">
                         <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2 flex items-center gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform group-hover:scale-110"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                            Download
+                            Downloads
                         </h4>
                         <div id="modal-downloads-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-2"></div>
                     </div>

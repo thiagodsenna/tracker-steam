@@ -861,14 +861,14 @@ async function buscarReviewsSteam(steamId) {
 
             // 1. Atualiza a nota do Hero/Cabeçalho
             const metaScoreEl = document.getElementById('modal-metacritic-score');
-            metaScoreEl.className = `absolute bottom-4 right-4 h-16 w-16 flex flex-col items-center justify-center rounded-lg border-2 ${border} ${bg} shadow-xl backdrop-blur-sm`;
+            metaScoreEl.className = `absolute bottom-4 right-4 h-16 w-16 flex flex-col items-center justify-center rounded-lg border-2 ${border} ${bg} shadow-xl backdrop-blur-sm [text-shadow:0_1px_3px_rgba(0,0,0,0.8)]`;
             document.getElementById('metacritic-score-value').textContent = notaSteam;
 
             // 2. Atualiza a nota na Seção de Avaliações (Sombra, fonte maior e alinhado à direita)
             const reviewsSectionScoreEl = document.getElementById('reviews-section-score');
             if (reviewsSectionScoreEl) {
                 reviewsSectionScoreEl.textContent = `${notaSteam}`;
-                reviewsSectionScoreEl.className = `inline-flex items-center justify-center ${bg} border ${border} px-1.5 py-0.5 rounded text-base font-black text-white shadow-md leading-none ml-auto [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] tracking-tight`;
+                reviewsSectionScoreEl.className = `inline-flex items-center justify-center ${bg} border ${border} px-1.5 py-0.5 rounded text-base font-black text-white shadow-md leading-none ml-auto [text-shadow:0_1px_3px_rgba(0,0,0,0.8)] tracking-tight`;
             }
 
             //Total avaliações
@@ -1172,7 +1172,7 @@ function rolarParaSecaoModal(elementId) {
     if (!alvo) return;
     
     // Altura da barra compacta em pixels para que o título da seção não fique escondido sob ela
-    const compensacao = 65; 
+    const compensacao = 47; 
     
     const modalContainer = document.getElementById('modal-overlay');
     
