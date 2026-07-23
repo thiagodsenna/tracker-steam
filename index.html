@@ -34,8 +34,8 @@
             ‹
         </button>
 
-        <!-- Imagem Principal -->
-        <div class="relative max-w-[95%] max-h-[90%] flex items-center justify-center">
+        <!-- Imagem Principal (stopPropagation no clique para evitar que feche ao clicar na foto) -->
+        <div class="relative max-w-[95%] max-h-[90%] flex items-center justify-center" onclick="event.stopPropagation()">
             <img id="lightbox-img" class="max-w-full max-h-[85vh] object-contain rounded shadow-2xl transition-all duration-200">
             <div id="lightbox-counter" class="absolute -bottom-12 left-1/2 -translate-x-1/2 text-neutral-400 text-xs font-mono bg-neutral-900/80 px-3 py-1 rounded-full border border-neutral-800"></div>
         </div>
@@ -86,14 +86,14 @@
 
     <div class="max-w-6xl mx-auto">
         <!-- Cabeçalho Home -->
-        <header class="flex flex-row justify-between items-center gap-3 mb-8 border-b border-neutral-800 pb-4">
+        <header class="flex flex-row justify-between items-center gap-3 mb-4 border-b border-neutral-800 pb-4">
             <div class="shrink-0 min-w-0">
                 <h1 class="text-2xl sm:text-2xl font-bold text-white tracking-tight truncate">
                     <a href="#" onclick="limparBusca(); return false;" class="hover:opacity-80 transition-opacity">
                         Releases<span class="text-emerald-500">Tracker</span>
                     </a>
                 </h1>
-                <p class="hidden sm:block text-xs text-neutral-500 mt-1">Lançamentos de jogos da scene</p>
+                <p class="hidden sm:block text-xs text-neutral-500">Lançamentos de jogos da scene</p>
             </div>
             
             <div class="flex items-center gap-1.5 sm:gap-2.5 justify-end shrink-0">
@@ -126,9 +126,9 @@
         </header>
 
         <!-- Caixa de filtro de pesquisa -->
-        <div id="search-filter-tag" class="hidden w-full bg-neutral-900 border border-neutral-800 rounded-lg p-3 py-1.5 mb-6 flex items-center justify-between text-xs sm:text-sm font-semibold">
+        <div id="search-filter-tag" class="hidden w-full bg-neutral-800/80 border border-neutral-700 rounded-lg p-3 py-1.5 mb-3 flex items-center justify-between text-xs sm:text-sm font-semibold">
             <div class="flex items-center gap-2 sm:gap-3 flex-wrap text-neutral-400">
-                <span>Filtrado por: <span id="search-term-text" class="text-white font-bold">""</span></span>
+                <span>Filtrado por: <span id="search-term-text" class="text-white">""</span></span>
                 <span class="text-neutral-700">|</span>
                 <button id="btn-filter-feedly" class="px-3 py-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 font-bold transition-all">Releases</button>
                 <button id="btn-filter-steam" class="px-3 py-1 rounded-lg border border-neutral-800 bg-neutral-950 text-neutral-400 hover:text-white transition-all">Steam</button>
@@ -137,12 +137,12 @@
         </div>
 
         <!-- Caixa de status da Wishlist -->
-        <div id="wishlist-filter-tag" class="hidden w-full bg-emerald-950/20 border border-emerald-500/30 rounded-md p-3 py-2 mb-6 flex items-center justify-between text-xs sm:text-sm font-semibold shadow-sm">
+        <div id="wishlist-filter-tag" class="hidden w-full bg-emerald-950/20 border border-emerald-500/30 rounded-md p-3 py-1 mb-3 flex items-center justify-between text-xs sm:text-sm font-semibold shadow-sm">
             <div class="flex items-center gap-2 sm:gap-3 flex-wrap text-emerald-300">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" class="text-emerald-400"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
                 <span>Sua Wishlist (<span id="wishlist-tag-count" class="text-white font-bold">0</span>)</span>
                 <span class="text-neutral-700">|</span>
-                <button onclick="abrirModalSync()" class="text-[11px] bg-emerald-500/10 hover:bg-emerald-500/20 text-white/75 border border-emerald-500/30 px-2.5 py-1 rounded-md transition-colors flex items-center gap-1.5">
+                <button onclick="abrirModalSync()" class="text-[11px] bg-emerald-500/10 hover:bg-emerald-500/20 text-white/75 border border-emerald-500/30 px-2.5 py-0.5 rounded-md transition-colors flex items-center gap-1.5">
                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
                     Sincronizar Dispositivos
                 </button>

@@ -705,10 +705,7 @@ window.abrirLightbox = (index, lista) => {
     const lightboxEl = document.getElementById('lightbox');
     lightboxEl.classList.remove('hidden');
 
-    // Adiciona estado ao histórico para que o botão "Voltar" do navegador feche o lightbox
-    history.pushState({ lightboxOpen: true }, '', window.location.href);
-    
-    // Registra navegação por teclado (Setas)
+    // Registra navegação por teclado (Setas e ESC)
     window.addEventListener('keydown', lidarTecladoLightbox);
     
     // Configura os ouvintes de gestos touch para mobile
@@ -760,18 +757,18 @@ window.navegarLightbox = (e, direcao) => {
     }
 };
 
-window.fecharLightbox = (e, forcar = false, viaPopstate = false) => {
-    // Se o clique for direto na imagem ou nos botões de controle, ignora
-    if (!forcar && !viaPopstate && e && e.target.id !== 'lightbox') return;
+window.fecharLightbox = (e, forcar = false) => {
+    if (e) {
+        // Interrompe o evento de clique/tecla imediatamente para não afetar o modal por trás
+        e.stopPropagation();
+    }
+
+    // Se o clique for direto na imagem ou nos botões de controle e não for forçado, ignora
+    if (!forcar && e && e.target && e.target.id !== 'lightbox') return;
     
     const lightboxEl = document.getElementById('lightbox');
-    if (!lightboxEl.classList.contains('hidden')) {
+    if (lightboxEl && !lightboxEl.classList.contains('hidden')) {
         lightboxEl.classList.add('hidden');
-        
-        // Se fechou por interação do usuário (clique/tecla), remove o estado extra do histórico
-        if (!viaPopstate && history.state?.lightboxOpen) {
-            history.back();
-        }
     }
     
     // Remove listeners acumulados
@@ -780,14 +777,17 @@ window.fecharLightbox = (e, forcar = false, viaPopstate = false) => {
     lightboxEl.removeEventListener('touchend', lidarTouchEnd);
 };
 
-// Navegação via teclado
+// Navegação via teclado com controle isolado para o ESC
 function lidarTecladoLightbox(e) {
     if (e.key === 'ArrowLeft') {
-        navegarLightbox(null, -1);
+        navegarLightbox(e, -1);
     } else if (e.key === 'ArrowRight') {
-        navegarLightbox(null, 1);
+        navegarLightbox(e, 1);
     } else if (e.key === 'Escape') {
-        fecharLightbox(null, true);
+        // Garante que o ESC vai ser consumido EXCLUSIVAMENTE pelo lightbox
+        e.stopPropagation();
+        e.preventDefault();
+        fecharLightbox(e, true);
     }
 }
 
@@ -1280,11 +1280,11 @@ function atualizarEstiloBotoesFiltro() {
     if (!btnFeedly || !btnSteam) return;
 
     if (fonteAtual === 'feedly') {
-        btnFeedly.className = "px-3 py-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 font-bold transition-all";
-        btnSteam.className = "px-3 py-1 rounded-lg border border-neutral-800 bg-neutral-950 text-neutral-400 hover:text-white transition-all";
+        btnFeedly.className = "px-2.5 py-0.5 rounded-md border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 font-bold transition-all";
+        btnSteam.className = "px-2.5 py-0.5 rounded-md border border-neutral-800 bg-neutral-950 text-neutral-400 hover:text-white transition-all";
     } else {
-        btnSteam.className = "px-3 py-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 font-bold transition-all";
-        btnFeedly.className = "px-3 py-1 rounded-lg border border-neutral-800 bg-neutral-950 text-neutral-400 hover:text-white transition-all";
+        btnSteam.className = "px-2.5 py-0.5 rounded-md border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 font-bold transition-all";
+        btnFeedly.className = "px-2.5 py-0.5 rounded-md border border-neutral-800 bg-neutral-950 text-neutral-400 hover:text-white transition-all";
     }
 }
 
@@ -1379,13 +1379,16 @@ document.getElementById('btn-clear-search')?.addEventListener('click', limparBus
 // Inicialização principal
 carregarJogos();
 
+// Ajuste na escuta do botão Voltar do navegador (popstate)
 window.addEventListener('popstate', () => {
+    // 1. Se o lightbox estiver aberto, fecha SOMENTE ele primeiro
     const lightbox = document.getElementById('lightbox');
     if (lightbox && !lightbox.classList.contains('hidden')) {
-        fecharLightbox(null, true, true);
+        fecharLightbox(null, true);
         return;
     }
 
+    // 2. Caso contrário, fecha o modal normalmente
     const modal = document.getElementById('modal-overlay');
     if (modal && !modal.classList.contains('hidden')) {
         fecharModal(true);
