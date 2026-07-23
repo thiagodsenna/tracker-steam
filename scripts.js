@@ -217,11 +217,11 @@ let configuracoesUsuario = {};
 
 async function carregarConfiguracoesServidor() {
     try {
-        // Adapte para a forma como você armazena o token do usuário no frontend
-        const token = localStorage.getItem('rt_token'); 
+        //Utiliza a variável global userToken ou a chave correta do localStorage
+        const token = typeof userToken !== 'undefined' ? userToken : localStorage.getItem('rt_user_token'); 
         if (!token) return {};
         
-        const res = await fetch(`${API_BASE_URL}/api/settings?token=${token}`);
+        const res = await fetch(`${API_BASE_URL}/api/settings?token=${encodeURIComponent(token)}`);
         if (res.ok) {
             return await res.json();
         }
@@ -233,7 +233,8 @@ async function carregarConfiguracoesServidor() {
 
 async function salvarConfiguracoesServidor(novasConfiguracoes) {
     try {
-        const token = localStorage.getItem('rt_token');
+        // Utiliza a variável global userToken ou a chave correta do localStorage
+        const token = typeof userToken !== 'undefined' ? userToken : localStorage.getItem('rt_user_token');
         if (!token) return;
 
         // Atualização otimista em memória
