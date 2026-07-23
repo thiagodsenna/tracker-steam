@@ -1003,7 +1003,8 @@ async function buscarReviewsSteam(steamId) {
             }
 
             //Total avaliações
-            document.getElementById('total-reviews').innerHTML = `<span class="text-neutral-500">Avaliações:</span> ${json.query_summary.total_reviews.toLocaleString('pt-BR')}`;
+            const totalReviews = json?.query_summary?.total_reviews?.toLocaleString('pt-BR') || 0;
+            document.getElementById('total-reviews').innerHTML = `<span class="text-neutral-500">Avaliações:</span> ${totalReviews}`;
 
             section.classList.remove('hidden');
             document.getElementById('shortcut-reviews')?.classList.remove('hidden');
