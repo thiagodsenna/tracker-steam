@@ -817,12 +817,8 @@ function lidarSwipe() {
 async function abrirModal(id, options = {}) {
     const jogo = jogosCarregados[id];
     if (!jogo) return;
-
     modalJogoAtual = id;
-    
-    // --- INÍCIO: CHECAR SE O JOGO ATUAL ESTÁ NA WISHLIST ---
     atualizarBotaoWishlistModal(estaNaWishlist(jogo.feedlyId));
-    // --- FIM: CHECAR SE O JOGO ATUAL ESTÁ NA WISHLIST ---
 
     const shareUrl = getShareUrl(jogo.feedlyId);
     const historyState = { modalOpen: true, gameId: jogo.feedlyId };
@@ -840,6 +836,7 @@ async function abrirModal(id, options = {}) {
     document.getElementById('modal-btn-share').onclick = compartilharJogoAtual;
     document.getElementById('modal-description').textContent = 'Buscando informações da Steam...';
     document.getElementById('game-size').innerHTML = `<span class="text-neutral-500">Tamanho:</span> ${jogo.size}`;
+    document.getElementById('total-reviews').innerHTML = `<span class="text-neutral-500">Avaliações:</span> carregando...`;
     document.getElementById('modal-developer').innerHTML = '';
 
     document.getElementById('steam-metadata').classList.add('hidden');
@@ -991,7 +988,7 @@ async function buscarReviewsSteam(steamId) {
 
             // 1. Atualiza a nota do Hero/Cabeçalho
             const metaScoreEl = document.getElementById('modal-metacritic-score');
-            metaScoreEl.className = `absolute top-2 right-2 h-16 w-16 flex flex-col items-center justify-center rounded-lg border-2 ${border} ${bg} shadow-xl [text-shadow:0_1px_3px_rgba(0,0,0,0.8)]`;
+            metaScoreEl.className = `absolute top-2 right-2 h-16 w-16 flex flex-col items-center justify-center rounded-lg border-2 ${border} ${bg} shadow-xl [text-shadow:0_1px_3px_rgba(0,0,0,0.8)] hover:cursor-pointer`;
             document.getElementById('metacritic-score-value').textContent = notaSteam;
 
             // 2. Atualiza a nota na Seção de Avaliações (Sombra, fonte maior e alinhado à direita)
