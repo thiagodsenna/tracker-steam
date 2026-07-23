@@ -212,6 +212,75 @@ function mapearRelease(stringEntrada) {
     };
 }
 
+// --- INÍCIO: GESTÃO DE CONFIGURAÇÕES DO USUÁRIO E ITENS NOVOS ---
+let configuracoesUsuario = {};
+
+async function carregarConfiguracoesServidor() {
+    try {
+        // Adapte para a forma como você armazena o token do usuário no frontend
+        const token = localStorage.getItem('rt_token'); 
+        if (!token) return {};
+        
+        const res = await fetch(`/api/settings?token=${token}`);
+        if (res.ok) {
+            return await res.json();
+        }
+    } catch (e) {
+        console.error("Erro ao carregar configurações do servidor:", e);
+    }
+    return {};
+}
+
+async function salvarConfiguracoesServidor(novasConfiguracoes) {
+    try {
+        const token = localStorage.getItem('rt_token');
+        if (!token) return;
+
+        // Atualização otimista em memória
+        configuracoesUsuario = { ...configuracoesUsuario, ...novasConfiguracoes };
+
+        await fetch(`/api/settings`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token, ...novasConfiguracoes })
+        });
+    } catch (e) {
+        console.error("Erro ao salvar configurações no servidor:", e);
+    }
+}
+
+function getUltimoAcesso() {
+    // Trava o timestamp no sessionStorage para o F5 não sumir com as tags "NOVO" na mesma sessão
+    let sessaoAcesso = sessionStorage.getItem('rt_session_last_visit');
+    if (!sessaoAcesso) {
+        sessaoAcesso = (configuracoesUsuario.last_visit || 0).toString();
+        sessionStorage.setItem('rt_session_last_visit', sessaoAcesso);
+    }
+    return parseInt(sessaoAcesso, 10);
+}
+
+function atualizarUltimoAcessoServidor(jogos) {
+    if (!jogos || jogos.length === 0) return;
+    
+    // Garante que a sessão atual gravou o timestamp antigo antes de enviarmos o novo para o servidor
+    getUltimoAcesso();
+    
+    const maxTimestamp = Math.max(...jogos.map(j => j.published || 0));
+    const ultimoServidor = configuracoesUsuario.last_visit || 0;
+    
+    // Se o feed tem um release mais recente do que o salvo no servidor, atualiza em background
+    if (maxTimestamp > ultimoServidor) {
+        salvarConfiguracoesServidor({ last_visit: maxTimestamp });
+    }
+}
+
+function isJogoNovo(jogo) {
+    if (fonteAtual !== 'feedly') return false; 
+    const ultimoAcesso = getUltimoAcesso();
+    return ultimoAcesso > 0 && (jogo.published || 0) > ultimoAcesso;
+}
+// --- FIM: GESTÃO DE CONFIGURAÇÕES DO USUÁRIO E ITENS NOVOS ---
+
 function parseFeedlyItem(item, index) {
     const doc = new DOMParser().parseFromString(item.content?.content || item.summary?.content || '', 'text/html');
     
@@ -273,6 +342,7 @@ function parseFeedlyItem(item, index) {
         postLink: postLink,
         downloads,
         date: formatarDataRelativa(item.published),
+        published: item.published || 0,
         steamId: steamId,
         links,
         size: size,
@@ -282,13 +352,15 @@ function parseFeedlyItem(item, index) {
 
 function criarCardJogo(jogo) {
     const card = document.createElement('div');
-    card.className = 'bg-neutral-900 border border-neutral-800 rounded-lg overflow-hidden cursor-pointer relative hover:border-emerald-500/50 transition-all';
+    const isNew = isJogoNovo(jogo); // <-- VERIFICAÇÃO SE É NOVO
+    
+    // Borda verde e sombra adicionadas dinamicamente caso isNew seja true
+    card.className = `bg-neutral-900 border ${isNew ? 'border-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.2)]' : 'border-neutral-800'} rounded-lg overflow-hidden cursor-pointer relative hover:border-emerald-500/50 transition-all`;
     card.onclick = () => abrirModal(jogosCarregados.findIndex(j => j.feedlyId === jogo.feedlyId));
     
     // Define o fallback padrão final de segurança (massa de manobra se tudo falhar)
     const fallbackFinal = jogo.fallbackImage || (jogo.steamId ? `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${jogo.steamId}/header.jpg` : 'https://store.fastly.steamstatic.com/public/images/v6/app_default_header.jpg');
     
-    // --- INÍCIO: ÍCONE DE REMOÇÃO DA WISHLIST ---
     const removeBtnHtml = fonteAtual === 'wishlist' ? `
         <button onclick="removerDaWishlist('${jogo.feedlyId}', event)" title="Remover da Wishlist" class="absolute top-2 left-2 z-20 bg-black/80 hover:bg-red-600/90 text-neutral-300 hover:text-white p-1.5 rounded-full transition-all shadow-md">
             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
@@ -296,8 +368,15 @@ function criarCardJogo(jogo) {
     ` : '';
     // --- FIM: ÍCONE DE REMOÇÃO DA WISHLIST ---
 
+    // --- INÍCIO: TAG NOVO ---
+    const tagNovoHtml = isNew ? `
+        <span class="absolute top-2 left-2 z-20 bg-emerald-500 text-neutral-950 font-rajdhani font-black text-[11px] px-1.5 py-0.5 rounded shadow-lg tracking-wider uppercase">NOVO</span>
+    ` : '';
+    // --- FIM: TAG NOVO ---
+
     card.innerHTML = `
         <div class="aspect-[3/4] bg-neutral-950 relative">
+            ${tagNovoHtml}
             ${removeBtnHtml}
             <img src="${jogo.cover}" 
                  referrerpolicy="no-referrer" 
@@ -321,7 +400,9 @@ function criarCardJogo(jogo) {
 
 function criarCardJogoCompacto(jogo) {
     const card = document.createElement('div');
-    card.className = 'bg-neutral-900 border border-neutral-800 rounded-md overflow-hidden cursor-pointer relative hover:border-emerald-500/50 transition-all p-2.5 flex gap-4 sm:gap-5 w-full group/card';
+    const isNew = isJogoNovo(jogo); // <-- VERIFICAÇÃO SE É NOVO
+
+    card.className = `bg-neutral-900 border ${isNew ? 'border-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.2)]' : 'border-neutral-800'} rounded-md overflow-hidden cursor-pointer relative hover:border-emerald-500/50 transition-all p-2.5 flex gap-4 sm:gap-5 w-full group/card`;
     card.onclick = () => abrirModal(jogosCarregados.findIndex(j => j.feedlyId === jogo.feedlyId));
     
     const fallbackFinal = jogo.fallbackImage || (jogo.steamId ? `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${jogo.steamId}/header.jpg` : 'https://store.fastly.steamstatic.com/public/images/v6/app_default_header.jpg');
@@ -331,6 +412,12 @@ function criarCardJogoCompacto(jogo) {
             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
         </button>
     ` : '';
+
+    // --- INÍCIO: TAG NOVO ---
+    const tagNovoHtml = isNew ? `
+        <span class="absolute top-1.5 left-1.5 z-20 bg-emerald-500 text-neutral-950 font-rajdhani font-black text-[9px] px-1.5 py-0.5 rounded shadow-md tracking-wider uppercase">NOVO</span>
+    ` : '';
+    // --- FIM: TAG NOVO ---
 
     let tagsHtml = '';
     if (jogo.release.tags && jogo.release.tags.length > 0) {
@@ -342,6 +429,7 @@ function criarCardJogoCompacto(jogo) {
 
     let html = `
         <div class="w-16 h-24 sm:w-20 sm:h-30 shrink-0 bg-neutral-950 rounded overflow-hidden relative">
+            ${tagNovoHtml}
             <img src="${jogo.cover}" 
                  referrerpolicy="no-referrer" 
                  onerror="if (this.src !== '${jogo.rawCover}' && '${jogo.rawCover}' !== '') { this.src = '${jogo.rawCover}'; } else if (this.src !== '${fallbackFinal}') { this.src = '${fallbackFinal}'; } else { this.onerror = null; }" 
@@ -494,8 +582,21 @@ async function carregarJogos() {
     // --- FIM: CARREGAMENTO DE DADOS DA WISHLIST ---
 
     try {
-        const res = await fetch(`${API_BASE_URL}/api/feedly-proxy`);
-        const data = await res.json();
+        /* const res = await fetch(`${API_BASE_URL}/api/feedly-proxy`);
+        const data = await res.json(); */
+
+        // --- SUBSTITUA SEU FETCH ANTERIOR POR ESTE PROMISE.ALL ---
+        // Dispara em paralelo a busca do feed de jogos E a busca das configurações do servidor
+        const [resJogos, configServidor] = await Promise.all([
+            fetch(`${API_BASE_URL}/api/feedly-proxy`),
+            carregarConfiguracoesServidor()
+        ]);
+
+        // Salva na variável global para ser usada pelas funções de verificação
+        configuracoesUsuario = configServidor || {};
+
+        const data = await resJogos.json();
+        // --- FIM DA ALTERAÇÃO DO FETCH ---
 
         data.items.forEach((item, index) => {
             const jogo = parseFeedlyItem(item, index);
@@ -503,6 +604,9 @@ async function carregarJogos() {
         });
 
         jogosOriginaisFeedly = [...jogosCarregados];
+
+        // Envia o novo timestamp para o servidor em segundo plano (não bloqueia a renderização)
+        atualizarUltimoAcessoServidor(jogosCarregados);
 
         renderizarJogos();
         await processarDeepLink();
