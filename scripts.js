@@ -71,16 +71,16 @@ const delay = ms => new Promise(res => setTimeout(res, ms));
 function renderizarDesenvolvedores(developers) {
     if (!developers?.length) return '';
 
-    const label = developers.length > 1 ? 'Desenvolvedores' : 'Desenvolvedor';
+    const label = developers.length > 1 ? 'Estúdios' : 'Estúdio';
     const primeiro = developers[0];
     const ocultos = developers.length - 1;
 
     if (ocultos === 0) {
-        return `<span class="text-neutral-500">${label}:</span> ${primeiro}`;
+        return `<span class="text-neutral-500 text-[11px]">${label}:</span> ${primeiro}`;
     }
 
     const todos = developers.join(', ');
-    return `<span class="text-neutral-500">${label}:</span> <span id="dev-list">${primeiro}</span> <button type="button" id="dev-expand-btn" class="text-emerald-400 hover:text-emerald-300 font-bold cursor-pointer">[+${ocultos}]</button>`;
+    return `<span class="text-neutral-500 text-[11px]">${label}:</span> <span id="dev-list">${primeiro}</span> <button type="button" id="dev-expand-btn" class="text-emerald-400 hover:text-emerald-300 font-bold cursor-pointer">[+${ocultos}]</button>`;
 }
 
 function configurarExpandirDesenvolvedores(developers) {
@@ -414,11 +414,9 @@ function criarCardJogoCompacto(jogo) {
         </button>
     ` : '';
 
-    // --- INÍCIO: TAG NOVO ---
     const tagNovoHtml = isNew ? `
         <span class="absolute top-0 left-0 z-20 bg-emerald-600 text-neutral-950 font-rajdhani font-black text-[9px] px-1 py-0.5 pb-[1px] rounded tracking-wider uppercase">NOVO</span>
     ` : '';
-    // --- FIM: TAG NOVO ---
 
     let tagsHtml = '';
     if (jogo.release.tags && jogo.release.tags.length > 0) {
@@ -822,6 +820,8 @@ async function abrirModal(id, options = {}) {
 
     const shareUrl = getShareUrl(jogo.feedlyId);
     const historyState = { modalOpen: true, gameId: jogo.feedlyId };
+    const svgSize = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400 shrink-0"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
+    const svgReviews = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400 shrink-0"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;    
 
     if (options.fromDeepLink) {
         history.replaceState(historyState, '', shareUrl);
@@ -835,8 +835,8 @@ async function abrirModal(id, options = {}) {
     document.getElementById('modal-hero').style.backgroundImage = 'none';
     document.getElementById('modal-btn-share').onclick = compartilharJogoAtual;
     document.getElementById('modal-description').textContent = 'Buscando informações da Steam...';
-    document.getElementById('game-size').innerHTML = `<span class="text-neutral-500">Tamanho:</span> ${jogo.size}`;
-    document.getElementById('total-reviews').innerHTML = `<span class="text-neutral-500">Avaliações:</span> carregando...`;
+    document.getElementById('game-size').innerHTML = `${svgSize}<span>${jogo.size}</span>`;
+    document.getElementById('total-reviews').innerHTML = `${svgReviews}<span>...</span>`;   
     document.getElementById('modal-developer').innerHTML = '';
 
     document.getElementById('steam-metadata').classList.add('hidden');
@@ -895,9 +895,10 @@ async function buscarDadosSteam(steamId) {
         if (game.header_image) document.getElementById('modal-hero').style.backgroundImage = `url('${game.header_image}')`;
 
         // Metadata e Metacritic
+        const svgCalendar = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400 shrink-0"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`;
         document.getElementById('steam-metadata').classList.remove('hidden');
-        document.getElementById('release-date').innerHTML = `<span class="text-neutral-500">Lançamento:</span> ${formatarDataRelativa(game.release_date.date)}`;
-        document.getElementById('modal-genres').innerHTML = `<span class="text-neutral-500">Gêneros:</span> ${game.genres.map(g => g.description).join(', ')}`;
+        document.getElementById('release-date').innerHTML = `${svgCalendar}<span>${formatarDataRelativa(game.release_date.date)}</span>`;
+        document.getElementById('modal-genres').innerHTML = `<span class="text-neutral-500 text-[11px]">Gêneros:</span> ${game.genres.map(g => g.description).join(' <span class="text-neutral-600 text-xs">|</span> ')}`;
         document.getElementById('modal-developer').innerHTML = renderizarDesenvolvedores(game.developers);
         configurarExpandirDesenvolvedores(game.developers);
 
@@ -999,8 +1000,9 @@ async function buscarReviewsSteam(steamId) {
             }
 
             //Total avaliações
+            const svgReviews = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400 shrink-0"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
             const totalReviews = json?.query_summary?.total_reviews?.toLocaleString('pt-BR') || 0;
-            document.getElementById('total-reviews').innerHTML = `<span class="text-neutral-500">Avaliações:</span> ${totalReviews}`;
+            document.getElementById('total-reviews').innerHTML = `${svgReviews}<span>${totalReviews}</span>`;
 
             section.classList.remove('hidden');
             document.getElementById('shortcut-reviews')?.classList.remove('hidden');

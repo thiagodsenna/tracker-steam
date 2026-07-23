@@ -250,12 +250,31 @@
                         
                         <!-- Detalhes -->
                         <div class="flex-1 space-y-2 min-w-0">
-                            <div class="bg-neutral-950/50 p-4 rounded-md border border-neutral-800">
-                                <h3 id="modal-title-release" class="text-sm font-bold text-white mb-3 break-words"></h3>
+                            <div class="bg-neutral-950/50 pl-4 pr-0.5 py-3.5 rounded-md border border-neutral-800">
+                                <h3 id="modal-title-release" class="font-rajdhani text-base font-bold text-white mb-2 break-words"></h3>
+                                <!-- Sub-container de Metadados dentro do Modal -->
                                 <div id="steam-metadata" class="text-xs text-neutral-400 space-y-1 hidden">
-                                    <p id="game-size"></p>
-                                    <p id="release-date"></p>
-                                    <p id="total-reviews"></p>
+                                    <div class="flex flex-wrap items-center gap-2 mb-4">
+                                        <!-- Tag 1: Tamanho (Ícone Download) -->
+                                        <div id="game-size" title="Tamanho" class="inline-flex items-center gap-1.5 bg-neutral-900 border border-neutral-800 text-neutral-300 px-1.5 py-1 rounded text-[10px] font-semibold">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400 shrink-0"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                            <span class="value">--</span>
+                                        </div>
+
+                                        <!-- Tag 2: Lançamento (Ícone Calendário) -->
+                                        <div id="release-date" title="Data de Lançamento" class="inline-flex items-center gap-1.5 bg-neutral-900 border border-neutral-800 text-neutral-300 px-1.5 py-1 rounded text-[10px] font-semibold">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400 shrink-0"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                            <span class="value">--</span>
+                                        </div>
+
+                                        <!-- Tag 3: Avaliações (Ícone Comentários) -->
+                                        <div id="total-reviews" title="Total de Avaliações" class="inline-flex items-center gap-1.5 bg-neutral-900 border border-neutral-800 text-neutral-300 px-1.5 py-1 rounded text-[10px] font-semibold">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400 shrink-0"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                            <span class="value">--</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Demais informações mantidas abaixo -->
                                     <p id="modal-genres"></p>
                                     <p id="modal-developer"></p>
                                 </div>
