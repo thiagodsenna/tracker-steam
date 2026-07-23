@@ -523,7 +523,6 @@ function setViewMode(mode) {
     localStorage.setItem('viewMode', mode);
     updateViewButtons();
     renderizarJogos();
-    //carregarNotasEmLote();
 }
 
 function updateViewButtons() {
@@ -612,7 +611,6 @@ async function carregarJogos() {
         renderizarJogos();
         await processarDeepLink();
 
-        //carregarNotasEmLote();
     } catch (err) {
         console.error("Erro Feedly:", err);
         grid.innerHTML = `<div class="col-span-full text-red-500 text-center py-20">Erro ao carregar feeds.</div>`;
@@ -620,7 +618,7 @@ async function carregarJogos() {
     }
 }
 
-async function carregarNotasEmLote() {
+/* async function carregarNotasEmLote() {
     const steamIds = jogosCarregados.map(j => j.steamId).filter(id => id !== null);
     if (steamIds.length === 0) return;
 
@@ -645,7 +643,7 @@ async function carregarNotasEmLote() {
             }
         });
     } catch (e) { console.error("Erro ao buscar notas em lote", e); }
-}
+} */
 
 function encontrarJogoPorFeedlyId(feedlyId) {
     return jogosCarregados.findIndex(j => j.feedlyId === feedlyId);
@@ -993,7 +991,7 @@ async function buscarReviewsSteam(steamId) {
 
             // 1. Atualiza a nota do Hero/Cabeçalho
             const metaScoreEl = document.getElementById('modal-metacritic-score');
-            metaScoreEl.className = `absolute bottom-4 right-4 h-16 w-16 flex flex-col items-center justify-center rounded-lg border-2 ${border} ${bg} shadow-xl [text-shadow:0_1px_3px_rgba(0,0,0,0.8)]`;
+            metaScoreEl.className = `absolute top-2 right-2 h-16 w-16 flex flex-col items-center justify-center rounded-lg border-2 ${border} ${bg} shadow-xl [text-shadow:0_1px_3px_rgba(0,0,0,0.8)]`;
             document.getElementById('metacritic-score-value').textContent = notaSteam;
 
             // 2. Atualiza a nota na Seção de Avaliações (Sombra, fonte maior e alinhado à direita)
@@ -1209,7 +1207,6 @@ async function executarBusca(termo) {
                 grid.innerHTML = '<div class="col-span-full text-neutral-500 text-center py-20">Nenhum resultado encontrado no Skidrow.</div>';
             } else {
                 renderizarJogos();
-                //carregarNotasEmLote();
             }
         } catch (err) {
             console.error("Erro busca Skidrow:", err);
@@ -1265,7 +1262,6 @@ async function executarBusca(termo) {
                 grid.innerHTML = '<div class="col-span-full text-neutral-500 text-center py-20">Nenhum resultado encontrado na Steam.</div>';
             } else {
                 renderizarJogos();
-                //carregarNotasEmLote();
             }
         } catch (err) {
             console.error("Erro busca Steam:", err);
@@ -1305,7 +1301,6 @@ function limparBusca() {
     // --- FIM: ALTERAR COMPORTAMENTO LIMPAR BUSCA PARA WISHLIST ---
     
     renderizarJogos();
-    //carregarNotasEmLote();
 }
 
 // --- LÓGICA DA BARRA DE ATALHOS NO MODAL ---
