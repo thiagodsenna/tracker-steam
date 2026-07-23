@@ -355,7 +355,7 @@ function criarCardJogo(jogo) {
     const isNew = isJogoNovo(jogo); // <-- VERIFICAÇÃO SE É NOVO
     
     // Borda verde e sombra adicionadas dinamicamente caso isNew seja true
-    card.className = `bg-neutral-900 border ${isNew ? 'border-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.2)]' : 'border-neutral-800'} rounded-lg overflow-hidden cursor-pointer relative hover:border-emerald-500/50 transition-all`;
+    card.className = `bg-neutral-900 border ${isNew ? 'border-emerald-700' : 'border-neutral-800'} rounded-lg overflow-hidden cursor-pointer relative hover:border-emerald-500/50 transition-all`;
     card.onclick = () => abrirModal(jogosCarregados.findIndex(j => j.feedlyId === jogo.feedlyId));
     
     // Define o fallback padrão final de segurança (massa de manobra se tudo falhar)
@@ -370,7 +370,7 @@ function criarCardJogo(jogo) {
 
     // --- INÍCIO: TAG NOVO ---
     const tagNovoHtml = isNew ? `
-        <span class="absolute top-2 left-2 z-20 bg-emerald-500 text-neutral-950 font-rajdhani font-black text-[11px] px-1.5 py-0.5 rounded shadow-lg tracking-wider uppercase">NOVO</span>
+        <span class="absolute top-0 left-0 z-20 bg-emerald-600 text-neutral-950 font-rajdhani font-black text-[13px] px-3.5 py-0.5 rounded shadow-lg tracking-wider uppercase">NOVO</span>
     ` : '';
     // --- FIM: TAG NOVO ---
 
@@ -402,7 +402,7 @@ function criarCardJogoCompacto(jogo) {
     const card = document.createElement('div');
     const isNew = isJogoNovo(jogo); // <-- VERIFICAÇÃO SE É NOVO
 
-    card.className = `bg-neutral-900 border ${isNew ? 'border-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.2)]' : 'border-neutral-800'} rounded-md overflow-hidden cursor-pointer relative hover:border-emerald-500/50 transition-all p-2.5 flex gap-4 sm:gap-5 w-full group/card`;
+    card.className = `bg-neutral-900 border ${isNew ? 'border-emerald-800' : 'border-neutral-800'} rounded-md overflow-hidden cursor-pointer relative hover:border-emerald-500/50 transition-all p-2.5 flex gap-4 sm:gap-5 w-full group/card`;
     card.onclick = () => abrirModal(jogosCarregados.findIndex(j => j.feedlyId === jogo.feedlyId));
     
     const fallbackFinal = jogo.fallbackImage || (jogo.steamId ? `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${jogo.steamId}/header.jpg` : 'https://store.fastly.steamstatic.com/public/images/v6/app_default_header.jpg');
@@ -415,7 +415,7 @@ function criarCardJogoCompacto(jogo) {
 
     // --- INÍCIO: TAG NOVO ---
     const tagNovoHtml = isNew ? `
-        <span class="absolute top-0 left-0 z-20 bg-emerald-500 text-neutral-950 font-rajdhani font-black text-[9px] px-1 py-0.5 pb-[1px] rounded shadow-md tracking-wider uppercase">NOVO</span>
+        <span class="absolute top-0 left-0 z-20 bg-emerald-600 text-neutral-950 font-rajdhani font-black text-[9px] px-1 py-0.5 pb-[1px] rounded tracking-wider uppercase">NOVO</span>
     ` : '';
     // --- FIM: TAG NOVO ---
 
@@ -428,7 +428,7 @@ function criarCardJogoCompacto(jogo) {
     }
 
     let html = `
-        <div class="w-16 h-24 sm:w-20 sm:h-30 shrink-0 bg-neutral-950 rounded overflow-hidden relative">
+        <div class="w-16 h-24 sm:w-[88px] sm:h-32 shrink-0 bg-neutral-950 rounded overflow-hidden relative border border-neutral-950">
             ${tagNovoHtml}
             <img src="${jogo.cover}" 
                  referrerpolicy="no-referrer" 
