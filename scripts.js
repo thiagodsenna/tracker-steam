@@ -415,7 +415,7 @@ function criarCardJogoCompacto(jogo) {
 
     // --- INÍCIO: TAG NOVO ---
     const tagNovoHtml = isNew ? `
-        <span class="absolute top-1.5 left-1.5 z-20 bg-emerald-500 text-neutral-950 font-rajdhani font-black text-[9px] px-1.5 py-0.5 rounded shadow-md tracking-wider uppercase">NOVO</span>
+        <span class="absolute top-0 left-0 z-20 bg-emerald-500 text-neutral-950 font-rajdhani font-black text-[9px] px-1 py-0.5 pb-[1px] rounded shadow-md tracking-wider uppercase">NOVO</span>
     ` : '';
     // --- FIM: TAG NOVO ---
 
