@@ -185,9 +185,7 @@ function mapearRelease(stringEntrada) {
         }
     }
 
-    // ==========================================
-    // NOVA REGRA: GARANTIR "Early Access" COMO TAG
-    // ==========================================
+    // GARANTIR "Early Access" COMO TAG
     const contemEarlyAccess = /early access/i.test(stringEntrada);
 
     if (contemEarlyAccess) {
@@ -195,12 +193,12 @@ function mapearRelease(stringEntrada) {
         tituloOriginal = tituloOriginal
             .replace(/early access/i, '')
             .replace(/\s+/g, ' ')   // Remove espaços duplos internos
-            .replace(/[- ]+$/, '')   // Remove hífens ou espaços que sobraram no fim
-            .replace(/^[- ]+/, '')   // Remove hífens ou espaços que sobraram no início
+            .replace(/[- ]+$/, '')   // Remove hífens ou espaços que sobrarem no fim
+            .replace(/^[- ]+/, '')   // Remove hífens ou espaços que sobrarem no início
             .trim();
 
-        // 2. Remove qualquer variação antiga das tags para evitar duplicatas
-        tags = tags.filter(tag => tag.toLowerCase() !== "early access");
+        // 2. Remove qualquer variação antiga ou parcial das tags ("early access", "early", "access") para evitar duplicatas
+        tags = tags.filter(tag => !["early access", "early", "access"].includes(tag.toLowerCase()));
         
         // 3. Adiciona o termo padronizado como Tag
         tags.push("Early Access");
@@ -349,9 +347,9 @@ function criarCardJogoCompacto(jogo) {
                  onerror="if (this.src !== '${jogo.rawCover}' && '${jogo.rawCover}' !== '') { this.src = '${jogo.rawCover}'; } else if (this.src !== '${fallbackFinal}') { this.src = '${fallbackFinal}'; } else { this.onerror = null; }" 
                  class="w-full h-full object-cover">
         </div>
-        <div class="flex flex-col justify-between min-w-0 flex-1 relative py-0 pr-12">
+        <div class="flex flex-col justify-between min-w-0 flex-1 relative py-0 pr-1">
             <div class="w-full pr-12">
-                <div class="font-rajdhani font-bold text-base text-white tracking-tight leading-tight truncate" title="${jogo.title}">
+                <div class="font-rajdhani font-bold text-base text-white tracking-tight leading-tight" title="${jogo.title}">
                     ${jogo.release.tituloOriginal.toUpperCase()}
                 </div>
             </div>
@@ -890,7 +888,7 @@ async function buscarReviewsSteam(steamId) {
 
             // 1. Atualiza a nota do Hero/Cabeçalho
             const metaScoreEl = document.getElementById('modal-metacritic-score');
-            metaScoreEl.className = `absolute bottom-4 right-4 h-16 w-16 flex flex-col items-center justify-center rounded-lg border-2 ${border} ${bg} shadow-xl backdrop-blur-sm [text-shadow:0_1px_3px_rgba(0,0,0,0.8)]`;
+            metaScoreEl.className = `absolute bottom-4 right-4 h-16 w-16 flex flex-col items-center justify-center rounded-lg border-2 ${border} ${bg} shadow-xl [text-shadow:0_1px_3px_rgba(0,0,0,0.8)]`;
             document.getElementById('metacritic-score-value').textContent = notaSteam;
 
             // 2. Atualiza a nota na Seção de Avaliações (Sombra, fonte maior e alinhado à direita)
@@ -1374,13 +1372,17 @@ function atualizarBotaoWishlistModal(ativo) {
     if (!btn || !icon || !text) return;
 
     if (ativo) {
-        btn.className = "inline-flex items-center gap-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 font-bold text-xs px-4 py-2 rounded-lg transition-all";
-        icon.textContent = "-";
+        btn.className = "inline-flex items-center gap-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 font-bold text-xs px-2 py-1.5 rounded-md transition-all";
+        icon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-500 group-hover:scale-110 transition-transform">
+  <path d="M 12 3 H 5 a 2 2 0 0 0 -2 2 v 14 a 2 2 0 0 0 2 2 h 14 a 2 2 0 0 0 2 -2 v -5"/>
+  <path d="m6 13 4.5 4.5 11-12"/>
+</svg>
+`;
         icon.className = "font-mono font-bold text-red-400";
         text.textContent = "Na Wishlist";
     } else {
-        btn.className = "inline-flex items-center gap-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 border border-neutral-700 font-bold text-xs px-4 py-2 rounded-lg transition-all";
-        icon.textContent = "+";
+        btn.className = "inline-flex items-center gap-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 border border-neutral-700 font-bold text-xs px-2 py-1.5 rounded-md transition-all";
+        icon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-500 group-hover:scale-110 transition-transform"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>`;
         icon.className = "font-mono font-bold text-emerald-400";
         text.textContent = "Wishlist";
     }
