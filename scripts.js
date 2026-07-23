@@ -221,7 +221,7 @@ async function carregarConfiguracoesServidor() {
         const token = localStorage.getItem('rt_token'); 
         if (!token) return {};
         
-        const res = await fetch(`/api/settings?token=${token}`);
+        const res = await fetch(`${API_BASE_URL}/api/settings?token=${token}`);
         if (res.ok) {
             return await res.json();
         }
@@ -239,7 +239,7 @@ async function salvarConfiguracoesServidor(novasConfiguracoes) {
         // Atualização otimista em memória
         configuracoesUsuario = { ...configuracoesUsuario, ...novasConfiguracoes };
 
-        await fetch(`/api/settings`, {
+        await fetch(`${API_BASE_URL}/api/settings`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token, ...novasConfiguracoes })
