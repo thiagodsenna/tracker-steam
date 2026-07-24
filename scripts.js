@@ -1644,16 +1644,6 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 async function assinarNotificacoes() {
-    //TESTE
-    navigator.serviceWorker.ready.then(reg => {
-        reg.showNotification("🎮 Teste de Interface", {
-            body: "Se você leu isso, o Vivaldi, o Android e o Service Worker estão funcionando perfeitamente!",
-            icon: "/icon-192.png", // ou qualquer imagem válida do app
-            vibrate: [200, 100, 200]
-        });
-    });
-    return;
-    //FIM TESTE
     
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
         alert('Seu navegador não possui suporte a Notificações Push em segundo plano.');
