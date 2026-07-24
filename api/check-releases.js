@@ -1,7 +1,7 @@
 import webpush from 'web-push';
 
 export default async function handler(req, res) {
-    // 1. Barreira de Segurança: Só permite execução se o segredo da URL estiver correto[cite: 6]
+    // 1. Barreira de Segurança: Só permite execução se o segredo da URL estiver correto
     const secretParam = req.query?.secret || req.headers?.authorization?.replace('Bearer ', '');
     if (secretParam !== process.env.CRON_SECRET) {
         return res.status(401).json({ error: 'Acesso não autorizado. Chave de cron incorreta.' });
@@ -22,19 +22,19 @@ export default async function handler(req, res) {
     );
 
     try {
-        // Domínio base absoluto para os assets e links
+        // Domínio base absoluto para garantir URLs válidas nas notificações mobile
         const DOMAIN_URL = 'https://tracker-steam.vercel.app';
 
-        // 2. Busca o timestamp da última checagem no Vercel KV[cite: 6]
+        // 2. Busca o timestamp da última checagem no Vercel KV
         const getCronTimeRes = await fetch(`${KV_REST_API_URL}/get/last_checked_cron`, {
             headers: { Authorization: `Bearer ${KV_REST_API_TOKEN}` }
         });
         const getCronTimeData = await getCronTimeRes.json();
         
-        // Se for a primeira execução da vida, assume 15 minutos atrás para não fludar os usuários com 200 alertas[cite: 6]
+        // Se for a primeira execução da vida, assume 15 minutos atrás para não fludar os usuários com 200 alertas
         let lastChecked = getCronTimeData?.result ? parseInt(getCronTimeData.result, 10) : (Date.now() - 15 * 60 * 1000);
 
-        // 3. Busca o feed RSS/JSON atualizado do Skidrow no Feedly (mesmo endpoint usado no seu app)[cite: 6]
+        // 3. Busca o feed RSS/JSON atualizado do Skidrow no Feedly (mesmo endpoint usado no seu app)
         const feedUrl = 'https://api.feedly.com/v3/streams/contents?streamId=feed%2Fhttps%3A%2F%2Fwww.skidrowreloaded.com%2Fcategory%2Fpc-games%2Ffeed%2F&count=20&ranked=newest&ct=feedly.desktop&cv=31.0.3081';
         const feedRes = await fetch(feedUrl);
         const feedData = await feedRes.json();
@@ -56,7 +56,7 @@ export default async function handler(req, res) {
                 novosItens = [items[0]]; // Fallback: pega o primeiro jogo atual do feed se não achar o ID exato
             }
         } else {
-            // Filtra apenas os jogos publicados APÓS a última checagem[cite: 6]
+            // Filtra apenas os jogos publicados APÓS a última checagem
             novosItens = items.filter(item => (item.published || 0) > lastChecked);
         }
 
@@ -64,7 +64,7 @@ export default async function handler(req, res) {
             return res.status(200).json({ message: 'Nenhum release novo desde a última verificação.', checked: novosItens.length });
         }
 
-        // 4. Busca todos os dispositivos inscritos no banco[cite: 6]
+        // 4. Busca todos os dispositivos inscritos no banco
         const getSubsRes = await fetch(`${KV_REST_API_URL}/get/push_subscriptions`, {
             headers: { Authorization: `Bearer ${KV_REST_API_TOKEN}` }
         });
@@ -74,18 +74,21 @@ export default async function handler(req, res) {
             subscriptions = typeof getSubsData.result === 'string' ? JSON.parse(getSubsData.result) : getSubsData.result;
         }
 
-        // Se for teste manual e você informou seu token, restringe o envio APENAS ao seu dispositivo
+        // Se for teste manual e informou token, tenta filtrar, mas usa fallback se o token não estiver gravado
         if (forcarTesteManual && tokenAlvo) {
-            subscriptions = subscriptions.filter(sub => sub.userToken === tokenAlvo);
+            const filtrados = subscriptions.filter(sub => sub.userToken === tokenAlvo);
+            if (filtrados.length > 0) {
+                subscriptions = filtrados;
+            }
         }
 
         if (subscriptions.length === 0) {
-            return res.status(200).json({ message: 'Nenhum usuário correspondente encontrado para receber o push de teste.', newItems: novosItens.length });
+            return res.status(200).json({ message: 'Há novos jogos, mas nenhum usuário inscrito para receber push.', newItems: novosItens.length });
         }
 
         let disparosDeletados = false;
 
-        // 5. Para cada jogo novo, processa a capa e envia o alerta para os inscritos[cite: 6]
+        // 5. Para cada jogo novo, processa a capa e envia o alerta para todos os inscritos
         for (const item of novosItens) {
             // Extração segura da capa sem precisar de DOMParser no backend
             const htmlContent = item.content?.content || item.summary?.content || '';
@@ -100,6 +103,7 @@ export default async function handler(req, res) {
                     break;
                 }
             }
+            
             // Garante URL absoluta para a capa (se vier relativa ou externa)
             let imgFinal = capaValida || item.visual?.url || `${DOMAIN_URL}/assets/logo2.png`;
             if (imgFinal.startsWith('/')) {
@@ -117,12 +121,12 @@ export default async function handler(req, res) {
                 url: item.alternate?.[0]?.href || `${DOMAIN_URL}/`
             });
 
-            // Dispara para as inscrições em paralelo[cite: 6]
+            // Dispara para todas as inscrições em paralelo
             await Promise.allSettled(subscriptions.map(async (sub) => {
                 try {
                     await webpush.sendNotification(sub, payload);
                 } catch (err) {
-                    // Se o celular do usuário não existe mais (404/410), marca para remover do Vercel KV[cite: 6]
+                    // Se o celular do usuário não existe mais (404/410), marca para remover do nosso Vercel KV
                     if (err.statusCode === 404 || err.statusCode === 410) {
                         subscriptions = subscriptions.filter(s => s.endpoint !== sub.endpoint);
                         disparosDeletados = true;
@@ -131,7 +135,7 @@ export default async function handler(req, res) {
             }));
         }
 
-        // 6. Se houveram inscrições expiradas (dispositivos antigos), atualiza o KV para economizar memória[cite: 6]
+        // 6. Se houveram inscrições expiradas (dispositivos antigos), atualiza o KV para economizar memória
         if (disparosDeletados) {
             await fetch(`${KV_REST_API_URL}/set/push_subscriptions`, {
                 method: 'POST',
