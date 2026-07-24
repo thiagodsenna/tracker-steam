@@ -1587,3 +1587,110 @@ function verificarTokenSincroniaURL() {
     }
 }
 // --- FIM: NOVAS FUNÇÕES EXCLUSIVAS PARA CONTROLE DA WISHLIST ---
+
+// ============================================================================
+// --- INÍCIO: IMPLEMENTAÇÃO DE NOTIFICAÇÕES PUSH ---
+// ============================================================================
+
+const VAPID_PUBLIC_KEY = 'BEhE1RfL8fm9fCNq9XgB1tyBaeQWtodWyJX-61TMMj5-4MmL3jAU1wAvEyhi3BsCSMDUc5etZwwIiGNt7lBFRBM';
+
+// Converte a chave VAPID base64 para Uint8Array (exigido pelo navegador)
+function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+}
+
+async function assinarNotificacoes() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        alert('Seu navegador não possui suporte a Notificações Push em segundo plano.');
+        return;
+    }
+
+    try {
+        const registration = await navigator.serviceWorker.ready;
+        let subscription = await registration.pushManager.getSubscription();
+
+        // Se já for assinado, podemos avisar ou não fazer nada
+        if (subscription) {
+            alert('Seu dispositivo já está ativo para receber alertas de novos releases!');
+            atualizarBotaoNotificacaoUI(true);
+            return;
+        }
+
+        // Pede permissão e assina no PushManager do navegador
+        subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        });
+
+        // Envia a inscrição para o nosso endpoint no Vercel KV
+        const res = await fetch(`${API_BASE_URL}/api/push-subscribe`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                subscription: subscription,
+                token: userToken // Atrela a inscrição ao userToken da sua sessão
+            })
+        });
+
+        if (res.ok) {
+            alert('Alerta ativado! Você receberá notificações neste dispositivo quando novos jogos surgirem.');
+            atualizarBotaoNotificacaoUI(true);
+        } else {
+            throw new Error('Falha ao registrar no servidor.');
+        }
+    } catch (err) {
+        console.error('Erro na assinatura de notificações:', err);
+        if (Notification.permission === 'denied') {
+            alert('Você bloqueou as notificações para este site. Libere nas configurações do seu navegador.');
+        } else {
+            alert('Erro ao ativar notificações. Tente novamente mais tarde.');
+        }
+    }
+}
+
+function atualizarBotaoNotificacaoUI(ativo) {
+    const btn = document.getElementById('btn-header-notify');
+    const icon = document.getElementById('icon-notify');
+    const text = document.getElementById('text-notify');
+    if (!btn || !icon || !text) return;
+
+    if (ativo) {
+        btn.classList.add('border-emerald-500/50', 'bg-emerald-950/30', 'text-emerald-400');
+        icon.classList.remove('text-neutral-500');
+        icon.classList.add('text-emerald-400');
+        text.textContent = 'Alerta Ativo';
+    } else {
+        btn.classList.remove('border-emerald-500/50', 'bg-emerald-950/30', 'text-emerald-400');
+        icon.classList.add('text-neutral-500');
+        icon.classList.remove('text-emerald-400');
+        text.textContent = 'Notificações';
+    }
+}
+
+async function verificarStatusNotificacao() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    try {
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.getSubscription();
+        if (subscription) {
+            atualizarBotaoNotificacaoUI(true);
+        }
+    } catch (e) {
+        console.log('Verificação inicial de Push silenciosa falhou:', e);
+    }
+}
+
+// Executa a checagem no carregamento da página em segundo plano
+window.addEventListener('load', () => {
+    setTimeout(verificarStatusNotificacao, 1500);
+});
+// ============================================================================
+// --- FIM: IMPLEMENTAÇÃO DE NOTIFICAÇÕES PUSH ---
+// ============================================================================

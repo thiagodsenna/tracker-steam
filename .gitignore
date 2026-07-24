@@ -1,0 +1,13 @@
+# Dependências do Node.js (evita subir a pasta pesada para o repositório)
+node_modules/
+
+# Variáveis de ambiente locais para testes (caso utilize arquivos .env)
+.env
+.env.local
+
+# Pastas de cache e arquivos locais gerados pela Vercel
+.vercel/
+
+# Arquivos de cache e lixo do sistema operacional
+.DS_Store
+Thumbs.db
