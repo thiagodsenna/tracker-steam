@@ -1,5 +1,13 @@
+// Força o Service Worker novo a assumir o controle imediatamente
+self.addEventListener('install', (event) => {
+    self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+    event.waitUntil(clients.claim());
+});
+
 self.addEventListener('push', function(event) {
-    // Definimos a URL absoluta do seu domínio para evitar falhas de escopo no Service Worker
     const DOMAIN_URL = 'https://tracker-steam.vercel.app';
     
     let data = { 
@@ -17,16 +25,12 @@ self.addEventListener('push', function(event) {
         data.body = event.data.text();
     }
 
-    // Valida se a capa recebida é uma URL http válida, senão usa o logo padrão
     const imagemCapa = data.cover && data.cover.startsWith('http') ? data.cover : `${DOMAIN_URL}/assets/logo2.png`;
 
     const options = {
         body: data.body,
-        // O ícone pequeno/médio na barra de notificações
         icon: imagemCapa,
-        // O banner grande expansível abaixo do texto no Android
         image: imagemCapa,
-        // Ícone da barra de status (badge)
         badge: `${DOMAIN_URL}/assets/logo2.png`,
         vibrate: [100, 50, 100],
         data: { 
@@ -37,7 +41,6 @@ self.addEventListener('push', function(event) {
     event.waitUntil(self.registration.showNotification(data.title, options));
 });
 
-// Evento para abrir o site ao clicar na notificação
 self.addEventListener('notificationclick', function(event) {
     event.notification.close();
     event.waitUntil(
