@@ -88,27 +88,46 @@ export default async function handler(req, res) {
 
         let disparosDeletados = false;
 
-        // 5. Para cada jogo novo, processa a capa e envia o alerta para todos os inscritos
+        // 5. Para cada jogo novo, processa a capa (tentando a horizontal da Steam) e envia o alerta
         for (const item of novosItens) {
-            // Extração segura da capa sem precisar de DOMParser no backend
             const htmlContent = item.content?.content || item.summary?.content || '';
-            const imgMatches = [...htmlContent.matchAll(/<img[^>]+src=["']([^"']+)["']/gi)];
-            
-            // Filtra avatares ou logos do Skidrow seguindo a mesma regra do seu frontend
-            let capaValida = '';
-            for (const match of imgMatches) {
-                const src = match[1].toLowerCase();
-                if (!src.includes('logo') && !src.includes('theme') && !src.includes('header') && !src.includes('avatar') && !src.includes('steamstatic')) {
-                    capaValida = match[1];
-                    break;
+            const textContent = item.summary?.content || htmlContent;
+
+            // Extrai o Steam ID do post (mesma regex do frontend)
+            const steamMatch = htmlContent.match(/(?:store\.steampowered\.com|steamcommunity\.com)\/app\/(\d+)/i) 
+                            || textContent.match(/(?:store\.steampowered\.com|steamcommunity\.com)\/app\/(\d+)/i);
+            const steamId = steamMatch ? steamMatch[1] : null;
+
+            let steamHeaderImg = '';
+            if (steamId) {
+                try {
+                    const steamRes = await fetch(`https://store.steampowered.com/api/appdetails?appids=${steamId}&filters=basic`);
+                    const steamJson = await steamRes.json();
+                    if (steamJson[steamId]?.success && steamJson[steamId]?.data?.header_image) {
+                        steamHeaderImg = steamJson[steamId].data.header_image;
+                    }
+                } catch (e) {
+                    console.log('Não foi possível buscar o header da Steam, usando fallback.', e);
                 }
             }
-            
-            // Define a imagem bruta extraída
-            let rawImg = capaValida || item.visual?.url || '';
-            let imgFinal = `${DOMAIN_URL}/assets/logo2.png`;
 
-            // Encapsula no cover-proxy para garantir que o Android consiga baixar sem barreiras de CORS/Rede
+            // Se não achou o header na Steam, faz o fallback para a capa vertical antiga extraída do Feedly
+            let rawImg = steamHeaderImg;
+            if (!rawImg) {
+                const imgMatches = [...htmlContent.matchAll(/<img[^>]+src=["']([^"']+)["']/gi)];
+                let capaValida = '';
+                for (const match of imgMatches) {
+                    const src = match[1].toLowerCase();
+                    if (!src.includes('logo') && !src.includes('theme') && !src.includes('header') && !src.includes('avatar') && !src.includes('steamstatic')) {
+                        capaValida = match[1];
+                        break;
+                    }
+                }
+                rawImg = capaValida || item.visual?.url || '';
+            }
+
+            // Encapsula no cover-proxy do seu domínio para evitar problemas de CORS/Rede no Android
+            let imgFinal = `${DOMAIN_URL}/assets/logo2.png`;
             if (rawImg && rawImg.startsWith('http')) {
                 imgFinal = `${DOMAIN_URL}/api/cover-proxy?url=${encodeURIComponent(rawImg)}`;
             } else if (rawImg.startsWith('/')) {
