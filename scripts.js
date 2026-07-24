@@ -212,7 +212,7 @@ function mapearRelease(stringEntrada) {
     };
 }
 
-// --- INÍCIO: GESTÃO DE CONFIGURAÇÕES DO USUÁRIO E ITENS NOVOS ---
+// --- INÍCIO: GESTÃO DE CONFIGURAÇÕES DO USUÁRIO E ITENS NOVOS (BLINDAGEM 2H) ---
 let configuracoesUsuario = {};
 
 async function carregarConfiguracoesServidor() {
@@ -240,6 +240,9 @@ async function salvarConfiguracoesServidor(novasConfiguracoes) {
         // Atualização otimista em memória
         configuracoesUsuario = { ...configuracoesUsuario, ...novasConfiguracoes };
 
+        // Salva um backup local para reflexão instantânea em F5 sem depender de espera de rede
+        localStorage.setItem('rt_settings_backup', JSON.stringify(configuracoesUsuario));
+
         await fetch(`${API_BASE_URL}/api/settings`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -251,27 +254,75 @@ async function salvarConfiguracoesServidor(novasConfiguracoes) {
 }
 
 function getUltimoAcesso() {
-    // Trava o timestamp no sessionStorage para o F5 não sumir com as tags "NOVO" na mesma sessão
-    let sessaoAcesso = sessionStorage.getItem('rt_session_last_visit');
-    if (!sessaoAcesso) {
-        sessaoAcesso = (configuracoesUsuario.last_visit || 0).toString();
-        sessionStorage.setItem('rt_session_last_visit', sessaoAcesso);
+    // Retorna o timestamp de referência que define o que ganha a tag NOVO
+    if (configuracoesUsuario.last_visit !== undefined) {
+        return parseInt(configuracoesUsuario.last_visit, 10) || 0;
     }
-    return parseInt(sessaoAcesso, 10);
+    // Fallback instantâneo para o backup local caso a API de configurações ainda esteja respondendo
+    const backupLocal = localStorage.getItem('rt_settings_backup');
+    if (backupLocal) {
+        try {
+            const parsed = JSON.parse(backupLocal);
+            return parseInt(parsed.last_visit, 10) || 0;
+        } catch (e) {}
+    }
+    return 0;
 }
 
 function atualizarUltimoAcessoServidor(jogos) {
     if (!jogos || jogos.length === 0) return;
     
-    // Garante que a sessão atual gravou o timestamp antigo antes de enviarmos o novo para o servidor
-    getUltimoAcesso();
-    
-    const maxTimestamp = Math.max(...jogos.map(j => j.published || 0));
-    const ultimoServidor = configuracoesUsuario.last_visit || 0;
-    
-    // Se o feed tem um release mais recente do que o salvo no servidor, atualiza em background
-    if (maxTimestamp > ultimoServidor) {
-        salvarConfiguracoesServidor({ last_visit: maxTimestamp });
+    const agora = Date.now();
+    const duasHorasMs = 2 * 60 * 60 * 1000; // 2 horas de blindagem contra F5
+    const maxFeedTimestamp = Math.max(...jogos.map(j => j.published || 0));
+
+    // Tenta carregar do backup local caso o servidor tenha retornado vazio na inicialização
+    const backupLocal = localStorage.getItem('rt_settings_backup');
+    let conf = { ...configuracoesUsuario };
+    if (!conf.last_visit && backupLocal) {
+        try { conf = { ...JSON.parse(backupLocal), ...conf }; } catch(e){}
+    }
+
+    const lastVisitAtual = conf.last_visit || 0;
+    const shieldExpires = conf.shield_expires || 0;
+    const pendingVisit = conf.pending_visit || 0;
+
+    // 1. VERIFICAÇÃO DA BLINDAGEM:
+    // Se o tempo atual ultrapassou a expiração de 2h (ou se é uma visita após dias ausente)
+    if (agora > shieldExpires) {
+        // A sessão anterior expirou! Iniciamos uma NOVA janela de navegação.
+        
+        // O que era "novo pendente" da sessão passada vira a linha de corte definitiva (last_visit).
+        let novoLastVisit = pendingVisit > 0 ? pendingVisit : lastVisitAtual;
+        
+        // Se for o primeiríssimo acesso da história do usuário (tudo zero), definimos o corte 
+        // para 24h atrás apenas para o site não abrir inteiro carimbado como NOVO
+        if (novoLastVisit === 0 && maxFeedTimestamp > 0) {
+            novoLastVisit = maxFeedTimestamp - (24 * 60 * 60);
+        }
+
+        // Criamos a nova blindagem que durará exatamente 2 horas a partir de AGORA
+        const novoShieldExpires = agora + duasHorasMs;
+
+        // O pending_visit passa a registrar o release mais recente disponível hoje
+        const novoPendingVisit = Math.max(maxFeedTimestamp, novoLastVisit);
+
+        // Atualiza na memória, no localStorage e na nuvem
+        salvarConfiguracoesServidor({
+            last_visit: novoLastVisit,
+            shield_expires: novoShieldExpires,
+            pending_visit: novoPendingVisit
+        });
+    } else {
+        // 2. BLINDAGEM ATIVA: O usuário deu F5 ou recarregou dentro das 2 horas de graça!
+        // NÃO alteramos o `last_visit` nem o `shield_expires`. As tags NOVO permanecem estáticas!
+        
+        // Apenas atualizamos o `pending_visit` em background caso um jogo novo tenha saído agorinha
+        if (maxFeedTimestamp > pendingVisit) {
+            salvarConfiguracoesServidor({
+                pending_visit: maxFeedTimestamp
+            });
+        }
     }
 }
 
@@ -280,7 +331,7 @@ function isJogoNovo(jogo) {
     const ultimoAcesso = getUltimoAcesso();
     return ultimoAcesso > 0 && (jogo.published || 0) > ultimoAcesso;
 }
-// --- FIM: GESTÃO DE CONFIGURAÇÕES DO USUÁRIO E ITENS NOVOS ---
+// --- FIM: GESTÃO DE CONFIGURAÇÕES DO USUÁRIO E ITENS NOVOS (BLINDAGEM 2H) ---
 
 function parseFeedlyItem(item, index) {
     const doc = new DOMParser().parseFromString(item.content?.content || item.summary?.content || '', 'text/html');
