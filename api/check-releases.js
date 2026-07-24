@@ -140,9 +140,9 @@ export default async function handler(req, res) {
 
             const payload = JSON.stringify({
                 title: tituloLimpo,
-                body: `Novo lançamento disponível: ${item.title}`,
+                body: `Release: ${item.title}`,
                 cover: imgFinal,
-                url: item.alternate?.[0]?.href || `${DOMAIN_URL}/`
+                url: `${DOMAIN_URL}/?id=${encodeURIComponent(item.id)}` // <-- URL com o ID exato para o deep link
             });
 
             // Dispara para todas as inscrições em paralelo

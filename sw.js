@@ -41,16 +41,26 @@ self.addEventListener('push', function(event) {
     event.waitUntil(self.registration.showNotification(data.title, options));
 });
 
+// Evento para abrir o app já direcionando para o modal do jogo via Deep Link
 self.addEventListener('notificationclick', function(event) {
     event.notification.close();
+    const targetUrl = event.notification.data.url;
+
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
-            if (clientList.length > 0) {
-                let client = clientList[0];
-                if ('focus' in client) return client.focus();
+            // Se já houver uma aba aberta do app, foca nela e navega para o jogo
+            for (let i = 0; i < clientList.length; i++) {
+                let client = clientList[i];
+                if ('focus' in client) {
+                    client.focus();
+                    if ('navigate' in client) {
+                        return client.navigate(targetUrl);
+                    }
+                }
             }
+            // Se nenhuma aba estiver aberta, abre uma nova janela/aba diretamente no jogo
             if (clients.openWindow) {
-                return clients.openWindow(event.notification.data.url);
+                return clients.openWindow(targetUrl);
             }
         })
     );
