@@ -2,6 +2,7 @@
   "name": "Releases Tracker",
   "short_name": "ReleasesTracker",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#0a0a0a",
   "theme_color": "#0a0a0a",
@@ -10,7 +11,8 @@
       "src": "/assets/logo2.png",
       "sizes": "192x192",
       "type": "image/png"
-    }, {
+    },
+    {
       "src": "/assets/logo2.png",
       "sizes": "512x512",
       "type": "image/png"
