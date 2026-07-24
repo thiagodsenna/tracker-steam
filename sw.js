@@ -1,9 +1,12 @@
 self.addEventListener('push', function(event) {
+    // Definimos a URL absoluta do seu domínio para evitar falhas de escopo no Service Worker
+    const DOMAIN_URL = 'https://tracker-steam.vercel.app';
+    
     let data = { 
         title: 'Tracker Steam', 
         body: 'Novo lançamento disponível!',
-        cover: '/assets/logo2.png', // Fallback caso o jogo não tenha capa
-        url: '/'
+        cover: `${DOMAIN_URL}/assets/logo2.png`, 
+        url: `${DOMAIN_URL}/`
     };
 
     try {
@@ -14,20 +17,20 @@ self.addEventListener('push', function(event) {
         data.body = event.data.text();
     }
 
+    // Valida se a capa recebida é uma URL http válida, senão usa o logo padrão
+    const imagemCapa = data.cover && data.cover.startsWith('http') ? data.cover : `${DOMAIN_URL}/assets/logo2.png`;
+
     const options = {
         body: data.body,
-        
-        // 1. Substitui o círculo cinza (onde estava o "T") pela capa ou logo
-        icon: data.cover || '/assets/logo2.png',
-        
-        // 2. Cria o BANNER GRANDE com a capa do jogo abaixo do texto no Android
-        image: data.cover,
-        
-        // 3. Ícone monocromático para a barra de status minúscula (padrão Android)
-        badge: '/assets/logo2.png',
-        
+        // O ícone pequeno/médio na barra de notificações
+        icon: imagemCapa,
+        // O banner grande expansível abaixo do texto no Android
+        image: imagemCapa,
+        // Ícone da barra de status (badge)
+        badge: `${DOMAIN_URL}/assets/logo2.png`,
+        vibrate: [100, 50, 100],
         data: { 
-            url: data.url || '/' 
+            url: data.url || `${DOMAIN_URL}/` 
         }
     };
 
@@ -38,6 +41,14 @@ self.addEventListener('push', function(event) {
 self.addEventListener('notificationclick', function(event) {
     event.notification.close();
     event.waitUntil(
-        clients.openWindow(event.notification.data.url)
+        clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
+            if (clientList.length > 0) {
+                let client = clientList[0];
+                if ('focus' in client) return client.focus();
+            }
+            if (clients.openWindow) {
+                return clients.openWindow(event.notification.data.url);
+            }
+        })
     );
 });

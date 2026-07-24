@@ -22,6 +22,9 @@ export default async function handler(req, res) {
     );
 
     try {
+        // Domínio base absoluto para os assets e links
+        const DOMAIN_URL = 'https://tracker-steam.vercel.app';
+
         // 2. Busca o timestamp da última checagem no Vercel KV[cite: 6]
         const getCronTimeRes = await fetch(`${KV_REST_API_URL}/get/last_checked_cron`, {
             headers: { Authorization: `Bearer ${KV_REST_API_TOKEN}` }
@@ -31,7 +34,7 @@ export default async function handler(req, res) {
         // Se for a primeira execução da vida, assume 15 minutos atrás para não fludar os usuários com 200 alertas[cite: 6]
         let lastChecked = getCronTimeData?.result ? parseInt(getCronTimeData.result, 10) : (Date.now() - 15 * 60 * 1000);
 
-        // 3. Busca o feed RSS/JSON atualizado doスキン (Skidrow) no Feedly (mesmo endpoint usado no seu app)[cite: 6]
+        // 3. Busca o feed RSS/JSON atualizado do Skidrow no Feedly (mesmo endpoint usado no seu app)[cite: 6]
         const feedUrl = 'https://api.feedly.com/v3/streams/contents?streamId=feed%2Fhttps%3A%2F%2Fwww.skidrowreloaded.com%2Fcategory%2Fpc-games%2Ffeed%2F&count=20&ranked=newest&ct=feedly.desktop&cv=31.0.3081';
         const feedRes = await fetch(feedUrl);
         const feedData = await feedRes.json();
@@ -97,7 +100,11 @@ export default async function handler(req, res) {
                     break;
                 }
             }
-            const imgFinal = capaValida || item.visual?.url || '/assets/logo2.png';
+            // Garante URL absoluta para a capa (se vier relativa ou externa)
+            let imgFinal = capaValida || item.visual?.url || `${DOMAIN_URL}/assets/logo2.png`;
+            if (imgFinal.startsWith('/')) {
+                imgFinal = `${DOMAIN_URL}${imgFinal}`;
+            }
 
             // Limpa o título (pega o nome base antes do hífen do release)
             const indexHifen = item.title.lastIndexOf('-');
@@ -107,7 +114,7 @@ export default async function handler(req, res) {
                 title: tituloLimpo,
                 body: `Novo lançamento disponível: ${item.title}`,
                 cover: imgFinal,
-                url: item.alternate?.[0]?.href || '/'
+                url: item.alternate?.[0]?.href || `${DOMAIN_URL}/`
             });
 
             // Dispara para as inscrições em paralelo[cite: 6]
