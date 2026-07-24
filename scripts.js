@@ -20,7 +20,7 @@ const IS_LOCAL = window.location.hostname === 'localhost' ||
                  window.location.protocol === 'file:';
 const API_BASE_URL = IS_LOCAL ? 'https://tracker-steam.vercel.app' : '';
 const STREAM_ID = 'feed%2Fhttps%2F%2Fwww.skidrowreloaded.com%2Fcategory%2Fpc-games%2Ffeed%2F';
-const PROXY_BASE_URL = `${API_BASE_URL}/api/steam-proxy?appid=`;
+const PROXY_BASE_URL = `${API_BASE_URL}/api/steam-proxy?action=detail&appid=`;
 const CATEGORY_ICONS = {
     1: 'ico_multiPlayer.png',
     2: 'ico_singlePlayer.png',
@@ -616,33 +616,6 @@ async function carregarJogos() {
     }
 }
 
-/* async function carregarNotasEmLote() {
-    const steamIds = jogosCarregados.map(j => j.steamId).filter(id => id !== null);
-    if (steamIds.length === 0) return;
-
-    try {
-        // Chamada única para o novo endpoint batch
-        const res = await fetch(`${API_BASE_URL}/api/steam-batch?ids=` + steamIds.join(','));
-        const json = await res.json();
-
-        jogosCarregados.forEach((jogo, index) => {
-            if (jogo.steamId && json[jogo.steamId]?.success) {
-                const game = json[jogo.steamId].data;
-                const score = game.metacritic?.score;
-
-                if (score) {
-                    const el = document.getElementById(`score-${index}`);
-                    if (el) {
-                        const { bg, border } = getMetacriticColor(score);
-                        el.textContent = score;
-                        el.className = `absolute top-2 right-2 ${bg} border ${border} px-2 py-1 rounded text-[10px] font-black text-white shadow-lg`;
-                    }
-                }
-            }
-        });
-    } catch (e) { console.error("Erro ao buscar notas em lote", e); }
-} */
-
 function encontrarJogoPorFeedlyId(feedlyId) {
     return jogosCarregados.findIndex(j => j.feedlyId === feedlyId);
 }
@@ -977,7 +950,7 @@ async function buscarDadosSteam(steamId) {
 
 async function buscarReviewsSteam(steamId) {
     try {
-        const res = await fetch(`${API_BASE_URL}/api/steam-reviews?appid=${steamId}`);
+        const res = await fetch(`${API_BASE_URL}/api/steam-proxy?action=reviews&appid=${steamId}`);
         const json = await res.json();
 
         if (json.success && json.reviews && json.reviews.length > 0) {
@@ -1121,7 +1094,7 @@ async function buscarJogosSimilares(steamId) {
     if (!section || !container) return;
 
     try {
-        const res = await fetch(`${API_BASE_URL}/api/steam-similar?appid=${steamId}`);
+        const res = await fetch(`${API_BASE_URL}/api/steam-proxy?action=similar&appid=${steamId}`);
         if (!res.ok) throw new Error("Erro ao buscar similares");
         
         const data = await res.json();
@@ -1215,7 +1188,7 @@ async function executarBusca(termo) {
     } else {
         // Busca na API da Steam
         try {
-            const res = await fetch(`${API_BASE_URL}/api/steam-search?term=${encodeURIComponent(termo)}`);
+            const res = await fetch(`${API_BASE_URL}/api/steam-proxy?action=search&term=${encodeURIComponent(termo)}`);
             const data = await res.json();
             
             jogosCarregados = (data.items || []).map((item, index) => {
