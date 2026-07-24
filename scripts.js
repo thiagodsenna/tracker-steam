@@ -904,6 +904,18 @@ async function abrirModal(id, options = {}) {
     }
 }
 
+function testarImagemExiste(url) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        
+        img.onload = () => resolve(true);   // A imagem carregou com sucesso (200 OK)
+        img.onerror = () => resolve(false); // Falhou ao carregar (404 ou erro de link)
+        
+        // Atribuir a URL dispara o carregamento automaticamente pelo navegador
+        img.src = url;
+    });
+}
+
 async function buscarDadosSteam(steamId) {
     await delay(1);
     try {
@@ -916,6 +928,12 @@ async function buscarDadosSteam(steamId) {
         // Nome e Banner
         document.getElementById('modal-title-original').textContent = game.name;
         if (game.header_image) document.getElementById('modal-hero').style.backgroundImage = `url('${game.header_image}')`;
+        console.log('modal-cover',document.getElementById('modal-cover').src);
+        (async () => {
+            if (!await testarImagemExiste(document.getElementById('modal-cover').src)) {
+                document.getElementById('modal-cover').src = `${game.header_image}`;
+            }
+        })();
 
         // Metadata e Metacritic
         const svgCalendar = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400 shrink-0"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`;
