@@ -363,7 +363,7 @@ function parseFeedlyItem(item, index) {
 
     const textContent = doc.body.textContent || '';
     const sizeMatch = textContent.match(/Size:\s*([\d.,]+\s*[a-zA-Z]+)/i);
-    const size = sizeMatch ? sizeMatch[1].trim() : 'Não informado';
+    const size = sizeMatch ? sizeMatch[1].trim() : '...';
 
     let downloads = [];
     doc.querySelectorAll('a').forEach(a => {
@@ -904,14 +904,11 @@ async function abrirModal(id, options = {}) {
     }
 }
 
-function testarImagemExiste(url) {
+function imagemExiste(url) {
     return new Promise((resolve) => {
         const img = new Image();
-        
-        img.onload = () => resolve(true);   // A imagem carregou com sucesso (200 OK)
-        img.onerror = () => resolve(false); // Falhou ao carregar (404 ou erro de link)
-        
-        // Atribuir a URL dispara o carregamento automaticamente pelo navegador
+        img.onload = () => resolve(true)
+        img.onerror = () => resolve(false);
         img.src = url;
     });
 }
@@ -928,9 +925,9 @@ async function buscarDadosSteam(steamId) {
         // Nome e Banner
         document.getElementById('modal-title-original').textContent = game.name;
         if (game.header_image) document.getElementById('modal-hero').style.backgroundImage = `url('${game.header_image}')`;
-        console.log('modal-cover',document.getElementById('modal-cover').src);
+        // Cover: Fallback para steam banner caso capa não exista
         (async () => {
-            if (!await testarImagemExiste(document.getElementById('modal-cover').src)) {
+            if (!await imagemExiste(document.getElementById('modal-cover').src)) {
                 document.getElementById('modal-cover').src = `${game.header_image}`;
             }
         })();
@@ -1289,7 +1286,7 @@ async function executarBusca(termo) {
                     date: 'Steam',
                     steamId: steamId.toString(),
                     links,
-                    size: 'Não informado',
+                    size: '...',
                     release: {
                         tituloOriginal: item.name,
                         versao: '',
