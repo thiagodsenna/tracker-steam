@@ -836,6 +836,7 @@ async function abrirModal(id, options = {}) {
     document.getElementById('modal-btn-share').onclick = compartilharJogoAtual;
     document.getElementById('modal-description').textContent = 'Buscando informações da Steam...';
     document.getElementById('game-size').innerHTML = `${svgSize}<span>${jogo.size}</span>`;
+    document.getElementById('game-size-section').innerHTML = `${svgSize}<span>${jogo.size}</span>`;
     document.getElementById('total-reviews').innerHTML = `${svgReviews}<span>...</span>`;   
     document.getElementById('modal-developer').innerHTML = '';
 
