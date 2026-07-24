@@ -471,7 +471,7 @@ function criarCardJogoCompacto(jogo) {
 }
 
 async function buscarItemFeedlyRemoto(feedlyId) {
-    const res = await fetch(`${API_BASE_URL}/api/feedly-entry?id=${encodeURIComponent(feedlyId)}`);
+    const res = await fetch(`${API_BASE_URL}/api/feedly-proxy?action=entry&id=${encodeURIComponent(feedlyId)}`);
     if (!res.ok) return null;
     return res.json();
 }
@@ -580,13 +580,9 @@ async function carregarJogos() {
     // --- FIM: CARREGAMENTO DE DADOS DA WISHLIST ---
 
     try {
-        /* const res = await fetch(`${API_BASE_URL}/api/feedly-proxy`);
-        const data = await res.json(); */
-
-        // --- SUBSTITUA SEU FETCH ANTERIOR POR ESTE PROMISE.ALL ---
-        // Dispara em paralelo a busca do feed de jogos E a busca das configurações do servidor
+       // Dispara em paralelo a busca do feed de jogos E a busca das configurações do servidor
         const [resJogos, configServidor] = await Promise.all([
-            fetch(`${API_BASE_URL}/api/feedly-proxy`),
+            fetch(`${API_BASE_URL}/api/feedly-proxy?action=list`),
             carregarConfiguracoesServidor()
         ]);
 
@@ -594,7 +590,6 @@ async function carregarJogos() {
         configuracoesUsuario = configServidor || {};
 
         const data = await resJogos.json();
-        // --- FIM DA ALTERAÇÃO DO FETCH ---
 
         data.items.forEach((item, index) => {
             const jogo = parseFeedlyItem(item, index);
