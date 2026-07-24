@@ -104,10 +104,15 @@ export default async function handler(req, res) {
                 }
             }
             
-            // Garante URL absoluta para a capa (se vier relativa ou externa)
-            let imgFinal = capaValida || item.visual?.url || `${DOMAIN_URL}/assets/logo2.png`;
-            if (imgFinal.startsWith('/')) {
-                imgFinal = `${DOMAIN_URL}${imgFinal}`;
+            // Define a imagem bruta extraída
+            let rawImg = capaValida || item.visual?.url || '';
+            let imgFinal = `${DOMAIN_URL}/assets/logo2.png`;
+
+            // Encapsula no cover-proxy para garantir que o Android consiga baixar sem barreiras de CORS/Rede
+            if (rawImg && rawImg.startsWith('http')) {
+                imgFinal = `${DOMAIN_URL}/api/cover-proxy?url=${encodeURIComponent(rawImg)}`;
+            } else if (rawImg.startsWith('/')) {
+                imgFinal = `${DOMAIN_URL}${rawImg}`;
             }
 
             // Limpa o título (pega o nome base antes do hífen do release)
