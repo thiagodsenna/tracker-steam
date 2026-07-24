@@ -4,8 +4,8 @@ export default async function handler(req, res) {
 
     if (req.method === 'OPTIONS') return res.status(200).end();
 
-    // Lê qual ação o frontend está pedindo através de um parâmetro (ex: ?action=reviews)
-    const { query, id } = req.query;
+    // Lê qual ação o frontend está pedindo através de um parâmetro (ex: ?action=list)
+    const { action, query, id } = req.query;
 
     try {
         switch (action) {
