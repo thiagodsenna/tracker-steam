@@ -140,11 +140,11 @@ function formatarDataRelativa(dataString) {
     if (diffDias === 0) return 'Hoje';
     if (diffDias === 1) return 'Ontem';
     if (diffDias === -1) return 'Amanhã';
-    if (diffDias < -1 && diffDias >= -30) return `Em ${diffDias} dias`;
+    if (diffDias < -1 && diffDias >= -30) return `Em ${Math.abs(diffDias)} dias`;
     if (diffDias < 30) return `Há ${diffDias} dias`;
     
     const diffMeses = Math.floor(diffDias / 30);
-    if (diffMeses < -1) return `Há ${diffMeses} ${diffMeses === -1 ? 'mês' : 'meses'}`;
+    if (diffMeses <= -1) return `Em ${Math.abs(diffMeses)} ${diffMeses === -1 ? 'mês' : 'meses'}`;
     if (diffMeses < 12) return `Há ${diffMeses} ${diffMeses === 1 ? 'mês' : 'meses'}`;
 
     return dataString;
