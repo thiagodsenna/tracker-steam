@@ -1121,6 +1121,41 @@ function renderizarDadosSteamNoModal(game) {
                     </div>`;
         }).join('');
     }
+
+    // --- INÍCIO: RENDERIZAÇÃO DE VÍDEOS TAMBÉM PARA DADOS VINDO DO CACHE ---
+    if (game.movies && game.movies.length > 0) {
+        document.getElementById('modal-section-videos').classList.remove('hidden');
+        document.getElementById('shortcut-videos')?.classList.remove('hidden');
+        const container = document.getElementById('modal-youtube-container');
+        container.innerHTML = ''; // Limpa container
+
+        game.movies.forEach((m, idx) => {
+            const src = m.dash_av1 || m.dash_h264 || m.hls_h264;
+            if (!src) return;
+            
+            const type = src.includes('.m3u8') ? 'application/x-mpegURL' :
+                src.includes('.mpd') ? 'application/dash+xml' :
+                    'video/mp4';
+
+            const videoId = `vjs-player-cache-${idx}`;
+            container.innerHTML += `
+                <div class="mb-4">
+                    <div class="aspect-video w-full !h-full">
+                        <video id="${videoId}" class="video-js vjs-default-skin w-full !h-full" controls preload="auto" poster="${m.thumbnail}">
+                        <source src="${src}" type="${type}">
+                    </video>
+                    </div>
+                    ${m.name ? `<div class="bg-black text-neutral-400 text-xs font-bold uppercase tracking-widest px-3 py-2">${m.name}</div>` : ''}
+                </div>`;
+
+            setTimeout(() => {
+                if (window.videojs) {
+                    videojs(videoId);
+                }
+            }, 1);
+        });
+    }
+    // --- FIM: RENDERIZAÇÃO DE VÍDEOS ---
 }
 
 let destaqueAtualObj = null;
