@@ -70,9 +70,9 @@ export default async function handler(req, res) {
 
                                   if (steamId && !steamCache[steamId]) {
                                       try {
-                                          // Busca detalhes básicos e reviews
+                                          // Busca detalhes básicos (agora incluindo "background") e reviews
                                           const [detRes, revRes] = await Promise.all([
-                                              fetch(`https://store.steampowered.com/api/appdetails?appids=${steamId}&filters=basic,release_date,genres,developers,screenshots,categories,movies`),
+                                              fetch(`https://store.steampowered.com/api/appdetails?appids=${steamId}&filters=basic,release_date,genres,developers,screenshots,categories,movies,background`),
                                               fetch(`https://store.steampowered.com/appreviews/${steamId}?json=1&filter=all&language=all&day_range=1000&num_per_page=1`)
                                           ]);
                                           
@@ -94,7 +94,7 @@ export default async function handler(req, res) {
                                               steamCache[steamId] = {
                                                   name: gData.name,
                                                   header_image: gData.header_image,
-                                                  background_raw: gData.background_raw || gData.background || '',
+                                                  background_raw: gData.background_raw || gData.background || `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${steamId}/page_bg_raw.jpg`,
                                                   release_date: gData.release_date,
                                                   genres: gData.genres || [],
                                                   developers: gData.developers || [],

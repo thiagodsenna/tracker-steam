@@ -1126,6 +1126,9 @@ function renderizarDadosSteamNoModal(game) {
 let destaqueAtualObj = null;
 
 function renderizarDestaque(destaques) {
+    let destaqueAtualObj = null;
+
+function renderizarDestaque(destaques) {
     const sec = document.getElementById('featured-section');
     const globalBg = document.getElementById('global-featured-bg');
     if (!sec) return;
@@ -1139,7 +1142,8 @@ function renderizarDestaque(destaques) {
             name: jogoVoices38.release?.tituloOriginal || jogoVoices38.title,
             steamId: jogoVoices38.steamId,
             header_image: jogoVoices38.cover || jogoVoices38.rawCover,
-            background_raw: jogoVoices38.steamDetails?.background_raw || '',
+            // Puxa do cache ou gera a URL oficial do background raw diretamente pelo Steam ID
+            background_raw: jogoVoices38.steamDetails?.background_raw || (jogoVoices38.steamId ? `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${jogoVoices38.steamId}/page_bg_raw.jpg` : ''),
             rating: jogoVoices38.steamDetails?.rating || 0,
             total_reviews: jogoVoices38.steamDetails?.total_reviews || 0,
             release_date: jogoVoices38.steamDetails?.release_date || null
@@ -1159,15 +1163,16 @@ function renderizarDestaque(destaques) {
 
     destaqueAtualObj = top1;
 
-    // Procura se o jogo está no feed atual para pegar tamanho e data de postagem
     const jogoNoFeed = jogosCarregados.find(j => j.steamId == top1.steamId || (top1.name && j.title.toLowerCase().includes(top1.name.toLowerCase())));
 
     document.getElementById('featured-title').textContent = top1.name || 'Destaque';
     document.getElementById('featured-img').src = top1.header_image || '';
     
-    // Aplica o background_raw da Steam na camada global (cabeçalho + banner)
-    if (globalBg && top1.background_raw) {
-        globalBg.style.backgroundImage = `url('${top1.background_raw}')`;
+    // Se por acaso o cache for antigo e vier vazio, monta a URL direta da Steam no formato page_bg_raw.jpg
+    const bgRawUrl = top1.background_raw || (top1.steamId ? `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${top1.steamId}/page_bg_raw.jpg` : '');
+
+    if (globalBg && bgRawUrl) {
+        globalBg.style.backgroundImage = `url('${bgRawUrl}')`;
         globalBg.classList.remove('hidden');
     } else if (globalBg && top1.header_image) {
         globalBg.style.backgroundImage = `url('${top1.header_image}')`;
@@ -1180,7 +1185,6 @@ function renderizarDestaque(destaques) {
     const nota = top1.rating || 0;
     const ratingEl = document.getElementById('featured-rating');
     if (ratingEl) {
-        // Removido o símbolo de "%" da nota no destaque também
         ratingEl.textContent = nota > 0 ? `${nota}` : 'N/A';
         if (nota > 0) {
             const cores = getMetacriticColor(nota);
