@@ -1165,7 +1165,7 @@ function renderizarDestaque(destaques) {
     const globalBg = document.getElementById('global-featured-bg');
     if (!sec) return;
 
-    // Regra de prioridade absoluta para releases contendo "voices38"
+    // Regra de prioridade para releases especiais
     const jogoVoices38 = jogosCarregados.find(j => /voices38/i.test(j.title));
     let top1 = null;
 
@@ -1195,13 +1195,13 @@ function renderizarDestaque(destaques) {
     destaqueAtualObj = top1;
     const jogoNoFeed = jogosCarregados.find(j => j.steamId == top1.steamId || (top1.name && j.title.toLowerCase().includes(top1.name.toLowerCase())));
 
-    document.getElementById('featured-title').textContent = top1.name || 'Destaque';
+    const titleEl = document.getElementById('featured-title');
+    if (titleEl) titleEl.textContent = top1.name || 'Destaque';
+
     document.getElementById('featured-img').src = top1.header_image || (top1.steamId ? `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${top1.steamId}/header.jpg` : '');
     
-    // --- BACKGROUND CORRETO: Usa o background_raw real da Steam ou o endpoint oficial de background da app ---
+    // Configuração do Fundo Global
     let bgRawUrl = top1.background_raw || '';
-
-    // Se não houver background_raw no cache, usa o link oficial de background da Steam (nunca o header e nunca o skidrow)
     if (!bgRawUrl || bgRawUrl.includes('skidrowreloaded') || bgRawUrl.includes('cover-proxy') || bgRawUrl.includes('header.jpg')) {
         if (top1.steamId) {
             bgRawUrl = `https://store.akamai.steamstatic.com/images/storepagebackground/app/${top1.steamId}`;
@@ -1216,24 +1216,48 @@ function renderizarDestaque(destaques) {
     } else if (globalBg) {
         globalBg.classList.add('hidden');
     }
-    // ----------------------------------------------------------------------------------------------------
 
-    document.getElementById('featured-size').textContent = jogoNoFeed ? jogoNoFeed.size : 'N/A';
-    document.getElementById('featured-posted').textContent = jogoNoFeed ? jogoNoFeed.date : 'Recente';
-    
-    const nota = top1.rating || 0;
-    const ratingEl = document.getElementById('featured-rating');
-    if (ratingEl) {
-        ratingEl.textContent = nota > 0 ? `${nota}` : 'N/A';
-        if (nota > 0) {
-            const cores = getMetacriticColor(nota);
-            ratingEl.className = `font-mono font-black px-1.5 py-0.5 rounded text-white ${cores.bg}`;
+    // 1. Renderiza as Tags do jogo com a fonte Rajdhani
+    const tagsContainer = document.getElementById('featured-tags-container');
+    if (tagsContainer) {
+        if (jogoNoFeed && jogoNoFeed.release?.tags?.length > 0) {
+            tagsContainer.innerHTML = jogoNoFeed.release.tags.map(tag => `
+                <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-rajdhani font-bold text-xs sm:text-sm px-2.5 py-1 rounded-md shadow-sm uppercase">
+                    ${tag}
+                </span>
+            `).join('');
+            tagsContainer.classList.remove('hidden');
+            tagsContainer.classList.add('inline-flex');
+        } else {
+            tagsContainer.innerHTML = '';
+            tagsContainer.classList.add('hidden');
+            tagsContainer.classList.remove('inline-flex');
         }
     }
 
+    // 2. Tamanho
+    document.getElementById('featured-size').textContent = jogoNoFeed ? jogoNoFeed.size : 'N/A';
+
+    // 3. Nota Steam Ampliada
+    const nota = top1.rating || 0;
+    const ratingEl = document.getElementById('featured-rating');
+    const ratingBadge = document.getElementById('featured-rating-badge');
+    if (ratingEl && ratingBadge) {
+        if (nota > 0) {
+            const cores = getMetacriticColor(nota);
+            ratingEl.textContent = nota;
+            ratingEl.className = `font-rajdhani font-black text-base sm:text-lg px-2.5 py-1 rounded-md text-white shadow-2xl tracking-wider border ${cores.border} ${cores.bg}`;
+            ratingBadge.classList.remove('hidden');
+        } else {
+            ratingBadge.classList.add('hidden');
+        }
+    }
+
+    // 4. Avaliações
     const revs = top1.total_reviews || 0;
     document.getElementById('featured-reviews').textContent = revs > 0 ? revs.toLocaleString('pt-BR') : 'N/A';
     
+    // 5. Data de Lançamento
     const dataLanc = top1.release_date?.date || 'N/A';
     document.getElementById('featured-release-date').textContent = formatarDataRelativa(dataLanc);
 
