@@ -1139,6 +1139,7 @@ function renderizarDestaque(destaques) {
             name: jogoVoices38.release?.tituloOriginal || jogoVoices38.title,
             steamId: jogoVoices38.steamId,
             header_image: jogoVoices38.cover || jogoVoices38.rawCover,
+            // Pega exatamente o que veio da API da Steam, sem inventar nada
             background_raw: jogoVoices38.steamDetails?.background_raw || '',
             rating: jogoVoices38.steamDetails?.rating || 0,
             total_reviews: jogoVoices38.steamDetails?.total_reviews || 0,
@@ -1163,28 +1164,14 @@ function renderizarDestaque(destaques) {
     document.getElementById('featured-title').textContent = top1.name || 'Destaque';
     document.getElementById('featured-img').src = top1.header_image || '';
     
-    // --- BLINDAGEM DEFINITIVA CONTRA O COVER DO SKIDROW NO BACKGROUND ---
-    let bgRawUrl = top1.background_raw || '';
-    
-    // Se o background estiver vazio ou vier com URL do skidrow/proxy, força o CDN oficial da Steam pelo ID
-    if (!bgRawUrl || bgRawUrl.includes('skidrowreloaded.com') || bgRawUrl.includes('cover-proxy')) {
-        if (top1.steamId) {
-            bgRawUrl = `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${top1.steamId}/background_raw.jpg`;
-        } else if (jogoNoFeed && jogoNoFeed.steamId) {
-            bgRawUrl = `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${jogoNoFeed.steamId}/background_raw.jpg`;
-        } else {
-            bgRawUrl = top1.header_image || '';
-        }
-    }
+    // --- SEM MONTAGEM MANUAL: Usa o background oficial da Steam ou faz fallback para o header ---
+    const bgRawUrl = top1.background_raw || top1.header_image || '';
 
     if (globalBg && bgRawUrl) {
         globalBg.style.backgroundImage = `url('${bgRawUrl}')`;
         globalBg.classList.remove('hidden');
-    } else if (globalBg && top1.header_image) {
-        globalBg.style.backgroundImage = `url('${top1.header_image}')`;
-        globalBg.classList.remove('hidden');
     }
-    // -------------------------------------------------------------------
+    // ------------------------------------------------------------------------------------------
 
     document.getElementById('featured-size').textContent = jogoNoFeed ? jogoNoFeed.size : 'N/A';
     document.getElementById('featured-posted').textContent = jogoNoFeed ? jogoNoFeed.date : 'Recente';
