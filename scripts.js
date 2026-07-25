@@ -1126,9 +1126,6 @@ function renderizarDadosSteamNoModal(game) {
 let destaqueAtualObj = null;
 
 function renderizarDestaque(destaques) {
-    let destaqueAtualObj = null;
-
-function renderizarDestaque(destaques) {
     const sec = document.getElementById('featured-section');
     const globalBg = document.getElementById('global-featured-bg');
     if (!sec) return;
