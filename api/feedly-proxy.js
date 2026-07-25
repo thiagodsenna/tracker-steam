@@ -42,7 +42,6 @@ export default async function handler(req, res) {
 
                   if (KV_URL && KV_TOKEN) {
                       try {
-                          // Busca o cache de metadados e os destaques em paralelo
                           const [cacheRes, destRes] = await Promise.all([
                               fetch(`${KV_URL}/get/steam_metadata_cache`, { headers: { Authorization: `Bearer ${KV_TOKEN}` } }),
                               fetch(`${KV_URL}/get/destaques_home`, { headers: { Authorization: `Bearer ${KV_TOKEN}` } })
@@ -58,21 +57,25 @@ export default async function handler(req, res) {
                               destaquesHome = typeof destData.result === 'string' ? JSON.parse(destData.result) : destData.result;
                           }
 
-                          // --- REGRA DE LAZY SEEDING (Auto-abastecimento inicial) ---
-                          // Se o cache estiver vazio, processa os 10 primeiros itens do feed que tenham Steam ID
-                          if (Object.keys(steamCache).length === 0 && data.items && data.items.length > 0) {
+                          // --- LAZY SEEDING INTELIGENTE (Atualiza se não existe ou se faltam campos essenciais) ---
+                          if (data.items && data.items.length > 0) {
                               const itensParaSeed = data.items.slice(0, 15);
+                              let cacheModificado = false;
                               
                               await Promise.allSettled(itensParaSeed.map(async (item) => {
                                   const content = item.content?.content || item.summary?.content || '';
                                   const match = content.match(/(?:store\.steampowered\.com|steamcommunity\.com)\/app\/(\d+)/i);
                                   const steamId = match ? match[1] : null;
 
-                                  if (steamId && !steamCache[steamId]) {
+                                  // SE O JOGO NÃO EXISTE NO CACHE OU SE ESTÁ SEM MOVIES/DETAILED_DESCRIPTION, BUSCA DA STEAM!
+                                  const cacheAtual = steamCache[steamId];
+                                  const precisaAtualizar = !cacheAtual || !cacheAtual.movies || !cacheAtual.detailed_description;
+
+                                  if (steamId && precisaAtualizar) {
                                       try {
                                           // Busca detalhes básicos (agora incluindo "background") e reviews
                                           const [detRes, revRes] = await Promise.all([
-                                              fetch(`https://store.steampowered.com/api/appdetails?appids=${steamId}&filters=basic,release_date,genres,developers,screenshots,categories,movies,background`),
+                                              fetch(`https://store.steampowered.com/api/appdetails?appids=${steamId}&filters=basic,release_date,genres,developers,screenshots,categories,movies,detailed_description,background`),
                                               fetch(`https://store.steampowered.com/appreviews/${steamId}?json=1&filter=all&language=all&day_range=1000&num_per_page=1`)
                                           ]);
                                           
@@ -95,23 +98,25 @@ export default async function handler(req, res) {
                                                   name: gData.name,
                                                   header_image: gData.header_image,
                                                   background_raw: gData.background_raw || gData.background || '',
+                                                  detailed_description: gData.detailed_description || '',
+                                                  short_description: gData.short_description || '',
                                                   release_date: gData.release_date,
                                                   genres: gData.genres || [],
                                                   developers: gData.developers || [],
                                                   screenshots: gData.screenshots || [],
                                                   categories: gData.categories || [],
                                                   movies: gData.movies || [],
-                                                  short_description: gData.short_description || '',
                                                   rating: nota,
                                                   total_reviews: totalReviews
                                               };
+                                              cacheModificado = true;
                                           }
                                       } catch (e) { /* Falha silenciosa no seed individual */ }
                                   }
                               }));
 
-                              // Salva o cache inicial semeado no Vercel KV
-                              if (Object.keys(steamCache).length > 0) {
+                              // Salva no KV apenas se algum jogo foi baixado ou atualizado
+                              if (cacheModificado && Object.keys(steamCache).length > 0) {
                                   await fetch(`${KV_URL}/set/steam_metadata_cache`, {
                                       method: 'POST',
                                       headers: { Authorization: `Bearer ${KV_TOKEN}`, 'Content-Type': 'application/json' },
