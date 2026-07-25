@@ -703,17 +703,18 @@ async function carregarJogos() {
 
         const data = await resJogos.json();
 
-        // --- RENDERIZA O BANNER DE DESTAQUES COM OS DADOS DA API ---
-        if (data.destaques) {
-            renderizarDestaque(data.destaques);
-        }
-
+        // 1º: Primeiro preenchemos a lista de jogos em memória
         data.items.forEach((item, index) => {
             const jogo = parseFeedlyItem(item, index);
             jogosCarregados.push(jogo);
         });
 
         jogosOriginaisFeedly = [...jogosCarregados];
+
+        // 2º: Agora sim renderizamos o destaque, pois ele precisará cruzar dados com jogosCarregados
+        if (data.destaques) {
+            renderizarDestaque(data.destaques);
+        }
 
         // Envia o novo timestamp para o servidor em segundo plano (não bloqueia a renderização)
         atualizarUltimoAcessoServidor(jogosCarregados);
