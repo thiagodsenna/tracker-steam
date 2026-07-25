@@ -1163,8 +1163,19 @@ function renderizarDestaque(destaques) {
     document.getElementById('featured-title').textContent = top1.name || 'Destaque';
     document.getElementById('featured-img').src = top1.header_image || '';
     
-    // Usa diretamente a URL pronta que veio da Steam
-    const bgRawUrl = top1.background_raw || '';
+    // --- BLINDAGEM DEFINITIVA CONTRA O COVER DO SKIDROW NO BACKGROUND ---
+    let bgRawUrl = top1.background_raw || '';
+    
+    // Se o background estiver vazio ou vier com URL do skidrow/proxy, força o CDN oficial da Steam pelo ID
+    if (!bgRawUrl || bgRawUrl.includes('skidrowreloaded.com') || bgRawUrl.includes('cover-proxy')) {
+        if (top1.steamId) {
+            bgRawUrl = `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${top1.steamId}/background_raw.jpg`;
+        } else if (jogoNoFeed && jogoNoFeed.steamId) {
+            bgRawUrl = `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${jogoNoFeed.steamId}/background_raw.jpg`;
+        } else {
+            bgRawUrl = top1.header_image || '';
+        }
+    }
 
     if (globalBg && bgRawUrl) {
         globalBg.style.backgroundImage = `url('${bgRawUrl}')`;
@@ -1173,6 +1184,7 @@ function renderizarDestaque(destaques) {
         globalBg.style.backgroundImage = `url('${top1.header_image}')`;
         globalBg.classList.remove('hidden');
     }
+    // -------------------------------------------------------------------
 
     document.getElementById('featured-size').textContent = jogoNoFeed ? jogoNoFeed.size : 'N/A';
     document.getElementById('featured-posted').textContent = jogoNoFeed ? jogoNoFeed.date : 'Recente';
