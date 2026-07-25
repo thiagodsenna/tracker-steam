@@ -401,7 +401,8 @@ function parseFeedlyItem(item, index) {
         steamId: steamId,
         links,
         size: size,
-        release
+        release,
+        steamDetails: item.steamDetails || null
     };
 }
 
@@ -429,10 +430,31 @@ function criarCardJogo(jogo) {
     ` : '';
     // --- FIM: TAG NOVO ---
 
+    // --- INÍCIO: METADADOS ENRIQUECIDOS NOS CARDS COMUNS ---
+    let notaBadgeHtml = '';
+    let reviewsHtml = '';
+    let lancamentoHtml = '';
+
+    if (jogo.steamDetails) {
+        if (jogo.steamDetails.rating > 0) {
+            const cores = getMetacriticColor(jogo.steamDetails.rating);
+            notaBadgeHtml = `<div class="absolute top-2 right-2 ${cores.bg} border ${cores.border} text-white font-mono font-black text-[11px] px-1.5 py-0.5 rounded shadow-md z-10">${jogo.steamDetails.rating}</div>`;
+        }
+        if (jogo.steamDetails.total_reviews > 0) {
+            const revCount = jogo.steamDetails.total_reviews > 1000 ? `${(jogo.steamDetails.total_reviews/1000).toFixed(1)}k` : jogo.steamDetails.total_reviews;
+            reviewsHtml = `<span class="inline-flex items-center gap-1 text-[10px] text-neutral-400 font-mono bg-black/60 px-1.5 py-0.5 rounded backdrop-blur"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-sky-400"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>${revCount}</span>`;
+        }
+        if (jogo.steamDetails.release_date?.date) {
+            lancamentoHtml = `<div class="text-[10px] text-neutral-500 font-medium truncate mt-0.5">Lançamento: ${formatarDataRelativa(jogo.steamDetails.release_date.date)}</div>`;
+        }
+    }
+    // --- FIM: METADADOS ENRIQUECIDOS NOS CARDS COMUNS ---
+
     card.innerHTML = `
         <div class="aspect-[3/4] bg-neutral-950 relative">
             ${tagNovoHtml}
             ${removeBtnHtml}
+            ${notaBadgeHtml}
             <img src="${jogo.cover}" 
                  referrerpolicy="no-referrer" 
                  onerror="
@@ -446,9 +468,14 @@ function criarCardJogo(jogo) {
                  " 
                  class="w-full object-cover">
         </div>
-        <div id="score-${jogo.id}" class="absolute top-2 right-2 bg-black/70 backdrop-blur px-2 py-1 rounded text-[10px] font-bold text-emerald-400 hidden"></div>
-        <div class="absolute bottom-12 right-2 bg-black/60 backdrop-blur px-1.5 py-0.5 rounded text-[9px] text-neutral-400 z-10">${jogo.date}</div>
-        <div class="p-3 font-bold text-xs line-clamp-2">${jogo.title}</div>
+        <div class="absolute bottom-16 right-2 flex flex-col items-end gap-1 z-10">
+            ${reviewsHtml}
+            <div class="bg-black/80 backdrop-blur px-1.5 py-0.5 rounded text-[9px] font-mono text-emerald-400 border border-neutral-800">${jogo.date}</div>
+        </div>
+        <div class="p-3">
+            <div class="font-bold text-xs line-clamp-2 text-neutral-200" title="${jogo.title}">${jogo.title}</div>
+            ${lancamentoHtml}
+        </div>
     `;
     return card;
 }
@@ -504,20 +531,51 @@ function criarCardJogoCompacto(jogo) {
                 </div>`;
     }
 
+    let notaCompactoHtml = '';
+    let revCompactoHtml = '';
+    let lancCompactoHtml = '';
+
+    if (jogo.steamDetails) {
+        if (jogo.steamDetails.rating > 0) {
+            const cores = getMetacriticColor(jogo.steamDetails.rating);
+            notaCompactoHtml = `
+                <div class="flex flex-col text-[11px]">
+                    <span class="text-neutral-500">Nota Steam</span>
+                    <span class="font-bold text-white px-1.5 py-0.2 rounded w-fit ${cores.bg}">${jogo.steamDetails.rating}%</span>
+                </div>`;
+        }
+        if (jogo.steamDetails.total_reviews > 0) {
+            revCompactoHtml = `
+                <div class="flex flex-col text-[11px]">
+                    <span class="text-neutral-500">Avaliações</span>
+                    <span class="text-neutral-300 font-medium">${jogo.steamDetails.total_reviews.toLocaleString('pt-BR')}</span>
+                </div>`;
+        }
+        if (jogo.steamDetails.release_date?.date) {
+            lancCompactoHtml = `
+                <div class="flex flex-col text-[11px]">
+                    <span class="text-neutral-500">Lançamento</span>
+                    <span class="text-neutral-300 font-medium truncate max-w-[120px]">${formatarDataRelativa(jogo.steamDetails.release_date.date)}</span>
+                </div>`;
+        }
+    }
+
     html += `
                 <div class="flex flex-col text-[11px]">
                     <span class="text-neutral-500">Tamanho</span>
                     <span class="text-neutral-300 font-medium">${jogo.size}</span>
                 </div>
+                ${notaCompactoHtml}
+                ${revCompactoHtml}
+                ${lancCompactoHtml}
                 <div class="flex flex-col text-[11px]">
                     <span class="text-neutral-500">Postado</span>
-                    <span class="text-neutral-300 font-medium">${jogo.date}</span>
+                    <span class="text-emerald-400 font-medium">${jogo.date}</span>
                 </div>
             </div>
         </div>
         ${tagsHtml ? `<div class="absolute top-2.5 right-2.5 flex flex-col items-end z-10">${tagsHtml}</div>` : ''}
         ${removeBtnHtml}
-        <div id="score-${jogo.id}" class="absolute top-1/2 -translate-y-1/2 right-12 bg-black/70 backdrop-blur px-2 py-1 rounded text-[10px] font-black text-emerald-400 hidden"></div>
     `;
 
     card.innerHTML = html;
@@ -644,6 +702,11 @@ async function carregarJogos() {
         configuracoesUsuario = configServidor || {};
 
         const data = await resJogos.json();
+
+        // --- RENDERIZA O BANNER DE DESTAQUES COM OS DADOS DA API ---
+        if (data.destaques) {
+            renderizarDestaque(data.destaques);
+        }
 
         data.items.forEach((item, index) => {
             const jogo = parseFeedlyItem(item, index);
@@ -895,7 +958,16 @@ async function abrirModal(id, options = {}) {
     rolarParaSecaoModal('modal-content');
 
     if (jogo.steamId) {
-        buscarDadosSteam(jogo.steamId);
+        // --- INÍCIO: OTIMIZAÇÃO DE SSR (MODAL INSTANTÂNEO) ---
+        // Se as informações já vieram mastigadas do Feedly Proxy / Vercel KV, renderiza na hora!
+        if (jogo.steamDetails && jogo.steamDetails.name) {
+            renderizarDadosSteamNoModal(jogo.steamDetails);
+        } else {
+            // Se não existir no cache (ex: jogo antigo não cacheado ainda), continua fazendo a requisição via proxy
+            buscarDadosSteam(jogo.steamId);
+        }
+        // --- FIM: OTIMIZAÇÃO DE SSR ---
+
         buscarHowLongToBeat(jogo.steamId);
         buscarReviewsSteam(jogo.steamId);
         buscarJogosSimilares(jogo.steamId);
@@ -1009,6 +1081,107 @@ async function buscarDadosSteam(steamId) {
     } catch (e) {
         console.error("Erro na busca Steam:", e);
         document.getElementById('modal-description').textContent = "Erro ao buscar dados na Steam.";
+    }
+}
+
+function renderizarDadosSteamNoModal(game) {
+    document.getElementById('modal-title-original').textContent = game.name;
+    if (game.header_image) document.getElementById('modal-hero').style.backgroundImage = `url('${game.header_image}')`;
+    
+    const svgCalendar = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400 shrink-0"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`;
+    document.getElementById('steam-metadata').classList.remove('hidden');
+    
+    if (game.release_date?.date) {
+        document.getElementById('release-date').innerHTML = `${svgCalendar}<span>${formatarDataRelativa(game.release_date.date)}</span>`;
+    }
+    
+    if (game.genres && game.genres.length > 0) {
+        document.getElementById('modal-genres').innerHTML = `<span class="text-neutral-500 text-[11px]">Gêneros:</span> ${game.genres.map(g => g.description || g).join(' <span class="text-neutral-600 text-xs">|</span> ')}`;
+    }
+    
+    document.getElementById('modal-developer').innerHTML = renderizarDesenvolvedores(game.developers);
+    configurarExpandirDesenvolvedores(game.developers);
+    document.getElementById('modal-description').innerHTML = game.detailed_description || game.short_description || "Sem descrição disponível.";
+
+    if (game.screenshots && game.screenshots.length > 0) {
+        document.getElementById('modal-section-screenshots').classList.remove('hidden');
+        document.getElementById('shortcut-screenshots')?.classList.remove('hidden');
+        const listaUrls = game.screenshots.map(s => s.path_full || s);
+        document.getElementById('modal-screenshots-grid').innerHTML = game.screenshots.map((s, idx) =>
+            `<img src="${s.path_thumbnail || s}" referrerpolicy="no-referrer" onclick="abrirLightbox(${idx}, ${JSON.stringify(listaUrls).replace(/"/g, '&quot;')})" class="rounded border border-neutral-800 cursor-pointer hover:opacity-80 transition-opacity">`
+        ).join('');
+    }
+
+    if (game.categories && game.categories.length > 0) {
+        document.getElementById('modal-section-recursos').classList.remove('hidden');
+        document.getElementById('shortcut-recursos')?.classList.remove('hidden');
+        document.getElementById('modal-recursos-grid').innerHTML = game.categories.map(c => {
+            const iconName = CATEGORY_ICONS[c.id] || 'ico_achievements.png';
+            const iconUrl = `https://store.fastly.steamstatic.com/public/images/v6/ico/${iconName}`;
+            return `
+                    <div class="bg-neutral-800 p-2 flex items-center gap-2 rounded text-xs font-bold text-neutral-300 border border-neutral-700">
+                        <img src="${iconUrl}" class="w-6 h-4">
+                        <span class="truncate">${c.description}</span>
+                    </div>`;
+        }).join('');
+    }
+}
+
+let destaqueAtualObj = null;
+
+function renderizarDestaque(destaques) {
+    const sec = document.getElementById('featured-section');
+    if (!sec || !destaques || destaques.length === 0) {
+        if (sec) sec.classList.add('hidden');
+        return;
+    }
+
+    // Pega o Top 1 da lista (pode ser expandido facilmente para um carrossel no futuro)
+    const top1 = destaques[0];
+    destaqueAtualObj = top1;
+
+    // Procura se o jogo está carregado na nossa lista atual do Feedly para extrair tamanho e data de postagem
+    const jogoNoFeed = jogosCarregados.find(j => j.steamId == top1.steamId);
+
+    document.getElementById('featured-title').textContent = top1.name || 'Destaque';
+    document.getElementById('featured-img').src = top1.header_image || '';
+    
+    // Configura o Background Raw (degradê azulado/temático)
+    const bgEl = document.getElementById('featured-bg');
+    if (bgEl && top1.background_raw) {
+        bgEl.style.backgroundImage = `url('${top1.background_raw}')`;
+    }
+
+    // Preenche as Tags da direita
+    document.getElementById('featured-size').textContent = jogoNoFeed ? jogoNoFeed.size : 'N/A';
+    document.getElementById('featured-posted').textContent = jogoNoFeed ? jogoNoFeed.date : 'Recente';
+    
+    const nota = top1.rating || 0;
+    const ratingEl = document.getElementById('featured-rating');
+    if (ratingEl) {
+        ratingEl.textContent = nota > 0 ? `${nota}%` : 'N/A';
+        if (nota > 0) {
+            const cores = getMetacriticColor(nota);
+            ratingEl.className = `font-mono font-black px-1.5 py-0.5 rounded text-white ${cores.bg}`;
+        }
+    }
+
+    const revs = top1.total_reviews || 0;
+    document.getElementById('featured-reviews').textContent = revs > 0 ? revs.toLocaleString('pt-BR') : 'N/A';
+    
+    const dataLanc = top1.release_date?.date || 'N/A';
+    document.getElementById('featured-release-date').textContent = formatarDataRelativa(dataLanc);
+
+    sec.classList.remove('hidden');
+}
+
+function abrirModalDestaque() {
+    if (!destaqueAtualObj) return;
+    const index = jogosCarregados.findIndex(j => j.steamId == destaqueAtualObj.steamId);
+    if (index >= 0) {
+        abrirModal(index);
+    } else {
+        alert("O release deste destaque não está entre os últimos itens listados na página atual.");
     }
 }
 

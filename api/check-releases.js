@@ -75,18 +75,38 @@ export default async function handler(req, res) {
         }
 
         // Se for teste manual e informou token, tenta filtrar, mas usa fallback se o token não estiver gravado
-        if (forcarTesteManual && tokenAlvo) {
+        /* if (forcarTesteManual && tokenAlvo) {
             const filtrados = subscriptions.filter(sub => sub.userToken === tokenAlvo);
             if (filtrados.length > 0) {
                 subscriptions = filtrados;
             }
-        }
+        } */
 
         if (subscriptions.length === 0) {
             return res.status(200).json({ message: 'Há novos jogos, mas nenhum usuário inscrito para receber push.', newItems: novosItens.length });
         }
 
         let disparosDeletados = false;
+
+        // =================================================================
+        // --- INÍCIO: CARREGAMENTO DO CACHE STEAM NO KV ---
+        // =================================================================
+        let steamCache = {};
+        try {
+            const getCacheRes = await fetch(`${KV_REST_API_URL}/get/steam_metadata_cache`, {
+                headers: { Authorization: `Bearer ${KV_REST_API_TOKEN}` }
+            });
+            const getCacheData = await getCacheRes.json();
+            if (getCacheData && getCacheData.result) {
+                steamCache = typeof getCacheData.result === 'string' ? JSON.parse(getCacheData.result) : getCacheData.result;
+            }
+        } catch (e) {
+            console.error('Erro ao ler cache Steam do KV no cron:', e);
+        }
+        let cacheAtualizado = false;
+        // =================================================================
+        // --- FIM: CARREGAMENTO DO CACHE STEAM NO KV ---
+        // =================================================================
 
         // 5. Para cada jogo novo, processa a capa (tentando a horizontal da Steam) e envia o alerta
         for (const item of novosItens) {
@@ -99,17 +119,62 @@ export default async function handler(req, res) {
             const steamId = steamMatch ? steamMatch[1] : null;
 
             let steamHeaderImg = '';
+            
+            // =================================================================
+            // --- INÍCIO: ENRIQUECIMENTO COMPLETO & AVALIAÇÕES STEAM ---
+            // =================================================================
             if (steamId) {
                 try {
-                    const steamRes = await fetch(`https://store.steampowered.com/api/appdetails?appids=${steamId}&filters=basic`);
+                    // Busca os detalhes do jogo e também a quantidade de avaliações em paralelo
+                    const [steamRes, revRes] = await Promise.all([
+                        fetch(`https://store.steampowered.com/api/appdetails?appids=${steamId}&filters=basic,release_date,genres,developers,screenshots,categories,movies`),
+                        fetch(`https://store.steampowered.com/appreviews/${steamId}?json=1&filter=all&language=all&day_range=1000&num_per_page=1`)
+                    ]);
+
                     const steamJson = await steamRes.json();
-                    if (steamJson[steamId]?.success && steamJson[steamId]?.data?.header_image) {
-                        steamHeaderImg = steamJson[steamId].data.header_image;
+                    const revJson = await revRes.json();
+
+                    if (steamJson[steamId]?.success && steamJson[steamId]?.data) {
+                        const gData = steamJson[steamId].data;
+                        if (gData.header_image) {
+                            steamHeaderImg = gData.header_image;
+                        }
+
+                        // Cálculo da Nota e extração do Total de Avaliações
+                        let nota = 0;
+                        let totalReviews = 0;
+                        if (revJson && revJson.success && revJson.query_summary) {
+                            totalReviews = revJson.query_summary.total_reviews || 0;
+                            if (totalReviews > 0) {
+                                nota = Math.trunc((revJson.query_summary.total_positive * 100) / totalReviews);
+                            }
+                        }
+
+                        // Salva/Atualiza no objeto do cache em memória com todos os dados para o Modal Instantâneo
+                        steamCache[steamId] = {
+                            name: gData.name,
+                            header_image: gData.header_image,
+                            background_raw: gData.background_raw || gData.background || '',
+                            release_date: gData.release_date,
+                            genres: gData.genres || [],
+                            developers: gData.developers || [],
+                            screenshots: gData.screenshots || [],
+                            categories: gData.categories || [],
+                            movies: gData.movies || [],
+                            short_description: gData.short_description || '',
+                            rating: nota,
+                            total_reviews: totalReviews,
+                            updated_at: Date.now()
+                        };
+                        cacheAtualizado = true;
                     }
                 } catch (e) {
-                    console.log('Não foi possível buscar o header da Steam, usando fallback.', e);
+                    console.log('Não foi possível buscar dados completos da Steam no cron, usando fallback.', e);
                 }
             }
+            // =================================================================
+            // --- FIM: ENRIQUECIMENTO COMPLETO & AVALIAÇÕES STEAM ---
+            // =================================================================
 
             // Se não achou o header na Steam, faz o fallback para a capa vertical antiga extraída do Feedly
             let rawImg = steamHeaderImg;
@@ -167,6 +232,46 @@ export default async function handler(req, res) {
                 body: JSON.stringify(subscriptions)
             });
         }
+
+        // =================================================================
+        // --- INÍCIO: SALVAR CACHE E CALCULAR DESTAQUES NO KV ---
+        // =================================================================
+        if (cacheAtualizado) {
+            try {
+                // 1. Salva o cache geral da Steam atualizado
+                await fetch(`${KV_REST_API_URL}/set/steam_metadata_cache`, {
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${KV_REST_API_TOKEN}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(steamCache)
+                });
+
+                // 2. Calcula os Top 5 Destaques baseado no nosso algoritmo de pesos
+                // Score = (Nota * 0.7) + (log10(TotalReviews) * 10 * 0.3)
+                const listaJogos = Object.entries(steamCache).map(([id, dados]) => {
+                    const nota = dados.rating || 0;
+                    const revs = Math.max(dados.total_reviews || 1, 1);
+                    // Adicionamos multiplicador 10 no log10 para equilibrar com a escala de nota 0 a 100
+                    const score = (nota * 0.7) + (Math.log10(revs) * 10 * 0.3);
+                    return { steamId: id, score, ...dados };
+                });
+
+                // Ordena pelos maiores scores e pega os 5 primeiros
+                listaJogos.sort((a, b) => b.score - a.score);
+                const top5Destaques = listaJogos.slice(0, 5);
+
+                // 3. Salva a lista de destaques pronta para o Frontend consumir em uma requisição única
+                await fetch(`${KV_REST_API_URL}/set/destaques_home`, {
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${KV_REST_API_TOKEN}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(top5Destaques)
+                });
+            } catch (errKv) {
+                console.error("Erro ao salvar cache e destaques no KV:", errKv);
+            }
+        }
+        // =================================================================
+        // --- FIM: SALVAR CACHE E CALCULAR DESTAQUES NO KV ---
+        // =================================================================
 
         // 7. Salva o timestamp do item mais recente como o novo last_checked_cron
         if (!forcarTesteManual) {
