@@ -26,12 +26,15 @@ self.addEventListener('push', function(event) {
     }
 
     const imagemCapa = data.cover && data.cover.startsWith('http') ? data.cover : `${DOMAIN_URL}/assets/logo2.png`;
+    const uniqueFallbackTag = 'notificacao-' + Date.now() + '-' + Math.round(Math.random() * 1000);
 
     const options = {
         body: data.body,
         icon: imagemCapa,
         image: imagemCapa,
         badge: `${DOMAIN_URL}/assets/logo2.png`,
+        tag: data.id || uniqueFallbackTag,
+        renotify: true,
         vibrate: [100, 50, 100],
         data: { 
             url: data.url || `${DOMAIN_URL}/` 

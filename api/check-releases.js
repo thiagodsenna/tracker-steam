@@ -64,6 +64,15 @@ export default async function handler(req, res) {
             return res.status(200).json({ message: 'Nenhum release novo desde a última verificação.', checked: novosItens.length });
         }
 
+        // =================================================================
+        // AJUSTE 1: BLINDAGEM CONTRA TIMEOUT DA VERCEL
+        // Se saírem 15 jogos de uma vez, processamos apenas os 5 mais recentes
+        // para não estourar o limite de 10 segundos de execução serverless.
+        // =================================================================
+        if (novosItens.length > 5) {
+            novosItens = novosItens.slice(0, 5);
+        }
+
         // 4. Busca todos os dispositivos inscritos no banco
         const getSubsRes = await fetch(`${KV_REST_API_URL}/get/push_subscriptions`, {
             headers: { Authorization: `Bearer ${KV_REST_API_TOKEN}` }
@@ -92,6 +101,7 @@ export default async function handler(req, res) {
         // --- INÍCIO: CARREGAMENTO DO CACHE STEAM NO KV ---
         // =================================================================
         let steamCache = {};
+        
         try {
             const getCacheRes = await fetch(`${KV_REST_API_URL}/get/steam_metadata_cache`, {
                 headers: { Authorization: `Bearer ${KV_REST_API_TOKEN}` }
@@ -104,8 +114,13 @@ export default async function handler(req, res) {
             console.error('Erro ao ler cache Steam do KV no cron:', e);
         }
         let cacheAtualizado = false;
+
         // =================================================================
         // --- FIM: CARREGAMENTO DO CACHE STEAM NO KV ---
+        // =================================================================
+
+        // =================================================================
+        // 5. LOOP DE NOTIFICAÇÕES COM RESPEITO A TAXA DE DISPARO (THROTTLE)
         // =================================================================
 
         // 5. Para cada jogo novo, processa a capa (tentando a horizontal da Steam) e envia o alerta
@@ -113,12 +128,19 @@ export default async function handler(req, res) {
             const htmlContent = item.content?.content || item.summary?.content || '';
             const textContent = item.summary?.content || htmlContent;
 
-            // Extrai o Steam ID do post (mesma regex do frontend)
+            // 1) EXTRAÇÃO DO TAMANHO (Via Regex no texto do post)
+            const sizeMatch = textContent.match(/Size:\s*([\d.,]+\s*[a-zA-Z]+)/i);
+            const size = sizeMatch ? sizeMatch[1].trim() : 'N/A';
+
+            // Extrai o Steam ID do post
             const steamMatch = htmlContent.match(/(?:store\.steampowered\.com|steamcommunity\.com)\/app\/(\d+)/i) 
                             || textContent.match(/(?:store\.steampowered\.com|steamcommunity\.com)\/app\/(\d+)/i);
             const steamId = steamMatch ? steamMatch[1] : null;
 
             let steamHeaderImg = '';
+            // 2) DECLARAÇÃO DE VARIÁVEIS COM ESCOPO EXTERNO PARA O PAYLOAD
+            let notaTexto = 'Sem nota';
+            let lancamento = 'N/A';
             
             // =================================================================
             // --- INÍCIO: ENRIQUECIMENTO COMPLETO & AVALIAÇÕES STEAM ---
@@ -136,21 +158,25 @@ export default async function handler(req, res) {
 
                     if (steamJson[steamId]?.success && steamJson[steamId]?.data) {
                         const gData = steamJson[steamId].data;
-                        if (gData.header_image) {
-                            steamHeaderImg = gData.header_image;
+                        if (gData.header_image) steamHeaderImg = gData.header_image;
+
+                        // Captura a data de lançamento se existir
+                        if (gData.release_date?.date) {
+                            lancamento = gData.release_date.date;
                         }
 
                         // Cálculo da Nota e extração do Total de Avaliações
-                        let nota = 0;
+                        let notaNum = 0;
                         let totalReviews = 0;
                         if (revJson && revJson.success && revJson.query_summary) {
                             totalReviews = revJson.query_summary.total_reviews || 0;
                             if (totalReviews > 0) {
-                                nota = Math.trunc((revJson.query_summary.total_positive * 100) / totalReviews);
+                                notaNum = Math.trunc((revJson.query_summary.total_positive * 100) / totalReviews);
+                                notaTexto = `${notaNum}%`; // Formata com % para exibir na notificação
                             }
                         }
 
-                        // Salva/Atualiza no objeto do cache em memória com todos os dados para o Modal Instantâneo
+                        // Salva no cache do KV usando o valor numérico
                         steamCache[steamId] = {
                             name: gData.name,
                             header_image: gData.header_image,
@@ -163,7 +189,7 @@ export default async function handler(req, res) {
                             screenshots: gData.screenshots || [],
                             categories: gData.categories || [],
                             movies: gData.movies || [],
-                            rating: nota,
+                            rating: notaNum,
                             total_reviews: totalReviews,
                             updated_at: Date.now()
                         };
@@ -204,11 +230,14 @@ export default async function handler(req, res) {
             const indexHifen = item.title.lastIndexOf('-');
             const tituloLimpo = indexHifen !== -1 ? item.title.slice(0, indexHifen).trim() : item.title.trim();
 
+            // 3) PAYLOAD FINAL COM AS VARIÁVEIS FORMATADAS
             const payload = JSON.stringify({
+                id: item.id,
                 title: tituloLimpo,
-                body: `Release: ${item.title}`,
+                body: `${notaTexto} | ${size} | ${lancamento}`,
                 cover: imgFinal,
-                url: `${DOMAIN_URL}/?id=${encodeURIComponent(item.id)}` // <-- URL com o ID exato para o deep link
+                url: `${DOMAIN_URL}/?id=${encodeURIComponent(item.id)}`,
+                timestamp: item.published || Date.now()
             });
 
             // Dispara para todas as inscrições em paralelo
@@ -223,6 +252,10 @@ export default async function handler(req, res) {
                     }
                 }
             }));
+
+            if (novosItens.length > 1) {
+                await new Promise(r => setTimeout(r, 1500));
+            }
         }
 
         // 6. Se houveram inscrições expiradas (dispositivos antigos), atualiza o KV para economizar memória
