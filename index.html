@@ -139,46 +139,56 @@
         </header>
 
         <!-- ================================================================= -->
-        <!-- --- BANNER DE DESTAQUE REFORMULADO (AJUSTES DE FONTE E ÍCONE) --- -->
+        <!-- --- BANNER DE DESTAQUE INTEGRADO (COM EXTENSÃO BORRADA) --- -->
         <!-- ================================================================= -->
         <div id="featured-section" class="hidden mb-8 relative z-10 transition-all duration-500">
-            <div class="flex flex-col gap-2.5 sm:gap-3 w-full">
-                
-                <!-- Imagem Header (100% da largura) -->
-                <div class="w-full rounded-lg sm:rounded-xl overflow-hidden border border-neutral-700/60 shadow-2xl relative bg-neutral-950 aspect-[460/215] sm:aspect-[21/9] cursor-pointer group" onclick="abrirModalDestaque()">
-                    <!-- Nota Steam Ampliada sobreposta no topo esquerdo -->
-                    <div id="featured-rating-badge" class="absolute top-3 left-3 z-20 hidden">
-                        <span id="featured-rating" class="font-rajdhani font-black text-base sm:text-lg px-2.5 py-1 rounded-md text-white shadow-2xl tracking-wider">--</span>
+            <div class="flex flex-col w-full shadow-2xl rounded-lg sm:rounded-xl overflow-hidden">
+
+                <!-- 1. Imagem Header (Borda Superior e Laterais / Sem Borda Inferior) -->
+                <div class="w-full rounded-t-lg sm:rounded-t-xl overflow-hidden border-t border-x border-neutral-700/60 relative bg-neutral-950 aspect-[460/215] sm:aspect-[21/9] cursor-pointer group" onclick="abrirModalDestaque()">
+                    <!-- Nota Steam Ampliada (Estilo Modal Hero) -->
+                    <div id="featured-rating-badge" class="absolute top-2.5 right-2.5 sm:top-4 sm:right-4 z-20 hidden h-12 w-12 sm:h-16 sm:w-16 flex items-center justify-center rounded-lg border-2 shadow-xl cursor-pointer">
+                        <span id="featured-rating" class="text-xl sm:text-3xl font-black text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.8)]">--</span>
                     </div>
 
                     <img id="featured-img" src="" alt="Capa Destaque" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
                     <div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors"></div>
                 </div>
 
-                <!-- Campos Informativos com fonte 'font-rajdhani' alinhados na horizontal -->
-                <div class="flex flex-wrap items-center justify-start gap-1.5 sm:gap-2 text-neutral-300 w-full min-w-0">
+                <!-- 2. Barra de Informações (Extensão do Header com Fundo Visível) -->
+                <div class="relative w-full rounded-b-lg sm:rounded-b-xl border-b border-x border-neutral-700/60 bg-neutral-950 p-2.5 sm:p-3 overflow-hidden">
+
+                    <!-- Tag <img> Nativa para Garantir a Exibição da Imagem com Blur -->
+                    <img id="featured-info-bg-img" src="" alt="" class="absolute inset-0 w-full h-full object-cover object-bottom filter blur-[16px] scale-115 opacity-70 pointer-events-none">
                     
-                    <!-- 1. Tags do Jogo -->
-                    <div id="featured-tags-container" class="hidden flex-wrap items-center gap-1.5 min-w-0"></div>
+                    <!-- Overlay Suave para Manter Contraste dos Cards -->
+                    <div class="absolute inset-0 bg-neutral-950/40 pointer-events-none"></div>
 
-                    <!-- 2. Tamanho -->
-                    <div class="inline-flex items-center gap-1.5 bg-neutral-900 border border-neutral-800/80 px-2.5 py-1 rounded-md text-xs sm:text-sm font-semibold">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400 shrink-0"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                        <span id="featured-size" class="font-rajdhani font-bold text-white text-xs sm:text-sm truncate">--</span>
+                    <!-- Conteúdo das Informações (Sobreposto ao Fundo) -->
+                    <div class="relative z-10 flex flex-wrap items-center justify-start gap-1.5 sm:gap-2 text-neutral-300 w-full min-w-0">
+
+                        <!-- 1. Tags do Jogo -->
+                        <div id="featured-tags-container" class="hidden flex-wrap items-center gap-1.5 min-w-0"></div>
+
+                        <!-- 2. Tamanho -->
+                        <div class="inline-flex items-center gap-1.5 bg-neutral-900/80 backdrop-blur-md border border-neutral-700/60 px-2.5 py-1 rounded-md text-xs sm:text-sm font-semibold shadow-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400 shrink-0"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            <span id="featured-size" class="font-rajdhani font-bold text-white text-xs sm:text-sm truncate">--</span>
+                        </div>
+
+                        <!-- 3. Avaliações -->
+                        <div class="inline-flex items-center gap-1.5 bg-neutral-900/80 backdrop-blur-md border border-neutral-700/60 px-2.5 py-1 rounded-md text-xs sm:text-sm font-semibold shadow-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-sky-400 shrink-0"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                            <span id="featured-reviews" class="font-rajdhani font-bold text-white text-xs sm:text-sm truncate">--</span>
+                        </div>
+
+                        <!-- 4. Lançamento -->
+                        <div class="inline-flex items-center gap-1.5 bg-neutral-900/80 backdrop-blur-md border border-neutral-700/60 px-2.5 py-1 rounded-md text-xs sm:text-sm font-semibold shadow-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-purple-400 shrink-0"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                            <span id="featured-release-date" class="font-rajdhani font-bold text-white text-xs sm:text-sm truncate">--</span>
+                        </div>
+
                     </div>
-
-                    <!-- 3. Avaliações (Ícone idêntico ao do atalho do modal) -->
-                    <div class="inline-flex items-center gap-1.5 bg-neutral-900 border border-neutral-800/80 px-2.5 py-1 rounded-md text-xs sm:text-sm font-semibold">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-sky-400 shrink-0"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                        <span id="featured-reviews" class="font-rajdhani font-bold text-white text-xs sm:text-sm truncate">--</span>
-                    </div>
-
-                    <!-- 4. Lançamento -->
-                    <div class="inline-flex items-center gap-1.5 bg-neutral-900 border border-neutral-800/80 px-2.5 py-1 rounded-md text-xs sm:text-sm font-semibold">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-purple-400 shrink-0"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                        <span id="featured-release-date" class="font-rajdhani font-bold text-white text-xs sm:text-sm truncate">--</span>
-                    </div>
-
                 </div>
 
             </div>

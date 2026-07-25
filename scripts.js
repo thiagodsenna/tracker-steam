@@ -1158,6 +1158,123 @@ function renderizarDadosSteamNoModal(game) {
     // --- FIM: RENDERIZAÇÃO DE VÍDEOS ---
 }
 
+/**
+ * Converte RGB para HSL
+ */
+function rgbParaHsl(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h, s, l = (max + min) / 2;
+
+    if (max === min) {
+        h = s = 0;
+    } else {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        switch (max) {
+            case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+            case g: h = (b - r) / d + 2; break;
+            case b: h = (r - g) / d + 4; break;
+        }
+        h /= 6;
+    }
+    return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
+}
+
+/**
+ * Extrai a cor principal da imagem e identifica o tom de maior contraste
+ */
+function extrairCorDestaque(imgUrl, callback) {
+    if (!imgUrl) {
+        callback(null);
+        return;
+    }
+
+    const img = new Image();
+    img.crossOrigin = "Anonymous";
+    img.src = imgUrl;
+
+    img.onload = () => {
+        try {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = 60;
+            canvas.height = 60;
+
+            ctx.drawImage(img, 0, 0, 60, 60);
+            const imageData = ctx.getImageData(0, 0, 60, 60).data;
+
+            let melhorCor = null;
+            let maiorSaturacao = -1;
+
+            for (let i = 0; i < imageData.length; i += 4) {
+                const r = imageData[i];
+                const g = imageData[i + 1];
+                const b = imageData[i + 2];
+                const a = imageData[i + 3];
+
+                if (a < 128) continue;
+
+                const hsl = rgbParaHsl(r, g, b);
+
+                // Filtra pretos puros, brancos puros e cinzas neutros
+                if (hsl.l > 12 && hsl.l < 88 && hsl.s > 15) {
+                    if (hsl.s > maiorSaturacao) {
+                        maiorSaturacao = hsl.s;
+                        melhorCor = hsl;
+                    }
+                }
+            }
+
+            callback(melhorCor);
+        } catch (e) {
+            callback(null);
+        }
+    };
+
+    img.onerror = () => callback(null);
+}
+
+/**
+ * Aplica a cor turbinada (HSL) com alto contraste e brilho neon nos elementos
+ */
+function aplicarCorDestaque(hslCor) {
+    const tagsSpans = document.querySelectorAll('#featured-tags-container span');
+    const iconesSvg = document.querySelectorAll('#featured-section .inline-flex svg');
+
+    if (hslCor) {
+        // --- BOOST DE VIVACIDADE PARA TEMA ESCURO ---
+        const h = hslCor.h;
+        const s = Math.max(hslCor.s, 85); // Força saturação mínima de 85%
+        const l = 60;                    // Ajusta a luminosidade ideal para contrastar no escuro (60%)
+
+        const corVibrante = `hsl(${h}, ${s}%, ${l}%)`;
+        const bgCor = `hsla(${h}, ${s}%, ${l}%, 0.16)`;
+        const borderCor = `hsla(${h}, ${s}%, ${l}%, 0.45)`;
+        const glowEfect = `drop-shadow(0 0 6px hsla(${h}, ${s}%, ${l}%, 0.65))`;
+
+        // 1. Aplica na(s) Tag(s) da release
+        tagsSpans.forEach(span => {
+            span.style.color = corVibrante;
+            span.style.backgroundColor = bgCor;
+            span.style.borderColor = borderCor;
+        });
+
+        // 2. Aplica nos ícones dos campos informativos com brilho (glow)
+        iconesSvg.forEach(svg => {
+            svg.style.color = corVibrante;
+        });
+    } else {
+        // Fallback limpo caso falhe a leitura da imagem
+        tagsSpans.forEach(span => {
+            span.removeAttribute('style');
+        });
+        iconesSvg.forEach(svg => {
+            svg.removeAttribute('style');
+        });
+    }
+}
+
 let destaqueAtualObj = null;
 
 function renderizarDestaque(destaques) {
@@ -1198,8 +1315,18 @@ function renderizarDestaque(destaques) {
     const titleEl = document.getElementById('featured-title');
     if (titleEl) titleEl.textContent = top1.name || 'Destaque';
 
-    document.getElementById('featured-img').src = top1.header_image || (top1.steamId ? `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${top1.steamId}/header.jpg` : '');
-    
+    // Atribuição das imagens no renderizarDestaque
+    const headerImageUrl = top1.header_image || (top1.steamId ? `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${top1.steamId}/header.jpg` : '');
+
+    // 1. Imagem Principal
+    document.getElementById('featured-img').src = headerImageUrl;
+
+    // 2. Imagem do Fundo do Rodapé (Atribuição direta de SRC)
+    const infoBgImg = document.getElementById('featured-info-bg-img');
+    if (infoBgImg) {
+        infoBgImg.src = headerImageUrl;
+    }
+
     // Configuração do Fundo Global
     let bgRawUrl = top1.background_raw || '';
     if (!bgRawUrl || bgRawUrl.includes('skidrowreloaded') || bgRawUrl.includes('cover-proxy') || bgRawUrl.includes('header.jpg')) {
@@ -1217,7 +1344,7 @@ function renderizarDestaque(destaques) {
         globalBg.classList.add('hidden');
     }
 
-    // 1. Renderiza as Tags do jogo com a fonte Rajdhani
+    // 1. Renderiza as Tags do jogo
     const tagsContainer = document.getElementById('featured-tags-container');
     if (tagsContainer) {
         if (jogoNoFeed && jogoNoFeed.release?.tags?.length > 0) {
@@ -1238,15 +1365,19 @@ function renderizarDestaque(destaques) {
     // 2. Tamanho
     document.getElementById('featured-size').textContent = jogoNoFeed ? jogoNoFeed.size : 'N/A';
 
-    // 3. Nota Steam Ampliada
+    // 3. Nota Steam Ampliada (Estilo idêntico ao Hero do Modal)
     const nota = top1.rating || 0;
     const ratingEl = document.getElementById('featured-rating');
     const ratingBadge = document.getElementById('featured-rating-badge');
+
     if (ratingEl && ratingBadge) {
         if (nota > 0) {
             const cores = getMetacriticColor(nota);
             ratingEl.textContent = nota;
-            ratingEl.className = `font-rajdhani font-black text-base sm:text-lg px-2.5 py-1 rounded-md text-white shadow-2xl tracking-wider border ${cores.border} ${cores.bg}`;
+            
+            // Aplica o mesmo estilo de container quadrado com borda 2px, sombra e gradiente/cor do modal
+            ratingBadge.className = `absolute top-3 right-3 sm:top-4 sm:right-4 z-20 flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center rounded-lg border-2 ${cores.border} ${cores.bg} shadow-xl [text-shadow:0_1px_3px_rgba(0,0,0,0.8)] cursor-pointer`;
+            
             ratingBadge.classList.remove('hidden');
         } else {
             ratingBadge.classList.add('hidden');
@@ -1260,6 +1391,11 @@ function renderizarDestaque(destaques) {
     // 5. Data de Lançamento
     const dataLanc = top1.release_date?.date || 'N/A';
     document.getElementById('featured-release-date').textContent = formatarDataRelativa(dataLanc);
+
+    // --- EXTRAÇÃO DINÂMICA DE COR DA IMAGEM DO HEADER ---
+    extrairCorDestaque(headerImageUrl, (corRgb) => {
+        aplicarCorDestaque(corRgb);
+    });
 
     sec.classList.remove('hidden');
 }
