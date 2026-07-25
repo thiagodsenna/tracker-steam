@@ -408,7 +408,7 @@ function parseFeedlyItem(item, index) {
 
 function criarCardJogo(jogo) {
     const card = document.createElement('div');
-    const isNew = isJogoNovo(jogo); // <-- VERIFICAÇÃO SE É NOVO
+    const isNew = isJogoNovo(jogo);
     
     // Borda verde e sombra adicionadas dinamicamente caso isNew seja true
     card.className = `bg-neutral-900 border ${isNew ? 'border-emerald-700' : 'border-neutral-800'} rounded-lg overflow-hidden cursor-pointer relative hover:border-emerald-500/50 transition-all`;
@@ -430,26 +430,41 @@ function criarCardJogo(jogo) {
     ` : '';
     // --- FIM: TAG NOVO ---
 
-    // --- INÍCIO: METADADOS ENRIQUECIDOS NOS CARDS COMUNS ---
+    // --- INÍCIO: CARDS LIMPOS APENAS COM ÍCONES E VALORES (SEM LABELS E SEM "%") ---
     let notaBadgeHtml = '';
-    let reviewsHtml = '';
-    let lancamentoHtml = '';
+    let metadadosHtml = '';
 
     if (jogo.steamDetails) {
         if (jogo.steamDetails.rating > 0) {
             const cores = getMetacriticColor(jogo.steamDetails.rating);
-            notaBadgeHtml = `<div class="absolute top-2 right-2 ${cores.bg} border ${cores.border} text-white font-mono font-black text-[11px] px-1.5 py-0.5 rounded shadow-md z-10">${jogo.steamDetails.rating}</div>`;
+            // Removido o símbolo de "%" da nota
+            notaBadgeHtml = `<div title="Nota Steam" class="absolute top-2 right-2 ${cores.bg} border ${cores.border} text-white font-mono font-black text-[11px] px-1.5 py-0.5 rounded shadow-md z-10 flex items-center gap-1"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span>${jogo.steamDetails.rating}</span></div>`;
         }
+        
+        let badges = [];
+        // Tamanho (Ícone Download)
+        if (jogo.size && jogo.size !== '...') {
+            badges.push(`<span title="Tamanho" class="inline-flex items-center gap-1 bg-neutral-950/80 border border-neutral-800/80 px-1.5 py-0.5 rounded text-[10px] text-neutral-300 font-semibold"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400 shrink-0"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>${jogo.size}</span>`);
+        }
+        // Avaliações (Ícone Comentários)
         if (jogo.steamDetails.total_reviews > 0) {
             const revCount = jogo.steamDetails.total_reviews > 1000 ? `${(jogo.steamDetails.total_reviews/1000).toFixed(1)}k` : jogo.steamDetails.total_reviews;
-            reviewsHtml = `<span class="inline-flex items-center gap-1 text-[10px] text-neutral-400 font-mono bg-black/60 px-1.5 py-0.5 rounded backdrop-blur"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-sky-400"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>${revCount}</span>`;
+            badges.push(`<span title="Avaliações" class="inline-flex items-center gap-1 bg-neutral-950/80 border border-neutral-800/80 px-1.5 py-0.5 rounded text-[10px] text-neutral-300 font-semibold"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-sky-400 shrink-0"><path d="M21 15v4a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1-2-2h14a2 2 0 0 1 2 2z"/></svg>${revCount}</span>`);
         }
+        // Lançamento (Ícone Calendário - SEM label)
         if (jogo.steamDetails.release_date?.date) {
-            lancamentoHtml = `<div class="text-[10px] text-neutral-500 font-medium truncate mt-0.5">Lançamento: ${formatarDataRelativa(jogo.steamDetails.release_date.date)}</div>`;
+            badges.push(`<span title="Lançamento" class="inline-flex items-center gap-1 bg-neutral-950/80 border border-neutral-800/80 px-1.5 py-0.5 rounded text-[10px] text-neutral-300 font-semibold truncate"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-purple-400 shrink-0"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${formatarDataRelativa(jogo.steamDetails.release_date.date)}</span>`);
         }
-    }
-    // --- FIM: METADADOS ENRIQUECIDOS NOS CARDS COMUNS ---
 
+        if (badges.length > 0) {
+            metadadosHtml = `<div class="flex flex-wrap items-center gap-1 mt-1.5">${badges.join('')}</div>`;
+        }
+    } else if (jogo.size && jogo.size !== '...') {
+        metadadosHtml = `<div class="flex flex-wrap items-center gap-1 mt-1.5"><span title="Tamanho" class="inline-flex items-center gap-1 bg-neutral-950/80 border border-neutral-800/80 px-1.5 py-0.5 rounded text-[10px] text-neutral-300 font-semibold"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400 shrink-0"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>${jogo.size}</span></div>`;
+    }
+    // --- FIM: CARDS LIMPOS ---
+
+    // REMOVIDO o campo "Postado" (jogo.date) que ficava sobre a foto no canto inferior direito
     card.innerHTML = `
         <div class="aspect-[3/4] bg-neutral-950 relative">
             ${tagNovoHtml}
@@ -468,13 +483,9 @@ function criarCardJogo(jogo) {
                  " 
                  class="w-full object-cover">
         </div>
-        <div class="absolute bottom-16 right-2 flex flex-col items-end gap-1 z-10">
-            ${reviewsHtml}
-            <div class="bg-black/80 backdrop-blur px-1.5 py-0.5 rounded text-[9px] font-mono text-emerald-400 border border-neutral-800">${jogo.date}</div>
-        </div>
         <div class="p-3">
             <div class="font-bold text-xs line-clamp-2 text-neutral-200" title="${jogo.title}">${jogo.title}</div>
-            ${lancamentoHtml}
+            ${metadadosHtml}
         </div>
     `;
     return card;
@@ -482,9 +493,9 @@ function criarCardJogo(jogo) {
 
 function criarCardJogoCompacto(jogo) {
     const card = document.createElement('div');
-    const isNew = isJogoNovo(jogo); // <-- VERIFICAÇÃO SE É NOVO
+    const isNew = isJogoNovo(jogo);
 
-    card.className = `bg-neutral-900 border ${isNew ? 'border-emerald-800' : 'border-neutral-800'} rounded-md overflow-hidden cursor-pointer relative hover:border-emerald-500/50 transition-all p-2.5 flex gap-4 sm:gap-5 w-full group/card`;
+    card.className = `bg-neutral-900 border ${isNew ? 'border-emerald-800' : 'border-neutral-800'} rounded-md overflow-hidden cursor-pointer relative hover:border-emerald-500/50 transition-all p-2.5 flex gap-3 sm:gap-4 w-full group/card`;
     card.onclick = () => abrirModal(jogosCarregados.findIndex(j => j.feedlyId === jogo.feedlyId));
     
     const fallbackFinal = jogo.fallbackImage || (jogo.steamId ? `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${jogo.steamId}/header.jpg` : 'https://store.fastly.steamstatic.com/public/images/v6/app_default_header.jpg');
@@ -502,10 +513,38 @@ function criarCardJogoCompacto(jogo) {
     let tagsHtml = '';
     if (jogo.release.tags && jogo.release.tags.length > 0) {
         tagsHtml = jogo.release.tags.map(tag => `
-            <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-semibold px-1 py-0.5 rounded shadow-sm block mb-1">
+            <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] sm:text-[10px] font-semibold px-1 py-0.5 rounded shadow-sm block mb-1">
                 ${tag.toUpperCase()}
             </span>`).join('');
     }
+
+    // --- INÍCIO: BADGES COMPACTAS APENAS COM ÍCONES (SEM LABELS E SEM POSTADO) ---
+    let versaoCompactoHtml = '';
+    if (jogo.release.versao) {
+        versaoCompactoHtml = `<span title="Versão" class="inline-flex items-center gap-1 bg-neutral-950 border border-neutral-800 px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] text-neutral-300 font-semibold"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400 shrink-0"><path d="m15 5 4 4"/><path d="M13 7 8.7 11.3a2.1 2.1 0 0 0-.6 1.5v3.2c0 .6.4 1 1 1h3.2c.6 0 1-.2 1.5-.6L18.1 12"/><path d="m13 15 2 2"/><path d="M2 2l20 20"/></svg>${jogo.release.versao}</span>`;
+    }
+
+    let tamanhoCompactoHtml = `<span title="Tamanho" class="inline-flex items-center gap-1 bg-neutral-950 border border-neutral-800 px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] text-neutral-300 font-semibold"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400 shrink-0"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>${jogo.size}</span>`;
+
+    let notaCompactoHtml = '';
+    let revCompactoHtml = '';
+    let lancCompactoHtml = '';
+
+    if (jogo.steamDetails) {
+        if (jogo.steamDetails.rating > 0) {
+            const cores = getMetacriticColor(jogo.steamDetails.rating);
+            // Removido o "%" e a label
+            notaCompactoHtml = `<span title="Nota Steam" class="inline-flex items-center gap-1 font-mono font-bold text-white text-[10px] sm:text-[11px] px-1.5 py-0.5 rounded ${cores.bg} border ${cores.border}"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="none" class="text-white shrink-0"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>${jogo.steamDetails.rating}</span>`;
+        }
+        if (jogo.steamDetails.total_reviews > 0) {
+            const revCount = jogo.steamDetails.total_reviews > 1000 ? `${(jogo.steamDetails.total_reviews/1000).toFixed(1)}k` : jogo.steamDetails.total_reviews;
+            revCompactoHtml = `<span title="Avaliações" class="inline-flex items-center gap-1 bg-neutral-950 border border-neutral-800 px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] text-neutral-300 font-semibold"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-sky-400 shrink-0"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>${revCount}</span>`;
+        }
+        if (jogo.steamDetails.release_date?.date) {
+            lancCompactoHtml = `<span title="Lançamento" class="inline-flex items-center gap-1 bg-neutral-950 border border-neutral-800 px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] text-neutral-300 font-semibold truncate max-w-[130px]"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-purple-400 shrink-0"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${formatarDataRelativa(jogo.steamDetails.release_date.date)}</span>`;
+        }
+    }
+    // --- FIM: BADGES COMPACTAS ---
 
     let html = `
         <div class="w-16 h-24 sm:w-[88px] sm:h-32 shrink-0 bg-neutral-950 rounded overflow-hidden relative border border-neutral-950">
@@ -517,61 +556,17 @@ function criarCardJogoCompacto(jogo) {
         </div>
         <div class="flex flex-col justify-between min-w-0 flex-1 relative py-0 pr-1">
             <div class="w-full pr-12">
-                <div class="font-rajdhani font-bold text-base text-white tracking-tight leading-tight" title="${jogo.title}">
+                <div class="font-rajdhani font-bold text-base sm:text-lg text-white tracking-tight leading-tight truncate" title="${jogo.title}">
                     ${jogo.release.tituloOriginal.toUpperCase()}
                 </div>
             </div>
-            <div class="flex flex-wrap gap-x-6 sm:gap-x-8 gap-y-1.5 mt-3 sm:mt-4 w-full">`;
-
-    if (jogo.release.versao) {
-        html += `
-                <div class="flex flex-col text-[11px]">
-                    <span class="text-neutral-500">Versão</span>
-                    <span class="text-neutral-300 font-medium">${jogo.release.versao}</span>
-                </div>`;
-    }
-
-    let notaCompactoHtml = '';
-    let revCompactoHtml = '';
-    let lancCompactoHtml = '';
-
-    if (jogo.steamDetails) {
-        if (jogo.steamDetails.rating > 0) {
-            const cores = getMetacriticColor(jogo.steamDetails.rating);
-            notaCompactoHtml = `
-                <div class="flex flex-col text-[11px]">
-                    <span class="text-neutral-500">Nota Steam</span>
-                    <span class="font-bold text-white px-1.5 py-0.2 rounded w-fit ${cores.bg}">${jogo.steamDetails.rating}%</span>
-                </div>`;
-        }
-        if (jogo.steamDetails.total_reviews > 0) {
-            revCompactoHtml = `
-                <div class="flex flex-col text-[11px]">
-                    <span class="text-neutral-500">Avaliações</span>
-                    <span class="text-neutral-300 font-medium">${jogo.steamDetails.total_reviews.toLocaleString('pt-BR')}</span>
-                </div>`;
-        }
-        if (jogo.steamDetails.release_date?.date) {
-            lancCompactoHtml = `
-                <div class="flex flex-col text-[11px]">
-                    <span class="text-neutral-500">Lançamento</span>
-                    <span class="text-neutral-300 font-medium truncate max-w-[120px]">${formatarDataRelativa(jogo.steamDetails.release_date.date)}</span>
-                </div>`;
-        }
-    }
-
-    html += `
-                <div class="flex flex-col text-[11px]">
-                    <span class="text-neutral-500">Tamanho</span>
-                    <span class="text-neutral-300 font-medium">${jogo.size}</span>
-                </div>
+            <!-- Lista horizontal de Badges sem labels e sem o campo Postado -->
+            <div class="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-2 sm:mt-3 w-full">
+                ${versaoCompactoHtml}
+                ${tamanhoCompactoHtml}
                 ${notaCompactoHtml}
                 ${revCompactoHtml}
                 ${lancCompactoHtml}
-                <div class="flex flex-col text-[11px]">
-                    <span class="text-neutral-500">Postado</span>
-                    <span class="text-emerald-400 font-medium">${jogo.date}</span>
-                </div>
             </div>
         </div>
         ${tagsHtml ? `<div class="absolute top-2.5 right-2.5 flex flex-col items-end z-10">${tagsHtml}</div>` : ''}
@@ -1132,35 +1127,61 @@ let destaqueAtualObj = null;
 
 function renderizarDestaque(destaques) {
     const sec = document.getElementById('featured-section');
-    if (!sec || !destaques || destaques.length === 0) {
-        if (sec) sec.classList.add('hidden');
+    const globalBg = document.getElementById('global-featured-bg');
+    if (!sec) return;
+
+    // 1º: Regra de prioridade absoluta no Frontend para releases contendo "voices38"
+    const jogoVoices38 = jogosCarregados.find(j => /voices38/i.test(j.title));
+    let top1 = null;
+
+    if (jogoVoices38) {
+        top1 = {
+            name: jogoVoices38.release?.tituloOriginal || jogoVoices38.title,
+            steamId: jogoVoices38.steamId,
+            header_image: jogoVoices38.cover || jogoVoices38.rawCover,
+            background_raw: jogoVoices38.steamDetails?.background_raw || '',
+            rating: jogoVoices38.steamDetails?.rating || 0,
+            total_reviews: jogoVoices38.steamDetails?.total_reviews || 0,
+            release_date: jogoVoices38.steamDetails?.release_date || null
+        };
+        if (jogoVoices38.steamDetails?.name) {
+            top1.name = jogoVoices38.steamDetails.name;
+        }
+    } else if (destaques && destaques.length > 0) {
+        top1 = destaques[0];
+    }
+
+    if (!top1) {
+        sec.classList.add('hidden');
+        if (globalBg) globalBg.classList.add('hidden');
         return;
     }
 
-    // Pega o Top 1 da lista (pode ser expandido facilmente para um carrossel no futuro)
-    const top1 = destaques[0];
     destaqueAtualObj = top1;
 
-    // Procura se o jogo está carregado na nossa lista atual do Feedly para extrair tamanho e data de postagem
-    const jogoNoFeed = jogosCarregados.find(j => j.steamId == top1.steamId);
+    // Procura se o jogo está no feed atual para pegar tamanho e data de postagem
+    const jogoNoFeed = jogosCarregados.find(j => j.steamId == top1.steamId || (top1.name && j.title.toLowerCase().includes(top1.name.toLowerCase())));
 
     document.getElementById('featured-title').textContent = top1.name || 'Destaque';
     document.getElementById('featured-img').src = top1.header_image || '';
     
-    // Configura o Background Raw (degradê azulado/temático)
-    const bgEl = document.getElementById('featured-bg');
-    if (bgEl && top1.background_raw) {
-        bgEl.style.backgroundImage = `url('${top1.background_raw}')`;
+    // Aplica o background_raw da Steam na camada global (cabeçalho + banner)
+    if (globalBg && top1.background_raw) {
+        globalBg.style.backgroundImage = `url('${top1.background_raw}')`;
+        globalBg.classList.remove('hidden');
+    } else if (globalBg && top1.header_image) {
+        globalBg.style.backgroundImage = `url('${top1.header_image}')`;
+        globalBg.classList.remove('hidden');
     }
 
-    // Preenche as Tags da direita
     document.getElementById('featured-size').textContent = jogoNoFeed ? jogoNoFeed.size : 'N/A';
     document.getElementById('featured-posted').textContent = jogoNoFeed ? jogoNoFeed.date : 'Recente';
     
     const nota = top1.rating || 0;
     const ratingEl = document.getElementById('featured-rating');
     if (ratingEl) {
-        ratingEl.textContent = nota > 0 ? `${nota}%` : 'N/A';
+        // Removido o símbolo de "%" da nota no destaque também
+        ratingEl.textContent = nota > 0 ? `${nota}` : 'N/A';
         if (nota > 0) {
             const cores = getMetacriticColor(nota);
             ratingEl.className = `font-mono font-black px-1.5 py-0.5 rounded text-white ${cores.bg}`;

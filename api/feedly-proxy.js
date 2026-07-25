@@ -123,20 +123,25 @@ export default async function handler(req, res) {
                           // =================================================================
                           // --- NOVO: CÁLCULO DE RESERVA DE DESTAQUES (AUTO-ABASTECIMENTO) ---
                           // =================================================================
-                          // Se o cron ainda não gerou destaques no KV, mas já temos jogos no cache da Steam, calcula na hora!
                           if (destaquesHome.length === 0 && Object.keys(steamCache).length > 0) {
                               try {
                                   const listaJogos = Object.entries(steamCache).map(([id, dados]) => {
                                       const nota = dados.rating || 0;
                                       const revs = Math.max(dados.total_reviews || 1, 1);
-                                      const score = (nota * 0.7) + (Math.log10(revs) * 10 * 0.3);
+                                      let score = (nota * 0.7) + (Math.log10(revs) * 10 * 0.3);
+
+                                      // Prioridade absoluta para releases contendo "voices38"
+                                      const temVoices38 = data.items && data.items.some(i => 
+                                          /voices38/i.test(i.title || '') && (i.content?.content || i.summary?.content || '').includes(id)
+                                      );
+                                      if (temVoices38) score += 100000;
+
                                       return { steamId: id, score, ...dados };
                                   });
 
                                   listaJogos.sort((a, b) => b.score - a.score);
                                   destaquesHome = listaJogos.slice(0, 5);
 
-                                  // Salva no KV para as próximas requisições serem instantâneas
                                   if (destaquesHome.length > 0) {
                                       await fetch(`${KV_URL}/set/destaques_home`, {
                                           method: 'POST',
