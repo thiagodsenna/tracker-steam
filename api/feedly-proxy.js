@@ -120,9 +120,7 @@ export default async function handler(req, res) {
                               }
                           }
 
-                          // =================================================================
                           // --- NOVO: CÁLCULO DE RESERVA DE DESTAQUES (AUTO-ABASTECIMENTO) ---
-                          // =================================================================
                           if (destaquesHome.length === 0 && Object.keys(steamCache).length > 0) {
                               try {
                                   const listaJogos = Object.entries(steamCache).map(([id, dados]) => {
@@ -136,7 +134,13 @@ export default async function handler(req, res) {
                                       );
                                       if (temVoices38) score += 100000;
 
-                                      return { steamId: id, score, ...dados };
+                                      return { 
+                                          steamId: id, 
+                                          score, 
+                                          ...dados,
+                                          // Garante que o background_raw da Steam seja injetado obrigatoriamente aqui
+                                          background_raw: dados.background_raw || dados.background || '' 
+                                      };
                                   });
 
                                   listaJogos.sort((a, b) => b.score - a.score);
