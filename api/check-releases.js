@@ -154,7 +154,7 @@ export default async function handler(req, res) {
                         steamCache[steamId] = {
                             name: gData.name,
                             header_image: gData.header_image,
-                            background_raw: gData.background_raw || gData.background || `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${steamId}/page_bg_raw.jpg`,
+                            background_raw: gData.background_raw || gData.background || '',
                             release_date: gData.release_date,
                             genres: gData.genres || [],
                             developers: gData.developers || [],

@@ -1130,7 +1130,7 @@ function renderizarDestaque(destaques) {
     const globalBg = document.getElementById('global-featured-bg');
     if (!sec) return;
 
-    // 1º: Regra de prioridade absoluta no Frontend para releases contendo "voices38"
+    // Regra de prioridade absoluta para releases contendo "voices38"
     const jogoVoices38 = jogosCarregados.find(j => /voices38/i.test(j.title));
     let top1 = null;
 
@@ -1139,8 +1139,7 @@ function renderizarDestaque(destaques) {
             name: jogoVoices38.release?.tituloOriginal || jogoVoices38.title,
             steamId: jogoVoices38.steamId,
             header_image: jogoVoices38.cover || jogoVoices38.rawCover,
-            // Puxa do cache ou gera a URL oficial do background raw diretamente pelo Steam ID
-            background_raw: jogoVoices38.steamDetails?.background_raw || (jogoVoices38.steamId ? `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${jogoVoices38.steamId}/page_bg_raw.jpg` : ''),
+            background_raw: jogoVoices38.steamDetails?.background_raw || '',
             rating: jogoVoices38.steamDetails?.rating || 0,
             total_reviews: jogoVoices38.steamDetails?.total_reviews || 0,
             release_date: jogoVoices38.steamDetails?.release_date || null
@@ -1159,14 +1158,13 @@ function renderizarDestaque(destaques) {
     }
 
     destaqueAtualObj = top1;
-
     const jogoNoFeed = jogosCarregados.find(j => j.steamId == top1.steamId || (top1.name && j.title.toLowerCase().includes(top1.name.toLowerCase())));
 
     document.getElementById('featured-title').textContent = top1.name || 'Destaque';
     document.getElementById('featured-img').src = top1.header_image || '';
     
-    // Se por acaso o cache for antigo e vier vazio, monta a URL direta da Steam no formato page_bg_raw.jpg
-    const bgRawUrl = top1.background_raw || (top1.steamId ? `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${top1.steamId}/page_bg_raw.jpg` : '');
+    // Usa diretamente a URL pronta que veio da Steam
+    const bgRawUrl = top1.background_raw || '';
 
     if (globalBg && bgRawUrl) {
         globalBg.style.backgroundImage = `url('${bgRawUrl}')`;
