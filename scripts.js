@@ -410,11 +410,10 @@ function criarCardJogo(jogo) {
     const card = document.createElement('div');
     const isNew = isJogoNovo(jogo);
     
-    // Borda verde e sombra adicionadas dinamicamente caso isNew seja true
-    card.className = `bg-neutral-900 border ${isNew ? 'border-emerald-700' : 'border-neutral-800'} rounded-lg overflow-hidden cursor-pointer relative hover:border-emerald-500/50 transition-all`;
+    // Borda e efeito do card padronizados com as alterações manuais do card compacto
+    card.className = `bg-neutral-900 border ${isNew ? 'border-emerald-800/50' : 'border-neutral-800'} rounded-lg overflow-hidden cursor-pointer relative hover:border-emerald-500/50 transition-all`;
     card.onclick = () => abrirModal(jogosCarregados.findIndex(j => j.feedlyId === jogo.feedlyId));
     
-    // Define o fallback padrão final de segurança (massa de manobra se tudo falhar)
     const fallbackFinal = jogo.fallbackImage || (jogo.steamId ? `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${jogo.steamId}/header.jpg` : 'https://store.fastly.steamstatic.com/public/images/v6/app_default_header.jpg');
     
     const removeBtnHtml = fonteAtual === 'wishlist' ? `
@@ -422,51 +421,55 @@ function criarCardJogo(jogo) {
             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
         </button>
     ` : '';
-    // --- FIM: ÍCONE DE REMOÇÃO DA WISHLIST ---
 
-    // --- INÍCIO: TAG NOVO ---
+    // 1) Tag NOVO (Canto Superior Direito da Capa)
     const tagNovoHtml = isNew ? `
-        <span class="absolute top-0 left-0 z-20 bg-emerald-600 text-neutral-950 font-rajdhani font-black text-[13px] px-3.5 py-0.5 rounded shadow-lg tracking-wider uppercase">NOVO</span>
+        <span class="absolute top-0 right-0 z-20 bg-neutral-900 text-neutral-250 font-rajdhani font-black text-[12px] sm:text-[9px] px-2.5 py-1.5 pb-[4px] shadow-md tracking-wider uppercase">NOVO</span>
     ` : '';
-    // --- FIM: TAG NOVO ---
 
-    // --- INÍCIO: CARDS LIMPOS APENAS COM ÍCONES E VALORES (SEM LABELS E SEM "%") ---
+    // 2) Badge de Nota (Canto Superior Esquerdo da Capa - Estilo Destaque/Rajdhani)
     let notaBadgeHtml = '';
-    let metadadosHtml = '';
+    if (jogo.steamDetails && jogo.steamDetails.rating > 0) {
+        const cores = getMetacriticColor(jogo.steamDetails.rating);
+        notaBadgeHtml = `
+            <div title="Nota Steam: ${jogo.steamDetails.rating}" class="absolute top-0 left-0 z-20 flex h-19 w-10 sm:h-6 sm:w-7 items-center justify-center rounded-[4px] border ${cores.border} ${cores.bg} shadow-md">
+                <span class="font-rajdhani font-black text-[20px] text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">${jogo.steamDetails.rating}</span>
+            </div>
+        `;
+    }
+
+    // 3) Construção das Badges Informativas (Ícones text-emerald-700 e gap-1.5)
+    let badges = [];
+
+    // Versão (Ícone Tag)
+    if (jogo.release.versao) {
+        badges.push(`<span title="Versão" class="inline-flex items-center gap-1.5 bg-neutral-950 border border-neutral-800 px-1.5 py-1 rounded text-[10px] text-neutral-300 font-semibold"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-700 shrink-0"><path d="M12 2H2v10l11 11 10-10L12 2z"/><circle cx="7" cy="7" r="2"/></svg>${jogo.release.versao}</span>`);
+    }
+
+    // Tamanho (Ícone Download)
+    if (jogo.size && jogo.size !== '...') {
+        badges.push(`<span title="Tamanho" class="inline-flex items-center gap-1.5 bg-neutral-950 border border-neutral-800 px-1.5 py-1 rounded text-[10px] text-neutral-300 font-semibold"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-700 shrink-0"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>${jogo.size}</span>`);
+    }
 
     if (jogo.steamDetails) {
-        if (jogo.steamDetails.rating > 0) {
-            const cores = getMetacriticColor(jogo.steamDetails.rating);
-            // Removido o símbolo de "%" da nota
-            notaBadgeHtml = `<div title="Nota Steam" class="absolute top-2 right-2 ${cores.bg} border ${cores.border} text-white font-mono font-black text-[11px] px-1.5 py-0.5 rounded shadow-md z-10 flex items-center gap-1"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span>${jogo.steamDetails.rating}</span></div>`;
-        }
-        
-        let badges = [];
-        // Tamanho (Ícone Download)
-        if (jogo.size && jogo.size !== '...') {
-            badges.push(`<span title="Tamanho" class="inline-flex items-center gap-1 bg-neutral-950/80 border border-neutral-800/80 px-1.5 py-0.5 rounded text-[10px] text-neutral-300 font-semibold"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400 shrink-0"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>${jogo.size}</span>`);
-        }
-        // Avaliações (Ícone Comentários)
+        // Avaliações (Ícone Comentários Proporcional)
         if (jogo.steamDetails.total_reviews > 0) {
             const revCount = jogo.steamDetails.total_reviews > 1000 ? `${(jogo.steamDetails.total_reviews/1000).toFixed(1)}k` : jogo.steamDetails.total_reviews;
-            badges.push(`<span title="Avaliações" class="inline-flex items-center gap-1 bg-neutral-950/80 border border-neutral-800/80 px-1.5 py-0.5 rounded text-[10px] text-neutral-300 font-semibold"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-sky-400 shrink-0"><path d="M21 15v4a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1-2-2h14a2 2 0 0 1 2 2z"/></svg>${revCount}</span>`);
+            badges.push(`<span title="Avaliações" class="inline-flex items-center gap-1.5 bg-neutral-950 border border-neutral-800 px-1.5 py-1 rounded text-[10px] text-neutral-300 font-semibold"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-700 shrink-0"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>${revCount}</span>`);
         }
-        // Lançamento (Ícone Calendário - SEM label)
+        // Lançamento (Ícone Calendário)
         if (jogo.steamDetails.release_date?.date) {
-            badges.push(`<span title="Lançamento" class="inline-flex items-center gap-1 bg-neutral-950/80 border border-neutral-800/80 px-1.5 py-0.5 rounded text-[10px] text-neutral-300 font-semibold truncate"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-purple-400 shrink-0"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${formatarDataRelativa(jogo.steamDetails.release_date.date)}</span>`);
+            badges.push(`<span title="Lançamento" class="inline-flex items-center gap-1.5 bg-neutral-950 border border-neutral-800 px-1.5 py-1 rounded text-[10px] text-neutral-300 font-semibold truncate"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-700 shrink-0"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${formatarDataRelativa(jogo.steamDetails.release_date.date)}</span>`);
         }
-
-        if (badges.length > 0) {
-            metadadosHtml = `<div class="flex flex-wrap items-center gap-1 mt-1.5">${badges.join('')}</div>`;
-        }
-    } else if (jogo.size && jogo.size !== '...') {
-        metadadosHtml = `<div class="flex flex-wrap items-center gap-1 mt-1.5"><span title="Tamanho" class="inline-flex items-center gap-1 bg-neutral-950/80 border border-neutral-800/80 px-1.5 py-0.5 rounded text-[10px] text-neutral-300 font-semibold"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400 shrink-0"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>${jogo.size}</span></div>`;
     }
-    // --- FIM: CARDS LIMPOS ---
 
-    // REMOVIDO o campo "Postado" (jogo.date) que ficava sobre a foto no canto inferior direito
+    let metadadosHtml = '';
+    if (badges.length > 0) {
+        metadadosHtml = `<div class="flex flex-wrap items-center gap-1.5 mt-2">${badges.join('')}</div>`;
+    }
+
     card.innerHTML = `
-        <div class="aspect-[3/4] bg-neutral-950 relative">
+        <div class="aspect-[3/4] bg-neutral-950 relative overflow-hidden">
             ${tagNovoHtml}
             ${removeBtnHtml}
             ${notaBadgeHtml}
@@ -481,9 +484,9 @@ function criarCardJogo(jogo) {
                        this.onerror = null;
                    }
                  " 
-                 class="w-full object-cover">
+                 class="w-full h-full object-cover">
         </div>
-        <div class="p-3">
+        <div class="p-2">
             <div class="font-bold text-xs line-clamp-2 text-neutral-200" title="${jogo.title}">${jogo.title}</div>
             ${metadadosHtml}
         </div>
