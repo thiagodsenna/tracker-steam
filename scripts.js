@@ -1138,7 +1138,6 @@ function renderizarDestaque(destaques) {
         top1 = {
             name: jogoVoices38.release?.tituloOriginal || jogoVoices38.title,
             steamId: jogoVoices38.steamId,
-            // Garante que a imagem do banner seja estritamente da Steam ou use o fallback oficial pelo ID
             header_image: jogoVoices38.steamDetails?.header_image || (jogoVoices38.steamId ? `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${jogoVoices38.steamId}/header.jpg` : ''),
             background_raw: jogoVoices38.steamDetails?.background_raw || jogoVoices38.steamDetails?.background || '',
             rating: jogoVoices38.steamDetails?.rating || 0,
@@ -1164,13 +1163,13 @@ function renderizarDestaque(destaques) {
     document.getElementById('featured-title').textContent = top1.name || 'Destaque';
     document.getElementById('featured-img').src = top1.header_image || (top1.steamId ? `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${top1.steamId}/header.jpg` : '');
     
-    // --- BLINDAGEM ABSOLUTA: REJEITA QUALQUER URL DO SKIDROW OU PROXY NO BACKGROUND ---
+    // --- BACKGROUND CORRETO: Usa o background_raw real da Steam ou o endpoint oficial de background da app ---
     let bgRawUrl = top1.background_raw || '';
 
-    // Se vier vazio ou se contiver qualquer vestígio do Skidrow/Proxy, força estritamente o header ou banner oficial da Steam
-    if (!bgRawUrl || bgRawUrl.includes('skidrowreloaded') || bgRawUrl.includes('cover-proxy')) {
+    // Se não houver background_raw no cache, usa o link oficial de background da Steam (nunca o header e nunca o skidrow)
+    if (!bgRawUrl || bgRawUrl.includes('skidrowreloaded') || bgRawUrl.includes('cover-proxy') || bgRawUrl.includes('header.jpg')) {
         if (top1.steamId) {
-            bgRawUrl = `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${top1.steamId}/header.jpg`;
+            bgRawUrl = `https://store.akamai.steamstatic.com/images/storepagebackground/app/${top1.steamId}`;
         } else {
             bgRawUrl = '';
         }
@@ -1182,7 +1181,7 @@ function renderizarDestaque(destaques) {
     } else if (globalBg) {
         globalBg.classList.add('hidden');
     }
-    // -------------------------------------------------------------------------------
+    // ----------------------------------------------------------------------------------------------------
 
     document.getElementById('featured-size').textContent = jogoNoFeed ? jogoNoFeed.size : 'N/A';
     document.getElementById('featured-posted').textContent = jogoNoFeed ? jogoNoFeed.date : 'Recente';
