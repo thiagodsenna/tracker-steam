@@ -26,9 +26,9 @@
 <body class="p-4 sm:p-6 min-h-screen selection:bg-emerald-500/30">
     
     <!-- Background Global do Destaque (fundo do cabeçalho + banner) -->
-    <div id="global-featured-bg" class="absolute top-0 left-0 right-0 h-[340px] sm:h-[420px] bg-cover bg-top bg-no-repeat opacity-70 filter blur-[3px] pointer-events-none transition-all duration-700 hidden -z-10">
-        <div class="absolute inset-0 bg-gradient-to-b from-neutral-950/30 via-neutral-950/80 to-neutral-950"></div>
-        <div class="absolute inset-0 bg-gradient-to-r from-neutral-950 via-transparent to-neutral-950"></div>
+    <div id="global-featured-bg" class="absolute top-0 left-0 right-0 h-[340px] sm:h-[420px] bg-cover bg-top bg-no-repeat opacity-50 filter blur-[8px] pointer-events-none transition-all duration-700 hidden -z-10">
+        <div class="absolute inset-0 bg-gradient-to-b from-neutral-950/100 via-neutral-950/30 to-neutral-950/70"></div>
+        <!-- <div class="absolute inset-0 bg-gradient-to-r from-neutral-950 via-transparent to-neutral-950"></div> -->
     </div>
     
     <!-- Lightbox -->
@@ -96,7 +96,7 @@
         <header class="flex flex-row justify-between items-center gap-3 mb-4 border-b border-neutral-800 pb-4">
             <div class="shrink-0 min-w-0">
                 <h1 class="text-2xl sm:text-2xl font-bold text-white tracking-tight truncate">
-                    <a href="#" onclick="limparBusca(); return false;" class="hover:opacity-80 transition-opacity">
+                    <a href="#" onclick="limparBusca(); return false;" class="inline-block drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] hover:opacity-80 transition-opacity">
                         Releases<span class="text-emerald-500">Tracker</span>
                     </a>
                 </h1>

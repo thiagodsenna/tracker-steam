@@ -1293,8 +1293,13 @@ function renderizarDestaque(destaques) {
     const globalBg = document.getElementById('global-featured-bg');
     if (!sec) return;
 
-    // Regra de prioridade para releases especiais
-    const jogoVoices38 = jogosCarregados.find(j => /voices38/i.test(j.title));
+    // Regra de prioridade para releases especiais (apenas se ocorreu no dia de hoje)
+    const hojeStr = new Date().toDateString();
+    const jogoVoices38 = jogosCarregados.find(j => {
+        const ehVoices = /voices38/i.test(j.title);
+        const foiLancadoHoje = j.published && new Date(j.published).toDateString() === hojeStr;
+        return ehVoices && foiLancadoHoje;
+    });
     let top1 = null;
 
     if (jogoVoices38) {
@@ -1340,13 +1345,14 @@ function renderizarDestaque(destaques) {
 
     // Configuração do Fundo Global
     let bgRawUrl = top1.background_raw || '';
-    if (!bgRawUrl || bgRawUrl.includes('skidrowreloaded') || bgRawUrl.includes('cover-proxy') || bgRawUrl.includes('header.jpg')) {
+     if (!bgRawUrl || bgRawUrl.includes('skidrowreloaded') || bgRawUrl.includes('cover-proxy') || bgRawUrl.includes('header.jpg')) {
         if (top1.steamId) {
             bgRawUrl = `https://store.akamai.steamstatic.com/images/storepagebackground/app/${top1.steamId}`;
         } else {
             bgRawUrl = '';
         }
     }
+    bgRawUrl = headerImageUrl; //Sobrescrevendo imagem header no lugar da background da steam
 
     if (globalBg && bgRawUrl && !bgRawUrl.includes('skidrowreloaded') && !bgRawUrl.includes('cover-proxy')) {
         globalBg.style.backgroundImage = `url('${bgRawUrl}')`;
