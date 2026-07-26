@@ -511,7 +511,7 @@ function criarCardJogoCompacto(jogo) {
 
     // Tag NOVO (Canto Superior Direito)
     const tagNovoHtml = isNew ? `
-        <span class="absolute top-0 right-0 z-20 bg-neutral-900 text-neutral-250 font-rajdhani font-black text-[8px] sm:text-[9px] px-1.5 py-0.5 pb-[1px] shadow-md tracking-wider uppercase">NOVO</span>
+        <span class="absolute top-0 left-0 z-20 bg-neutral-900 text-neutral-250 font-rajdhani font-black text-[8px] sm:text-[9px] px-1.5 py-0.5 pb-[1px] shadow-md tracking-wider uppercase">NOVO</span>
     ` : '';
 
     // Badge de Nota (Canto Superior Esquerdo)
@@ -566,7 +566,7 @@ function criarCardJogoCompacto(jogo) {
         // 5) Nota compacta
         if (jogo.steamDetails?.rating) {
             const corNota = getMetacriticColor(jogo.steamDetails.rating);
-            notaCompactoHtml = `<span title="Nota" class="inline-flex items-center gap-1 bg-neutral-950 border border-neutral-800 px-1.5 py-1 rounded text-[10px] sm:text-[11px] text-neutral-400 font-semibold shrink-0"><svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="currentColor" class="${corNota.text} shrink-0"><circle cx="12" cy="12" r="10"/></svg>${jogo.steamDetails.rating}%</span>`;
+            notaCompactoHtml = `<span title="Nota" class="inline-flex items-center gap-1.5 bg-neutral-950 border border-neutral-800 px-1.5 py-1 rounded text-[10px] sm:text-[11px] text-neutral-400 font-semibold shrink-0"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-700 shrink-0"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>${jogo.steamDetails.rating}%</span>`;
         }
     }
 
@@ -587,7 +587,7 @@ function criarCardJogoCompacto(jogo) {
                 </div>
             </div>
             <!-- Container das badges em linha única com scrollbar customizado no hover -->
-            <div class="flex items-center gap-1.5 sm:gap-2 mt-2 sm:mt-3 w-full overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden group-hover/card:[scrollbar-width:thin] group-hover/card:[scrollbar-color:theme(colors.neutral.600)_transparent] group-hover/card:[&::-webkit-scrollbar]:block group-hover/card:[&::-webkit-scrollbar]:h-[2px] group-hover/card:[&::-webkit-scrollbar-track]:bg-transparent group-hover/card:[&::-webkit-scrollbar-thumb]:bg-neutral-600 group-hover/card:[&::-webkit-scrollbar-thumb]:rounded-full">
+            <div class="flex items-center gap-1 sm:gap-2 mt-2 sm:mt-3 w-full overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden group-hover/card:[scrollbar-width:thin] group-hover/card:[scrollbar-color:theme(colors.neutral.600)_transparent] group-hover/card:[&::-webkit-scrollbar]:block group-hover/card:[&::-webkit-scrollbar]:h-[2px] group-hover/card:[&::-webkit-scrollbar-track]:bg-transparent group-hover/card:[&::-webkit-scrollbar-thumb]:bg-neutral-600 group-hover/card:[&::-webkit-scrollbar-thumb]:rounded-full">
                 ${versaoCompactoHtml}
                 ${notaCompactoHtml}
                 ${revCompactoHtml}
