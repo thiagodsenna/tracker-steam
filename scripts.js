@@ -542,11 +542,11 @@ function criarCardJogoCompacto(jogo) {
     // 1) Ícone de Versão (com shrink-0 para não espremer)
     let versaoCompactoHtml = '';
     if (jogo.release.versao) {
-        versaoCompactoHtml = `<span title="Versão" class="inline-flex items-center gap-1.5 bg-neutral-950 border border-neutral-800 px-1.5 py-1 rounded text-[10px] sm:text-[11px] text-neutral-400 font-semibold shrink-0"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-700 shrink-0"><path d="M12 2H2v10l11 11 10-10L12 2z"/><circle cx="7" cy="7" r="2"/></svg>${jogo.release.versao}</span>`;
+        versaoCompactoHtml = `<span title="Versão" class="inline-flex items-center gap-1.5 bg-neutral-950/80 border border-neutral-800/80 px-1.5 py-1 rounded text-[10px] sm:text-[11px] text-neutral-400 font-semibold shrink-0"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-700 shrink-0"><path d="M12 2H2v10l11 11 10-10L12 2z"/><circle cx="7" cy="7" r="2"/></svg>${jogo.release.versao}</span>`;
     }
 
     // 2) Ícone de Tamanho (com shrink-0)
-    let tamanhoCompactoHtml = `<span title="Tamanho" class="inline-flex items-center gap-1.5 bg-neutral-950 border border-neutral-800 px-1.5 py-1 rounded text-[10px] sm:text-[11px] text-neutral-400 font-semibold shrink-0"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-700 shrink-0"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>${jogo.size}</span>`;
+    let tamanhoCompactoHtml = `<span title="Tamanho" class="inline-flex items-center gap-1.5 bg-neutral-950/80 border border-neutral-800/80 px-1.5 py-1 rounded text-[10px] sm:text-[11px] text-neutral-400 font-semibold shrink-0"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-700 shrink-0"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>${jogo.size}</span>`;
 
     let revCompactoHtml = '';
     let lancCompactoHtml = '';
@@ -556,17 +556,17 @@ function criarCardJogoCompacto(jogo) {
         // 3) Ícone de Avaliações (com shrink-0)
         if (jogo.steamDetails.total_reviews > 0) {
             const revCount = jogo.steamDetails.total_reviews > 1000 ? `${(jogo.steamDetails.total_reviews/1000).toFixed(1)}k` : jogo.steamDetails.total_reviews;
-            revCompactoHtml = `<span title="Avaliações" class="inline-flex items-center gap-1.5 bg-neutral-950 border border-neutral-800 px-1.5 py-1 rounded text-[10px] sm:text-[11px] text-neutral-400 font-semibold shrink-0"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-700 shrink-0"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>${revCount}</span>`;
+            revCompactoHtml = `<span title="Avaliações" class="inline-flex items-center gap-1.5 bg-neutral-950/80 border border-neutral-800/80 px-1.5 py-1 rounded text-[10px] sm:text-[11px] text-neutral-400 font-semibold shrink-0"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-700 shrink-0"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>${revCount}</span>`;
         }
         // 4) Ícone de Lançamento (sem limite máximo e com shrink-0 / whitespace-nowrap)
         if (jogo.steamDetails.release_date?.date) {
-            lancCompactoHtml = `<span title="Lançamento" class="inline-flex items-center gap-1.5 bg-neutral-950 border border-neutral-800 px-1.5 py-1 rounded text-[10px] sm:text-[11px] text-neutral-400 font-semibold shrink-0 whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-700 shrink-0"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${formatarDataRelativa(jogo.steamDetails.release_date.date)}</span>`;
+            lancCompactoHtml = `<span title="Lançamento" class="inline-flex items-center gap-1.5 bg-neutral-950/80 border border-neutral-800/80 px-1.5 py-1 rounded text-[10px] sm:text-[11px] text-neutral-400 font-semibold shrink-0 whitespace-nowrap"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-700 shrink-0"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${formatarDataRelativa(jogo.steamDetails.release_date.date)}</span>`;
         }
 
         // 5) Nota compacta
         if (jogo.steamDetails?.rating) {
             const corNota = getMetacriticColor(jogo.steamDetails.rating);
-            notaCompactoHtml = `<span title="Nota" class="inline-flex items-center gap-1.5 bg-neutral-950 border border-neutral-800 px-1.5 py-1 rounded text-[10px] sm:text-[11px] text-neutral-400 font-semibold shrink-0"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-700 shrink-0"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>${jogo.steamDetails.rating}%</span>`;
+            notaCompactoHtml = `<span title="Nota" class="inline-flex items-center gap-1.5 bg-neutral-950/80 border border-neutral-800/80 px-1.5 py-1 rounded text-[10px] sm:text-[11px] text-neutral-400 font-semibold shrink-0"><svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-700 shrink-0"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>${jogo.steamDetails.rating}%</span>`;
         }
     }
 
