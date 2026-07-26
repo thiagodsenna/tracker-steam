@@ -582,12 +582,12 @@ function criarCardJogoCompacto(jogo) {
         <div class="flex flex-col justify-between min-w-0 flex-1 relative py-0 pr-1">
             <div class="w-full pr-12">
                 ${notaBadgeTituloHtml}
-                <div class="font-rajdhani font-bold text-base sm:text-lg text-white tracking-tight leading-tight truncate" title="${jogo.title}">
+                <div class="font-rajdhani font-bold text-[15px] sm:text-lg text-white tracking-tight leading-tight" title="${jogo.title}">
                     ${jogo.release.tituloOriginal.toUpperCase()}
                 </div>
             </div>
             <!-- Container das badges em linha única com scrollbar customizado no hover -->
-            <div class="flex items-center gap-1.5 sm:gap-2 mt-2 sm:mt-3 w-full overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden group-hover/card:[scrollbar-width:thin] group-hover/card:[&::-webkit-scrollbar]:block group-hover/card:[&::-webkit-scrollbar]:h-1 group-hover/card:[&::-webkit-scrollbar-thumb]:bg-neutral-700 group-hover/card:[&::-webkit-scrollbar-thumb]:rounded-full">
+            <div class="flex items-center gap-1.5 sm:gap-2 mt-2 sm:mt-3 w-full overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden group-hover/card:[scrollbar-width:thin] group-hover/card:[scrollbar-color:theme(colors.neutral.600)_transparent] group-hover/card:[&::-webkit-scrollbar]:block group-hover/card:[&::-webkit-scrollbar]:h-[2px] group-hover/card:[&::-webkit-scrollbar-track]:bg-transparent group-hover/card:[&::-webkit-scrollbar-thumb]:bg-neutral-600 group-hover/card:[&::-webkit-scrollbar-thumb]:rounded-full">
                 ${versaoCompactoHtml}
                 ${notaCompactoHtml}
                 ${revCompactoHtml}
