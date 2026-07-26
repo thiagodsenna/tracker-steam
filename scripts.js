@@ -582,7 +582,7 @@ function criarCardJogoCompacto(jogo) {
         <div class="flex flex-col justify-between min-w-0 flex-1 relative py-0 pr-1">
             <div class="w-full pr-12">
                 ${notaBadgeTituloHtml}
-                <div class="font-rajdhani font-bold text-[15px] sm:text-lg text-white tracking-tight leading-tight" title="${jogo.title}">
+                <div class="font-rajdhani font-bold text-[16px] sm:text-lg text-white tracking-tight leading-tight" title="${jogo.title}">
                     ${jogo.release.tituloOriginal.toUpperCase()}
                 </div>
             </div>
@@ -601,6 +601,25 @@ function criarCardJogoCompacto(jogo) {
 
     card.innerHTML = html;
     return card;
+}
+
+function atualizarVisibilidadeDestaque() {
+    const sec = document.getElementById('featured-section');
+    const globalBg = document.getElementById('global-featured-bg');
+    if (!sec) return;
+    const deveExibir = destaqueAtualObj !== null && fonteAtual === 'feedly' && !termoPesquisado;
+
+    if (deveExibir) {
+        sec.classList.remove('hidden');
+        if (globalBg && globalBg.style.backgroundImage) {
+            globalBg.classList.remove('hidden');
+        }
+    } else {
+        sec.classList.add('hidden');
+        if (globalBg) {
+            globalBg.classList.add('hidden');
+        }
+    }
 }
 
 async function buscarItemFeedlyRemoto(feedlyId) {
@@ -678,16 +697,18 @@ function renderizarJogos() {
     const grid = document.getElementById('grid');
     if (!grid) return;
     
+    // Oculta/Exibe o destaque dependendo da tela atual
+    atualizarVisibilidadeDestaque();
+
     grid.innerHTML = '';
 
-    // --- INÍCIO: CHECAGEM DE WISHLIST VAZIA ---
+    // --- CHECAGEM DE WISHLIST VAZIA ---
     if (jogosCarregados.length === 0) {
         if (fonteAtual === 'wishlist') {
             grid.innerHTML = '<div class="col-span-full text-center py-20 text-neutral-500 text-sm">Sua Wishlist está vazia no momento.<br><span class="text-xs text-neutral-600">Adicione jogos acessando os detalhes de qualquer release.</span></div>';
             return;
         }
     }
-    // --- FIM: CHECAGEM DE WISHLIST VAZIA ---
 
     if (viewMode === 'compact') {
         grid.className = 'grid grid-cols-1 gap-3';
@@ -1429,7 +1450,7 @@ function renderizarDestaque(destaques) {
         aplicarCorDestaque(corRgb);
     });
 
-    sec.classList.remove('hidden');
+    atualizarVisibilidadeDestaque();
 }
 
 function abrirModalDestaque() {
@@ -1638,11 +1659,13 @@ function fecharModalFora(e) { if (e.target.id === 'modal-overlay') fecharModal()
 async function executarBusca(termo) {
     termoPesquisado = termo;
     
-    // --- INÍCIO: ESCONDER BANNER WISHLIST NA BUSCA ---
+    // Oculta o destaque imediatamente ao iniciar a busca (sem esperar a API)
+    atualizarVisibilidadeDestaque();
+
+    // Esconde a tag de filtro da Wishlist se estiver aberta
     document.getElementById('wishlist-filter-tag')?.classList.add('hidden');
-    // --- FIM: ESCONDER BANNER WISHLIST NA BUSCA ---
     
-    // Mostra o container de filtros
+    // Mostra o container de filtros de busca
     const filterTag = document.getElementById('search-filter-tag');
     if (filterTag) filterTag.classList.remove('hidden');
     
@@ -1657,7 +1680,7 @@ async function executarBusca(termo) {
     grid.innerHTML = '<div class="col-span-full text-center py-20 text-emerald-500 animate-pulse">Buscando...</div>';
 
     if (fonteAtual === 'feedly') {
-        // Busca remota no Skidrow via Scraping (substituindo busca Feedly que dá 401)
+        // Busca remota no Skidrow via Scraping
         try {
             const res = await fetch(`${API_BASE_URL}/api/skidrow-search?query=${encodeURIComponent(termo)}`);
             const data = await res.json();
@@ -1696,7 +1719,6 @@ async function executarBusca(termo) {
                 
                 // 3ª opção (Fallback 2): Header Horizontal HD ou a tiny_image original do retorno da API
                 const fallbackImage = item.tiny_image || `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${steamId}/header.jpg`;
-
                 const postLink = `https://store.steampowered.com/app/${steamId}`;
                 const links = [
                     { label: 'Atualizações', url: `https://store.steampowered.com/newshub/?appids=${steamId}` },
