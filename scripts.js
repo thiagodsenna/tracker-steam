@@ -587,7 +587,7 @@ function criarCardJogoCompacto(jogo) {
                 </div>
             </div>
             <!-- Container das badges em linha única com scrollbar customizado no hover -->
-            <div class="flex items-center gap-1 sm:gap-2 mt-2 sm:mt-3 w-full overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden group-hover/card:[scrollbar-width:thin] group-hover/card:[scrollbar-color:theme(colors.neutral.600)_transparent] group-hover/card:[&::-webkit-scrollbar]:block group-hover/card:[&::-webkit-scrollbar]:h-[2px] group-hover/card:[&::-webkit-scrollbar-track]:bg-transparent group-hover/card:[&::-webkit-scrollbar-thumb]:bg-neutral-600 group-hover/card:[&::-webkit-scrollbar-thumb]:rounded-full">
+            <div class="flex items-center gap-1 sm:gap-2 mt-2 sm:mt-3 w-full overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden group-hover/card:[scrollbar-width:thin] group-hover/card:[scrollbar-color:theme(colors.neutral.800)_transparent] group-hover/card:[&::-webkit-scrollbar]:block group-hover/card:[&::-webkit-scrollbar]:h-[1px] group-hover/card:[&::-webkit-scrollbar-track]:bg-transparent group-hover/card:[&::-webkit-scrollbar-thumb]:bg-neutral-800 group-hover/card:[&::-webkit-scrollbar-thumb]:rounded-full">
                 ${versaoCompactoHtml}
                 ${notaCompactoHtml}
                 ${revCompactoHtml}
