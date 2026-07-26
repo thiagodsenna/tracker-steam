@@ -978,7 +978,7 @@ async function abrirModal(id, options = {}) {
 
     // Esconde os botões correspondentes que são assíncronos na barra da navegação
     ['hltb', 'recursos', 'screenshots', 'videos', 'reviews', 'similares'].forEach(sec => {
-        document.getElementById(`shortcut-${sec}`)?.classList.add('hidden');
+        atualizarVisibilidadeAtalho(sec, false);
     });
 
     const metaScoreEl = document.getElementById('modal-metacritic-score');
@@ -997,6 +997,12 @@ async function abrirModal(id, options = {}) {
                 </a>`).join('');
 
     document.getElementById('modal-overlay').classList.remove('hidden');
+    // Garante que a barra flutuante do rodapé comece oculta ao abrir um jogo
+    const floatingNav = document.getElementById('modal-floating-shortcuts');
+    if (floatingNav) {
+        floatingNav.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+        floatingNav.classList.remove('translate-y-0', 'opacity-100', 'pointer-events-auto');
+    }
     document.body.style.overflow = 'hidden';
     rolarParaSecaoModal('modal-content');
 
@@ -1060,7 +1066,7 @@ async function buscarDadosSteam(steamId) {
         // Screenshots (Todas)
         if (game.screenshots && game.screenshots.length > 0) {
             document.getElementById('modal-section-screenshots').classList.remove('hidden');
-            document.getElementById('shortcut-screenshots')?.classList.remove('hidden');
+            atualizarVisibilidadeAtalho('screenshots', true);
             
             // Mapeia todas as URLs em alta resolução
             const listaUrls = game.screenshots.map(s => s.path_full);
@@ -1073,7 +1079,7 @@ async function buscarDadosSteam(steamId) {
         // Recursos (Categorias)
         if (game.categories && game.categories.length > 0) {
             document.getElementById('modal-section-recursos').classList.remove('hidden');
-            document.getElementById('shortcut-recursos')?.classList.remove('hidden');
+            atualizarVisibilidadeAtalho('recursos', true);
             document.getElementById('modal-recursos-grid').innerHTML = game.categories.map(c => {
                 const iconName = CATEGORY_ICONS[c.id] || 'ico_achievements.png';
                 const iconUrl = `https://store.fastly.steamstatic.com/public/images/v6/ico/${iconName}`;
@@ -1089,7 +1095,7 @@ async function buscarDadosSteam(steamId) {
         // Trailers (Todos)
         if (game.movies && game.movies.length > 0) {
             document.getElementById('modal-section-videos').classList.remove('hidden');
-            document.getElementById('shortcut-videos')?.classList.remove('hidden');
+            atualizarVisibilidadeAtalho('videos', true);
             const container = document.getElementById('modal-youtube-container');
             container.innerHTML = ''; // Limpa container
 
@@ -1148,7 +1154,7 @@ function renderizarDadosSteamNoModal(game) {
 
     if (game.screenshots && game.screenshots.length > 0) {
         document.getElementById('modal-section-screenshots').classList.remove('hidden');
-        document.getElementById('shortcut-screenshots')?.classList.remove('hidden');
+        atualizarVisibilidadeAtalho('screenshots', true);
         const listaUrls = game.screenshots.map(s => s.path_full || s);
         document.getElementById('modal-screenshots-grid').innerHTML = game.screenshots.map((s, idx) =>
             `<img src="${s.path_thumbnail || s}" referrerpolicy="no-referrer" onclick="abrirLightbox(${idx}, ${JSON.stringify(listaUrls).replace(/"/g, '&quot;')})" class="rounded border border-neutral-800 cursor-pointer hover:opacity-80 transition-opacity">`
@@ -1157,7 +1163,7 @@ function renderizarDadosSteamNoModal(game) {
 
     if (game.categories && game.categories.length > 0) {
         document.getElementById('modal-section-recursos').classList.remove('hidden');
-        document.getElementById('shortcut-recursos')?.classList.remove('hidden');
+        atualizarVisibilidadeAtalho('recursos', true);
         document.getElementById('modal-recursos-grid').innerHTML = game.categories.map(c => {
             const iconName = CATEGORY_ICONS[c.id] || 'ico_achievements.png';
             const iconUrl = `https://store.fastly.steamstatic.com/public/images/v6/ico/${iconName}`;
@@ -1172,7 +1178,7 @@ function renderizarDadosSteamNoModal(game) {
     // --- INÍCIO: RENDERIZAÇÃO DE VÍDEOS TAMBÉM PARA DADOS VINDO DO CACHE ---
     if (game.movies && game.movies.length > 0) {
         document.getElementById('modal-section-videos').classList.remove('hidden');
-        document.getElementById('shortcut-videos')?.classList.remove('hidden');
+        atualizarVisibilidadeAtalho('videos', true);
         const container = document.getElementById('modal-youtube-container');
         container.innerHTML = ''; // Limpa container
 
@@ -1494,7 +1500,7 @@ async function buscarReviewsSteam(steamId) {
             document.getElementById('total-reviews').innerHTML = `${svgReviews}<span>${totalReviews}</span>`;
 
             section.classList.remove('hidden');
-            document.getElementById('shortcut-reviews')?.classList.remove('hidden');
+            atualizarVisibilidadeAtalho('reviews', true);
             // Filtra para manter apenas PT-BR e Inglês
             const filteredReviews = json.reviews.filter(review =>
                 review.language === 'brazilian' || review.language === 'english'
@@ -1597,7 +1603,7 @@ async function buscarHowLongToBeat(steamId) {
 
         // Revela a seção no modal
         section.classList.remove('hidden');
-        document.getElementById('shortcut-hltb')?.classList.remove('hidden');
+        atualizarVisibilidadeAtalho('hltb', true);
     } catch (e) {
         console.log("Sem dados no How Long to Beat para este jogo:", steamId);
     }
@@ -1632,7 +1638,7 @@ async function buscarJogosSimilares(steamId) {
         `).join('');
 
         section.classList.remove('hidden');
-        document.getElementById('shortcut-similares')?.classList.remove('hidden');
+        atualizarVisibilidadeAtalho('similares', true);
     } catch (e) {
         console.log("Falha ao carregar jogos similares para:", steamId);
     }
@@ -1648,11 +1654,32 @@ function fecharModal(fromPopstate = false) {
         history.back();
     }
 
+    // Oculta a barra flutuante ao fechar
+    const floatingNav = document.getElementById('modal-floating-shortcuts');
+    if (floatingNav) {
+        floatingNav.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+        floatingNav.classList.remove('translate-y-0', 'opacity-100', 'pointer-events-auto');
+    }
+
     modalJogoAtual = null;
     document.body.style.overflow = '';
     document.getElementById('modal-overlay').classList.add('hidden');
 }
+
 function fecharModalFora(e) { if (e.target.id === 'modal-overlay') fecharModal(); }
+
+function atualizarVisibilidadeAtalho(secao, visivel) {
+    const elOriginal = document.getElementById(`shortcut-${secao}`);
+    const elFloating = document.getElementById(`float-shortcut-${secao}`);
+
+    if (visivel) {
+        elOriginal?.classList.remove('hidden');
+        elFloating?.classList.remove('hidden');
+    } else {
+        elOriginal?.classList.add('hidden');
+        elFloating?.classList.add('hidden');
+    }
+}
 
 // --- Lógica de Busca ---
 
@@ -1799,12 +1826,9 @@ function rolarParaSecaoModal(elementId) {
     const alvo = document.getElementById(elementId);
     if (!alvo) return;
     
-    // Altura da barra compacta em pixels para que o título da seção não fique escondido sob ela
-    const compensacao = 47; 
-    
+    const compensacao = 20; // Leve margem no topo, já que a barra agora flutua no bottom
     const modalContainer = document.getElementById('modal-overlay');
     
-    // Se o clique for em "Topo", rola diretamente para o início absoluto do modal
     if (elementId === 'modal-content') {
         modalContainer.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
@@ -2184,3 +2208,17 @@ window.addEventListener('load', () => {
 // ============================================================================
 // --- FIM: IMPLEMENTAÇÃO DE NOTIFICAÇÕES PUSH ---
 // ============================================================================
+
+// Exibe a barra flutuante no bottom assim que o usuário rolar 180px para baixo no modal
+document.getElementById('modal-overlay')?.addEventListener('scroll', function () {
+    const floatingNav = document.getElementById('modal-floating-shortcuts');
+    if (!floatingNav) return;
+
+    if (this.scrollTop > 180) {
+        floatingNav.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+        floatingNav.classList.add('translate-y-0', 'opacity-100', 'pointer-events-auto');
+    } else {
+        floatingNav.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+        floatingNav.classList.remove('translate-y-0', 'opacity-100', 'pointer-events-auto');
+    }
+});
