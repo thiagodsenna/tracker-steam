@@ -181,7 +181,7 @@ export default async function handler(req, res) {
             }
         }
 
-        // Trava Vercel: Ordena pelos mais desatualizados e processa NO MÁXIMO 3 jogos por ciclo!
+        // Trava Vercel: Ordena pelos mais desatualizados e processa NO MÁXIMO 10 jogos por ciclo!
         filaParaAtualizar.sort((a, b) => b.tempoDesdeAtualizacao - a.tempoDesdeAtualizacao);
         const loteAtualizacao = filaParaAtualizar.slice(0, 10);
 
