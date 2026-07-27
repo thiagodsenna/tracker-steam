@@ -1358,7 +1358,19 @@ function renderizarDestaque(destaques) {
             top1.name = jogoVoices38.steamDetails.name;
         }
     } else if (destaques && destaques.length > 0) {
-        top1 = destaques[0];
+        const agora = Date.now();
+        const limite24h = 24 * 60 * 60 * 1000;
+        
+        // Filtra para garantir que o destaque tenha sido publicado no Feedly nas últimas 24 horas
+        const destaquesValidos = destaques.filter(d => {
+            const jogoFeed = jogosCarregados.find(j => j.steamId == d.steamId);
+            const pubTime = d.published || jogoFeed?.published || 0;
+            return (agora - pubTime) <= limite24h;
+        });
+
+        if (destaquesValidos.length > 0) {
+            top1 = destaquesValidos[0];
+        }
     }
 
     if (!top1) {

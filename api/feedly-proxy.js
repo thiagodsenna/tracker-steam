@@ -128,25 +128,34 @@ export default async function handler(req, res) {
                           // --- NOVO: CÁLCULO DE RESERVA DE DESTAQUES (AUTO-ABASTECIMENTO) ---
                           if (destaquesHome.length === 0 && Object.keys(steamCache).length > 0) {
                               try {
-                                  const listaJogos = Object.entries(steamCache).map(([id, dados]) => {
-                                      const nota = dados.rating || 0;
-                                      const revs = Math.max(dados.total_reviews || 1, 1);
-                                      let score = (nota * 0.7) + (Math.log10(revs) * 10 * 0.3);
+                                  const agora = Date.now();
+                                  const limite24h = 24 * 60 * 60 * 1000;
+                                  const candidatos = (data.items || []).slice(0, 20).filter(i => (agora - (i.published || 0)) <= limite24h);
 
-                                      // Prioridade absoluta para releases contendo "voices38"
-                                      const temVoices38 = data.items && data.items.some(i => 
-                                          /voices38/i.test(i.title || '') && (i.content?.content || i.summary?.content || '').includes(id)
-                                      );
-                                      if (temVoices38) score += 100000;
+                                  const listaJogos = [];
+                                  for (const item of candidatos) {
+                                      const content = item.content?.content || item.summary?.content || '';
+                                      const match = content.match(/(?:store\.steampowered\.com|steamcommunity\.com)\/app\/(\d+)/i);
+                                      const id = match ? match[1] : null;
 
-                                      return { 
-                                          steamId: id, 
-                                          score, 
-                                          ...dados,
-                                          // Garante que o background_raw da Steam seja injetado obrigatoriamente aqui
-                                          background_raw: dados.background_raw || dados.background || '' 
-                                      };
-                                  });
+                                      if (id && steamCache[id]) {
+                                          const dados = steamCache[id];
+                                          const nota = dados.rating || 0;
+                                          const revs = Math.max(dados.total_reviews || 1, 1);
+                                          let score = (nota * 0.7) + (Math.log10(revs) * 10 * 0.3);
+
+                                          // Prioridade absoluta para releases contendo "voices38"
+                                          if (/voices38/i.test(item.title || '')) score += 100000;
+
+                                          listaJogos.push({ 
+                                              steamId: id, 
+                                              score, 
+                                              ...dados,
+                                              background_raw: dados.background_raw || dados.background || '',
+                                              published: item.published
+                                          });
+                                      }
+                                  }
 
                                   listaJogos.sort((a, b) => b.score - a.score);
                                   destaquesHome = listaJogos.slice(0, 5);

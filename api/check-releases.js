@@ -279,15 +279,32 @@ export default async function handler(req, res) {
                     body: JSON.stringify(steamCache)
                 });
 
-                // 2. Calcula os Top 5 Destaques baseado no nosso algoritmo de pesos
-                // Score = (Nota * 0.7) + (log10(TotalReviews) * 10 * 0.3)
-                const listaJogos = Object.entries(steamCache).map(([id, dados]) => {
-                    const nota = dados.rating || 0;
-                    const revs = Math.max(dados.total_reviews || 1, 1);
-                    // Adicionamos multiplicador 10 no log10 para equilibrar com a escala de nota 0 a 100
-                    const score = (nota * 0.7) + (Math.log10(revs) * 10 * 0.3);
-                    return { steamId: id, score, ...dados };
-                });
+                // 2. Calcula os Top 5 Destaques avaliando APENAS os 50 itens mais recentes 
+                // e que tenham sido postados no Feedly dentro das últimas 24 horas.
+                const agora = Date.now();
+                const limite24h = 24 * 60 * 60 * 1000;
+                const candidatos = items.slice(0, 50).filter(i => (agora - (i.published || 0)) <= limite24h);
+
+                const listaJogos = [];
+                for (const item of candidatos) {
+                    const content = item.content?.content || item.summary?.content || '';
+                    const match = content.match(/(?:store\.steampowered\.com|steamcommunity\.com)\/app\/(\d+)/i);
+                    const id = match ? match[1] : null;
+
+                    if (id && steamCache[id]) {
+                        const dados = steamCache[id];
+                        const nota = dados.rating || 0;
+                        const revs = Math.max(dados.total_reviews || 1, 1);
+                        const score = (nota * 0.7) + (Math.log10(revs) * 10 * 0.3);
+
+                        listaJogos.push({ 
+                            steamId: id, 
+                            score, 
+                            ...dados, 
+                            published: item.published // Salva o timestamp do Feedly no destaque
+                        });
+                    }
+                }
 
                 // Ordena pelos maiores scores e pega os 5 primeiros
                 listaJogos.sort((a, b) => b.score - a.score);
