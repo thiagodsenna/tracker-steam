@@ -3,15 +3,25 @@ let jogosCarregados = [];
 let termoPesquisado = '';
 let fonteAtual = 'feedly'; // 'feedly' ou 'steam'
 let modalJogoAtual = null;
-let viewMode = localStorage.getItem('viewMode') || 'covers';
+let viewMode = localStorage.getItem('viewMode') || 'compact'; //modo de visualização padrão
 
 // --- INÍCIO: IMPLEMENTAÇÃO DA WISHLIST (VARIÁVEIS E TOKEN) ---
-let wishlistJogos = [];
 let userToken = localStorage.getItem('rt_user_token');
 
 if (!userToken) {
     userToken = 'RT-' + Math.random().toString(36).substring(2, 6).toUpperCase() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
     localStorage.setItem('rt_user_token', userToken);
+}
+
+// Tenta carregar imediatamente o cache do localStorage para evitar que pisque "0" no cabeçalho
+let wishlistJogos = [];
+try {
+    const savedWishlist = localStorage.getItem('rt_wishlist_backup');
+    if (savedWishlist) {
+        wishlistJogos = JSON.parse(savedWishlist);
+    }
+} catch (e) {
+    console.error('Erro ao ler backup local da wishlist:', e);
 }
 // --- FIM: IMPLEMENTAÇÃO DA WISHLIST ---
 
@@ -670,17 +680,29 @@ function updateViewButtons() {
     const btnCompact = document.getElementById('btn-view-compact');
     if (!btnCovers || !btnCompact) return;
 
-    if (viewMode === 'compact') {
-        btnCompact.classList.add('bg-neutral-800', 'text-emerald-500');
-        btnCompact.classList.remove('text-neutral-400');
-        btnCovers.classList.remove('bg-neutral-800', 'text-emerald-500');
-        btnCovers.classList.add('text-neutral-400');
-    } else {
-        btnCovers.classList.add('bg-neutral-800', 'text-emerald-500');
-        btnCovers.classList.remove('text-neutral-400');
-        btnCompact.classList.remove('bg-neutral-800', 'text-emerald-500');
-        btnCompact.classList.add('text-neutral-400');
-    }
+    // Remove o foco nativo do elemento ao tocar no mobile
+    btnCovers.blur();
+    btnCompact.blur();
+
+    const isCompact = viewMode === 'compact';
+    const activeBtn = isCompact ? btnCompact : btnCovers;
+    const inactiveBtn = isCompact ? btnCovers : btnCompact;
+
+    // 1. Configura o BOTÃO ATIVO (Força verde no estado normal, no hover e no focus)
+    activeBtn.classList.remove('text-neutral-400', 'hover:text-white', 'focus:text-white', 'active:text-white');
+    activeBtn.classList.add('bg-neutral-800', 'text-emerald-500', 'hover:text-emerald-400', 'focus:text-emerald-500');
+
+    // 2. Configura o BOTÃO INATIVO (Volta ao cinza normal com hover branco)
+    inactiveBtn.classList.remove('bg-neutral-800', 'text-emerald-500', 'hover:text-emerald-400', 'focus:text-emerald-500');
+    inactiveBtn.classList.add('text-neutral-400', 'hover:text-white');
+
+    // 3. Garante que se o ícone SVG interno tiver classes de cor próprias, elas não sobrescrevam
+    [btnCovers, btnCompact].forEach(btn => {
+        const svg = btn.querySelector('svg');
+        if (svg) {
+            svg.classList.remove('text-white', 'hover:text-white', 'focus:text-white');
+        }
+    });
 }
 
 function renderizarJogos() {
@@ -1902,6 +1924,9 @@ document.getElementById('btn-filter-steam')?.addEventListener('click', () => {
 
 document.getElementById('btn-clear-search')?.addEventListener('click', limparBusca);
 
+// Atualiza o contador imediatamente com o que veio do cache local
+atualizarContadorWishlist();
+
 // Inicialização principal
 carregarJogos();
 
@@ -1938,16 +1963,15 @@ async function carregarWishlistDoServidor() {
         const data = await res.json();
         if (data && data.wishlist && Array.isArray(data.wishlist)) {
             wishlistJogos = data.wishlist;
+            
+            // Atualiza o backup local para garantir que o próximo F5 já venha atualizado
+            localStorage.setItem('rt_wishlist_backup', JSON.stringify(wishlistJogos));
+            
             atualizarContadorWishlist();
             if (fonteAtual === 'wishlist') renderizarJogos();
         }
     } catch (err) {
         console.error("Erro ao carregar Wishlist remota:", err);
-        const savedLocal = localStorage.getItem('rt_wishlist_backup');
-        if (savedLocal) {
-            wishlistJogos = JSON.parse(savedLocal);
-            atualizarContadorWishlist();
-        }
     }
 }
 
