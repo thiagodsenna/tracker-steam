@@ -170,12 +170,17 @@ export default async function handler(req, res) {
         }
 
         // =================================================================
-        // AJUSTE 1: BLINDAGEM CONTRA TIMEOUT DA VERCEL
-        // Se saírem 15 jogos de uma vez, processamos apenas os 5 mais recentes
-        // para não estourar o limite de 10 segundos de execução serverless.
+        // AJUSTE 1: BLINDAGEM CONTRA TIMEOUT E PERDA DE ITENS (FILA CRONOLÓGICA)
+        // 1. Ordenamos do mais antigo para o mais novo para garantir que as notificações
+        //    cheguem no celular na ordem cronológica real em que foram lançadas.
+        // 2. Aumentamos o limite para 10 itens por ciclo. Caso saiam 15 jogos de uma vez,
+        //    como salvamos o timestamp do ÚLTIMO item processado no lote, os 5 restantes
+        //    serão recolhidos e notificados com segurança na próxima execução do cron!
         // =================================================================
-        if (novosItens.length > 5) {
-            novosItens = novosItens.slice(0, 5);
+        novosItens.sort((a, b) => (a.published || 0) - (b.published || 0));
+
+        if (novosItens.length > 10) {
+            novosItens = novosItens.slice(0, 10);
         }
 
         // 4. Busca todos os dispositivos inscritos no banco
@@ -324,8 +329,10 @@ export default async function handler(req, res) {
                 }
             }));
 
+            // Reduzimos o delay de 1500ms para 600ms para processar até 10 jogos em ~5.4 segundos,
+            // mantendo a execução segura e bem abaixo do limite de 10s da Vercel Free Tier.
             if (novosItens.length > 1) {
-                await new Promise(r => setTimeout(r, 1500));
+                await new Promise(r => setTimeout(r, 600));
             }
         }
 
