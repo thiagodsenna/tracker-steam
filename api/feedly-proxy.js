@@ -63,9 +63,37 @@ export default async function handler(req, res) {
                               let cacheModificado = false;
                               
                               await Promise.allSettled(itensParaSeed.map(async (item) => {
+                                  
+                                  // Buscar Steam ID por scrap
                                   const content = item.content?.content || item.summary?.content || '';
-                                  const match = content.match(/(?:store\.steampowered\.com|steamcommunity\.com)\/app\/(\d+)/i);
-                                  const steamId = match ? match[1] : null;
+
+                                  // Tenta extrair primeiro o steam ID normal de app
+                                  let match = content.match(/(?:store\.steampowered\.com|steamcommunity\.com)\/app\/(\d+)/i);
+                                  let steamId = match ? match[1] : null;
+
+                                  // Se não achar, verifica se é um link de Bundle da Steam
+                                  if (!steamId) {
+                                      const bundleMatch = content.match(/store\.steampowered\.com\/bundle\/(\d+)/i);
+                                      if (bundleMatch) {
+                                          const bundleId = bundleMatch[1];
+                                          try {
+                                              const bundleRes = await fetch(`https://store.steampowered.com/bundle/${bundleId}/`, {
+                                                  headers: { 
+                                                      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+                                                      'Cookie': 'birthtime=283993200; mature_content=1' 
+                                                  }
+                                              });
+                                              const bundleHtml = await bundleRes.text();
+                                              // Pega o primeiro /app/ ID listado dentro da página do bundle
+                                              const innerAppMatch = bundleHtml.match(/\/app\/(\d+)/i);
+                                              if (innerAppMatch) {
+                                                  steamId = innerAppMatch[1];
+                                              }
+                                          } catch (e) {
+                                              console.error(`Erro ao resolver bundle ${bundleId} no proxy:`, e);
+                                          }
+                                      }
+                                  }
 
                                   // SE O JOGO NÃO EXISTE NO CACHE OU SE ESTÁ SEM MOVIES/DETAILED_DESCRIPTION, BUSCA DA STEAM!
                                   const cacheAtual = steamCache[steamId];

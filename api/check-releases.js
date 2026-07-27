@@ -21,6 +21,31 @@ export default async function handler(req, res) {
         process.env.VAPID_PRIVATE_KEY
     );
 
+    // Função auxiliar para extrair ou resolver o Steam ID (suportando /app/ e /bundle/)
+    async function resolverSteamId(contentText) {
+        let match = contentText.match(/(?:store\.steampowered\.com|steamcommunity\.com)\/app\/(\d+)/i);
+        if (match) return match[1];
+
+        const bundleMatch = contentText.match(/store\.steampowered\.com\/bundle\/(\d+)/i);
+        if (bundleMatch) {
+            const bundleId = bundleMatch[1];
+            try {
+                const res = await fetch(`https://store.steampowered.com/bundle/${bundleId}/`, {
+                    headers: { 
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+                        'Cookie': 'birthtime=283993200; mature_content=1' 
+                    }
+                });
+                const html = await res.text();
+                const innerMatch = html.match(/\/app\/(\d+)/i);
+                if (innerMatch) return innerMatch[1];
+            } catch (err) {
+                console.error(`Erro ao resolver bundle ${bundleId} no cron:`, err);
+            }
+        }
+        return null;
+    }
+
     try {
         // Domínio base absoluto para garantir URLs válidas nas notificações mobile
         const DOMAIN_URL = 'https://tracker-steam.vercel.app';
@@ -90,8 +115,7 @@ export default async function handler(req, res) {
 
         for (const item of candidatosHome) {
             const content = item.content?.content || item.summary?.content || '';
-            const match = content.match(/(?:store\.steampowered\.com|steamcommunity\.com)\/app\/(\d+)/i);
-            const steamId = match ? match[1] : null;
+            const steamId = await resolverSteamId(content);
 
             if (steamId && steamCache[steamId]) {
                 const dados = steamCache[steamId];
@@ -209,9 +233,7 @@ export default async function handler(req, res) {
             const size = sizeMatch ? sizeMatch[1].trim() : 'N/A';
 
             // Extrai o Steam ID do post
-            const steamMatch = htmlContent.match(/(?:store\.steampowered\.com|steamcommunity\.com)\/app\/(\d+)/i) 
-                            || textContent.match(/(?:store\.steampowered\.com|steamcommunity\.com)\/app\/(\d+)/i);
-            const steamId = steamMatch ? steamMatch[1] : null;
+            const steamId = await resolverSteamId(htmlContent + ' ' + textContent);
 
             let steamHeaderImg = '';
             // 2) DECLARAÇÃO DE VARIÁVEIS COM ESCOPO EXTERNO PARA O PAYLOAD
