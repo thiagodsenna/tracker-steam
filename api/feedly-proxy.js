@@ -207,26 +207,35 @@ export default async function handler(req, res) {
                     }
 
                     // Injeta os dados detalhados da Steam direto em cada item do Feedly
-                    const content = item.content?.content || item.summary?.content || '';
-                    let match = content.match(/(?:store\.steampowered\.com|steamcommunity\.com)\/app\/(\d+)/i);
-                    let steamId = match ? match[1] : null;
+                    if (data.items) {
+                        data.items = await Promise.all(data.items.map(async (item) => {
+                            const content = item.content?.content || item.summary?.content || '';
+                            let match = content.match(/(?:store\.steampowered\.com|steamcommunity\.com)\/app\/(\d+)/i);
+                            let steamId = match ? match[1] : null;
 
-                    // Se for bundle, faz o scraping da página do bundle para achar o ID real do app
-                    if (!steamId) {
-                        const bundleMatch = content.match(/store\.steampowered\.com\/bundle\/(\d+)/i);
-                        if (bundleMatch) {
-                            const bundleId = bundleMatch[1];
-                            try {
-                                const bundleRes = await fetch(`https://store.steampowered.com/bundle/${bundleId}/`, {
-                                    headers: { 'User-Agent': 'Mozilla/5.0', 'Cookie': 'birthtime=283993200; mature_content=1' }
-                                });
-                                const bundleHtml = await bundleRes.text();
-                                const innerAppMatch = bundleHtml.match(/\/app\/(\d+)/i);
-                                if (innerAppMatch) {
-                                    steamId = innerAppMatch[1];
+                            // Se não achar por /app/, verifica se é um link de Bundle da Steam
+                            if (!steamId) {
+                                const bundleMatch = content.match(/store\.steampowered\.com\/bundle\/(\d+)/i);
+                                if (bundleMatch) {
+                                    const bundleId = bundleMatch[1];
+                                    try {
+                                        const bundleRes = await fetch(`https://store.steampowered.com/bundle/${bundleId}/`, {
+                                            headers: { 'User-Agent': 'Mozilla/5.0', 'Cookie': 'birthtime=283993200; mature_content=1' }
+                                        });
+                                        const bundleHtml = await bundleRes.text();
+                                        const innerAppMatch = bundleHtml.match(/\/app\/(\d+)/i);
+                                        if (innerAppMatch) {
+                                            steamId = innerAppMatch[1];
+                                        }
+                                    } catch (e) {}
                                 }
-                            } catch (e) {}
-                        }
+                            }
+
+                            return {
+                                ...item,
+                                steamDetails: (steamId && steamCache[steamId]) ? steamCache[steamId] : null
+                            };
+                        }));
                     }
                     // =================================================================
                     // --- FIM: MERGE COM CACHE STEAM & LAZY SEEDING ---
