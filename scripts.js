@@ -276,52 +276,42 @@ function atualizarUltimoAcessoServidor(jogos) {
     if (!jogos || jogos.length === 0) return;
     
     const agora = Date.now();
-    const duasHorasMs = 2 * 60 * 60 * 1000; // 2 horas de blindagem contra F5
+    const duasHorasMs = 2 * 60 * 60 * 1000;
     const maxFeedTimestamp = Math.max(...jogos.map(j => j.published || 0));
 
-    // Tenta carregar do backup local caso o servidor tenha retornado vazio na inicialização
     const backupLocal = localStorage.getItem('rt_settings_backup');
     let conf = { ...configuracoesUsuario };
     if (!conf.last_visit && backupLocal) {
         try { conf = { ...JSON.parse(backupLocal), ...conf }; } catch(e){}
     }
 
-    const lastVisitAtual = conf.last_visit || 0;
-    const shieldExpires = conf.shield_expires || 0;
-    const pendingVisit = conf.pending_visit || 0;
+    const lastVisitAtual = parseInt(conf.last_visit, 10) || 0;
+    const shieldExpires = parseInt(conf.shield_expires, 10) || 0;
+    const pendingVisit = parseInt(conf.pending_visit, 10) || 0;
 
-    // 1. VERIFICAÇÃO DA BLINDAGEM:
-    // Se o tempo atual ultrapassou a expiração de 2h (ou se é uma visita após dias ausente)
     if (agora > shieldExpires) {
-        // A sessão anterior expirou! Iniciamos uma NOVA janela de navegação.
-        
-        // O que era "novo pendente" da sessão passada vira a linha de corte definitiva (last_visit).
         let novoLastVisit = pendingVisit > 0 ? pendingVisit : lastVisitAtual;
         
-        // Se for o primeiríssimo acesso da história do usuário (tudo zero), definimos o corte 
-        // para 24h atrás apenas para o site não abrir inteiro carimbado como NOVO
+        // --- CORREÇÃO 1: Milissegundos no fallback de 24 horas (24 * 60 * 60 * 1000) ---
         if (novoLastVisit === 0 && maxFeedTimestamp > 0) {
-            novoLastVisit = maxFeedTimestamp - (24 * 60 * 60);
+            novoLastVisit = maxFeedTimestamp - (24 * 60 * 60 * 1000);
         }
 
-        // Criamos a nova blindagem que durará exatamente 2 horas a partir de AGORA
-        const novoShieldExpires = agora + duasHorasMs;
+        // --- CORREÇÃO 2: Trava anti-regressão temporal ---
+        // Garante que o last_visit NUNCA regrida para um timestamp mais antigo do que já era
+        novoLastVisit = Math.max(novoLastVisit, lastVisitAtual);
 
-        // O pending_visit passa a registrar o release mais recente disponível hoje
+        const novoShieldExpires = agora + duasHorasMs;
         const novoPendingVisit = Math.max(maxFeedTimestamp, novoLastVisit);
 
-        // Atualiza na memória, no localStorage e na nuvem
         salvarConfiguracoesServidor({
             last_visit: novoLastVisit,
             shield_expires: novoShieldExpires,
             pending_visit: novoPendingVisit
         });
     } else {
-        // 2. BLINDAGEM ATIVA: O usuário deu F5 ou recarregou dentro das 2 horas de graça!
-        // NÃO alteramos o `last_visit` nem o `shield_expires`. As tags NOVO permanecem estáticas!
-        
-        // Apenas atualizamos o `pending_visit` em background caso um jogo novo tenha saído agorinha
-        if (maxFeedTimestamp > pendingVisit) {
+        // Trava anti-regressão para o pending_visit durante a blindagem ativa
+        if (maxFeedTimestamp > pendingVisit && maxFeedTimestamp > lastVisitAtual) {
             salvarConfiguracoesServidor({
                 pending_visit: maxFeedTimestamp
             });
@@ -2108,17 +2098,25 @@ function vincularNovoToken() {
         alert('Este já é o seu token atual!');
         return;
     }
+    
+    localStorage.removeItem('rt_settings_backup');
+    configuracoesUsuario = {};
+
     userToken = novoToken;
     localStorage.setItem('rt_user_token', userToken);
     alert(`Dispositivo vinculado com sucesso ao Token: ${userToken}\nCarregando sua Wishlist...`);
     fecharModalSync();
     carregarWishlistDoServidor();
+    carregarJogos(); // Recarrega os feeds e configurações do novo token
 }
 
 function verificarTokenSincroniaURL() {
     const urlParams = new URLSearchParams(window.location.search);
     const syncToken = urlParams.get('sync_token');
     if (syncToken && syncToken.trim()) {
+        localStorage.removeItem('rt_settings_backup');
+        configuracoesUsuario = {};
+
         userToken = syncToken.trim().toUpperCase();
         localStorage.setItem('rt_user_token', userToken);
         urlParams.delete('sync_token');
