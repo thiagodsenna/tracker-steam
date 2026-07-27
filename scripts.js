@@ -511,7 +511,7 @@ function criarCardJogoCompacto(jogo) {
 
     // Tag NOVO (Canto Superior Direito)
     const tagNovoHtml = isNew ? `
-        <span class="absolute top-0 left-0 z-20 bg-neutral-900 text-neutral-250 font-rajdhani font-black text-[8px] sm:text-[9px] px-1.5 py-0.5 pb-[1px] shadow-md tracking-wider uppercase">NOVO</span>
+        <span class="absolute top-0 left-0 z-20 bg-emerald-900 text-neutral-250 font-rajdhani font-black text-[9px] sm:text-[9px] px-1.5 py-0.5 pb-[1px] shadow-md tracking-wider uppercase">NOVO</span>
     ` : '';
 
     // Badge de Nota (Canto Superior Esquerdo)
@@ -588,9 +588,9 @@ function criarCardJogoCompacto(jogo) {
             </div>
             <!-- Container das badges em linha única com scrollbar customizado no hover -->
             <div class="flex items-center gap-1 sm:gap-2 mt-2 sm:mt-3 w-full overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden group-hover/card:[scrollbar-width:thin] group-hover/card:[scrollbar-color:theme(colors.neutral.800)_transparent] group-hover/card:[&::-webkit-scrollbar]:block group-hover/card:[&::-webkit-scrollbar]:h-[1px] group-hover/card:[&::-webkit-scrollbar-track]:bg-transparent group-hover/card:[&::-webkit-scrollbar-thumb]:bg-neutral-800 group-hover/card:[&::-webkit-scrollbar-thumb]:rounded-full">
-                ${versaoCompactoHtml}
                 ${notaCompactoHtml}
                 ${revCompactoHtml}
+                ${versaoCompactoHtml}
                 ${tamanhoCompactoHtml}
                 ${lancCompactoHtml}
             </div>
