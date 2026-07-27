@@ -21,6 +21,47 @@ export default async function handler(req, res) {
         process.env.VAPID_PRIVATE_KEY
     );
 
+    function formatarDataRelativa(dataString) {
+        let dataPost;
+        
+        // Verifica se é uma data no formato "MMM DD, YYYY" (Ex: Jul 16, 2026)
+        if (isNaN(Date.parse(dataString)) && /^[a-zA-Z]{3}\s\d{1,2},\s\d{4}$/.test(dataString)) {
+            const mesesIngles = {
+                'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5,
+                'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11
+            };
+            const partes = dataString.replace(',', '').split(' ');
+            const mes = mesesIngles[partes[0]];
+            const dia = parseInt(partes[1]);
+            const ano = parseInt(partes[2]);
+            dataPost = new Date(ano, mes, dia);
+        } else {
+            dataPost = new Date(dataString);
+        }
+
+        if (isNaN(dataPost.getTime())) return dataString; // Fallback caso falhe
+
+        const hoje = new Date();
+        
+        // Zera as horas para comparar apenas os dias
+        const d1 = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+        const d2 = new Date(dataPost.getFullYear(), dataPost.getMonth(), dataPost.getDate());
+        const diffTempo = d1 - d2;
+        const diffDias = Math.floor(diffTempo / (1000 * 60 * 60 * 24));
+        
+        if (diffDias === 0) return 'Hoje';
+        if (diffDias === 1) return 'Ontem';
+        if (diffDias === -1) return 'Amanhã';
+        if (diffDias < -1 && diffDias >= -30) return `Em ${Math.abs(diffDias)} dias`;
+        if (diffDias < 30) return `Há ${diffDias} dias`;
+        
+        const diffMeses = Math.floor(diffDias / 30);
+        if (diffMeses <= -1) return `Em ${Math.abs(diffMeses)} ${diffMeses === -1 ? 'mês' : 'meses'}`;
+        if (diffMeses < 12) return `Há ${diffMeses} ${diffMeses === 1 ? 'mês' : 'meses'}`;
+
+        return dataString;
+    }
+
     // Função auxiliar para extrair ou resolver o Steam ID (suportando /app/ e /bundle/)
     async function resolverSteamId(contentText) {
         let match = contentText.match(/(?:store\.steampowered\.com|steamcommunity\.com)\/app\/(\d+)/i);
@@ -328,11 +369,14 @@ export default async function handler(req, res) {
             const indexHifen = item.title.lastIndexOf('-');
             const tituloLimpo = indexHifen !== -1 ? item.title.slice(0, indexHifen).trim() : item.title.trim();
 
+            // Formata total de avaliações
+            let totalReviewsFormatado = totalReviews > 1000 ? `${(totalReviews/1000).toFixed(1)}k` : totalReviews;
+
             // 3) PAYLOAD FINAL COM AS VARIÁVEIS FORMATADAS
             const payload = JSON.stringify({
                 id: item.id,
                 title: tituloLimpo,
-                body: `${notaTexto} | ${size} | ${lancamento}`,
+                body: `${notaTexto} (${totalReviewsFormatado}) | ${formatarDataRelativa(lancamento)} | ${size}`,
                 cover: imgFinal,
                 url: `${DOMAIN_URL}/?id=${encodeURIComponent(item.id)}`,
                 timestamp: item.published || Date.now()
