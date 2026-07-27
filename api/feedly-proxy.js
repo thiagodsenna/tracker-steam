@@ -233,6 +233,7 @@ export default async function handler(req, res) {
 
                             return {
                                 ...item,
+                                resolvedSteamId: steamId,
                                 steamDetails: (steamId && steamCache[steamId]) ? steamCache[steamId] : null
                             };
                         }));

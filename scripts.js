@@ -377,7 +377,7 @@ function parseFeedlyItem(item, index) {
 
     const steamMatch = item.content?.content?.match(/(?:store\.steampowered\.com|steamcommunity\.com)\/app\/(\d+)/i) 
                     || textContent.match(/(?:store\.steampowered\.com|steamcommunity\.com)\/app\/(\d+)/i);
-    const steamId = steamMatch ? steamMatch[1] : null;
+    const steamId = item.resolvedSteamId || (steamMatch ? steamMatch[1] : null);
     const postLink = item.alternate?.[0]?.href || '#';
     const release = mapearRelease(item.title);
 
