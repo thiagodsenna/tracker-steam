@@ -130,7 +130,7 @@ export default async function handler(req, res) {
                               try {
                                   const agora = Date.now();
                                   const limite24h = 24 * 60 * 60 * 1000;
-                                  const candidatos = (data.items || []).slice(0, 20).filter(i => (agora - (i.published || 0)) <= limite24h);
+                                  const candidatos = (data.items || []).slice(0, 50).filter(i => (agora - (i.published || 0)) <= limite24h);
 
                                   const listaJogos = [];
                                   for (const item of candidatos) {

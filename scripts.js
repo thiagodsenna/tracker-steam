@@ -1361,7 +1361,7 @@ function renderizarDestaque(destaques) {
         const agora = Date.now();
         const limite24h = 24 * 60 * 60 * 1000;
         
-        // Filtra para garantir que o destaque tenha sido publicado no Feedly nas últimas 24 horas
+        // 1. Filtra para garantir que o destaque tenha sido publicado nas últimas 24 horas (ajuste anterior)
         const destaquesValidos = destaques.filter(d => {
             const jogoFeed = jogosCarregados.find(j => j.steamId == d.steamId);
             const pubTime = d.published || jogoFeed?.published || 0;
@@ -1369,7 +1369,23 @@ function renderizarDestaque(destaques) {
         });
 
         if (destaquesValidos.length > 0) {
-            top1 = destaquesValidos[0];
+            // 2. Sistema anti-repetição para o F5: lê o último jogo exibido
+            const ultimoId = localStorage.getItem('rt_ultimo_destaque');
+            let candidatos = destaquesValidos;
+
+            // Se houver mais de 1 jogo na lista, remove o último exibido para GARANTIR que mude no F5
+            if (destaquesValidos.length > 1 && ultimoId) {
+                candidatos = destaquesValidos.filter(d => String(d.steamId) !== String(ultimoId));
+            }
+
+            // 3. Sorteia aleatoriamente um jogo entre os candidatos restantes
+            const indexAleatorio = Math.floor(Math.random() * candidatos.length);
+            top1 = candidatos[indexAleatorio];
+
+            // 4. Salva o ID escolhido para que ele não se repita na próxima vez que atualizar a página
+            if (top1?.steamId) {
+                localStorage.setItem('rt_ultimo_destaque', String(top1.steamId));
+            }
         }
     }
 
