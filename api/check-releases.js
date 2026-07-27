@@ -60,8 +60,113 @@ export default async function handler(req, res) {
             novosItens = items.filter(item => (item.published || 0) > lastChecked);
         }
 
-        if (novosItens.length === 0) {
-            return res.status(200).json({ message: 'Nenhum release novo desde a última verificação.', checked: novosItens.length });
+        // =================================================================
+        // --- INÍCIO: CARREGAMENTO DO CACHE STEAM NO KV ---
+        // =================================================================
+        let steamCache = {};
+        try {
+            const getCacheRes = await fetch(`${KV_REST_API_URL}/get/steam_metadata_cache`, {
+                headers: { Authorization: `Bearer ${KV_REST_API_TOKEN}` }
+            });
+            const getCacheData = await getCacheRes.json();
+            if (getCacheData && getCacheData.result) {
+                steamCache = typeof getCacheData.result === 'string' ? JSON.parse(getCacheData.result) : getCacheData.result;
+            }
+        } catch (e) {
+            console.error('Erro ao ler cache Steam do KV no cron:', e);
+        }
+        let cacheAtualizado = false;
+        // =================================================================
+        // --- FIM: CARREGAMENTO DO CACHE STEAM NO KV ---
+        // =================================================================
+
+        // =================================================================
+        // --- INÍCIO: MANUTENÇÃO INTELIGENTE DE CACHE (SMART REFRESH) ---
+        // =================================================================
+        // Roda em TODOS os crons, avaliando apenas os 50 jogos mais recentes do feed (os que aparecem na Home)
+        const candidatosHome = items.slice(0, 50);
+        const agora = Date.now();
+        const filaParaAtualizar = [];
+
+        for (const item of candidatosHome) {
+            const content = item.content?.content || item.summary?.content || '';
+            const match = content.match(/(?:store\.steampowered\.com|steamcommunity\.com)\/app\/(\d+)/i);
+            const steamId = match ? match[1] : null;
+
+            if (steamId && steamCache[steamId]) {
+                const dados = steamCache[steamId];
+                const ultimaAtualizacao = dados.updated_at || 0;
+                const tempoDesdeAtualizacao = agora - ultimaAtualizacao;
+                const totalReviews = dados.total_reviews || 0;
+                const idadeRelease = agora - (item.published || 0);
+
+                // Define o Cooldown ideal com base na Matriz de Volatilidade
+                let cooldownNecessario = 24 * 60 * 60 * 1000; // Padrão Tier 3: 24 horas
+
+                if (totalReviews < 100 || idadeRelease <= (48 * 60 * 60 * 1000)) {
+                    cooldownNecessario = 30 * 60 * 1000; // Tier 1: 30 minutos
+                } else if (totalReviews < 1000 || idadeRelease <= (7 * 24 * 60 * 60 * 1000)) {
+                    cooldownNecessario = 3 * 60 * 60 * 1000; // Tier 2: 3 horas
+                }
+
+                // Se o tempo sem atualizar superou o cooldown, entra na fila
+                if (tempoDesdeAtualizacao >= cooldownNecessario) {
+                    filaParaAtualizar.push({ steamId, tempoDesdeAtualizacao });
+                }
+            }
+        }
+
+        // Trava Vercel: Ordena pelos mais desatualizados e processa NO MÁXIMO 3 jogos por ciclo!
+        filaParaAtualizar.sort((a, b) => b.tempoDesdeAtualizacao - a.tempoDesdeAtualizacao);
+        const loteAtualizacao = filaParaAtualizar.slice(0, 3);
+
+        if (loteAtualizacao.length > 0) {
+            console.log(`[Smart Refresh] Atualizando notas de ${loteAtualizacao.length} jogos voláteis...`);
+            for (const alvo of loteAtualizacao) {
+                try {
+                    const [steamRes, revRes] = await Promise.all([
+                        fetch(`https://store.steampowered.com/api/appdetails?appids=${alvo.steamId}&filters=basic,release_date,genres,developers,screenshots,categories,movies,background`),
+                        fetch(`https://store.steampowered.com/appreviews/${alvo.steamId}?json=1&filter=all&language=all&day_range=1000&num_per_page=1`)
+                    ]);
+                    
+                    const steamJson = await steamRes.json();
+                    const revJson = await revRes.json();
+
+                    if (steamJson[alvo.steamId]?.success && steamJson[alvo.steamId]?.data) {
+                        const gData = steamJson[alvo.steamId].data;
+                        let notaNum = steamCache[alvo.steamId].rating || 0;
+                        let totalReviews = steamCache[alvo.steamId].total_reviews || 0;
+
+                        if (revJson && revJson.success && revJson.query_summary) {
+                            totalReviews = revJson.query_summary.total_reviews || 0;
+                            if (totalReviews > 0) {
+                                notaNum = Math.trunc((revJson.query_summary.total_positive * 100) / totalReviews);
+                            }
+                        }
+
+                        // Preserva o cache, atualizando apenas os dados novos e o carimbo de tempo
+                        steamCache[alvo.steamId] = { 
+                            ...steamCache[alvo.steamId], 
+                            ...gData, 
+                            rating: notaNum, 
+                            total_reviews: totalReviews, 
+                            updated_at: agora 
+                        };
+                        cacheAtualizado = true;
+                    }
+                    await new Promise(r => setTimeout(r, 600)); // Pequeno delay para evitar bloqueio do rate-limit
+                } catch (err) {
+                    console.error(`Erro no Smart Refresh para o ID ${alvo.steamId}:`, err);
+                }
+            }
+        }
+        // =================================================================
+        // --- FIM: MANUTENÇÃO INTELIGENTE DE CACHE ---
+        // =================================================================
+
+        // AGORA SIM: Se não houver jogos novos E o cache também não mudou, encerra o script!
+        if (novosItens.length === 0 && !cacheAtualizado) {
+            return res.status(200).json({ message: 'Sem lançamentos novos e cache em dia.', checked: 0 });
         }
 
         // =================================================================
@@ -83,41 +188,7 @@ export default async function handler(req, res) {
             subscriptions = typeof getSubsData.result === 'string' ? JSON.parse(getSubsData.result) : getSubsData.result;
         }
 
-        // Se for teste manual e informou token, tenta filtrar, mas usa fallback se o token não estiver gravado
-        /* if (forcarTesteManual && tokenAlvo) {
-            const filtrados = subscriptions.filter(sub => sub.userToken === tokenAlvo);
-            if (filtrados.length > 0) {
-                subscriptions = filtrados;
-            }
-        } */
-
-        if (subscriptions.length === 0) {
-            return res.status(200).json({ message: 'Há novos jogos, mas nenhum usuário inscrito para receber push.', newItems: novosItens.length });
-        }
-
         let disparosDeletados = false;
-
-        // =================================================================
-        // --- INÍCIO: CARREGAMENTO DO CACHE STEAM NO KV ---
-        // =================================================================
-        let steamCache = {};
-        
-        try {
-            const getCacheRes = await fetch(`${KV_REST_API_URL}/get/steam_metadata_cache`, {
-                headers: { Authorization: `Bearer ${KV_REST_API_TOKEN}` }
-            });
-            const getCacheData = await getCacheRes.json();
-            if (getCacheData && getCacheData.result) {
-                steamCache = typeof getCacheData.result === 'string' ? JSON.parse(getCacheData.result) : getCacheData.result;
-            }
-        } catch (e) {
-            console.error('Erro ao ler cache Steam do KV no cron:', e);
-        }
-        let cacheAtualizado = false;
-
-        // =================================================================
-        // --- FIM: CARREGAMENTO DO CACHE STEAM NO KV ---
-        // =================================================================
 
         // =================================================================
         // 5. LOOP DE NOTIFICAÇÕES COM RESPEITO A TAXA DE DISPARO (THROTTLE)
