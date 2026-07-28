@@ -92,14 +92,24 @@ export default async function handler(req, res) {
         // Domínio base absoluto para garantir URLs válidas nas notificações mobile
         const DOMAIN_URL = 'https://tracker-steam.vercel.app';
 
-        // 2. Busca o timestamp da última checagem no Vercel KV
+        // 2. Busca o timestamp da última checagem no Vercel KV com sanitização contra NaN / -Infinity
         const getCronTimeRes = await fetch(`${KV_REST_API_URL}/get/last_checked_cron`, {
             headers: { Authorization: `Bearer ${KV_REST_API_TOKEN}` }
         });
         const getCronTimeData = await getCronTimeRes.json();
         
-        // Se for a primeira execução da vida, assume 15 minutos atrás para não fludar os usuários com 200 alertas
-        let lastChecked = getCronTimeData?.result ? parseInt(getCronTimeData.result, 10) : (Date.now() - 15 * 60 * 1000);
+        let lastChecked = 0;
+        if (getCronTimeData && getCronTimeData.result) {
+            const parsed = parseInt(getCronTimeData.result, 10);
+            if (!isNaN(parsed) && isFinite(parsed) && parsed > 0) {
+                lastChecked = parsed;
+            }
+        }
+
+        // Se o valor for inválido/corrompido ou primeira execução, assume 2 horas atrás para resgatar lançamentos recentes que ficaram travados
+        if (!lastChecked) {
+            lastChecked = Date.now() - (2 * 60 * 60 * 1000);
+        }
 
         // 3. Busca o feed RSS/JSON atualizado do Skidrow no Feedly (mesmo endpoint usado no seu app)
         const feedUrl = 'https://api.feedly.com/v3/streams/contents?streamId=feed%2Fhttps%3A%2F%2Fwww.skidrowreloaded.com%2Fcategory%2Fpc-games%2Ffeed%2F&count=50&ranked=newest&ct=feedly.desktop&cv=31.0.3081';
@@ -487,14 +497,16 @@ export default async function handler(req, res) {
         // --- FIM: SALVAR CACHE E CALCULAR DESTAQUES NO KV ---
         // =================================================================
 
-        // 7. Salva o timestamp do item mais recente como o novo last_checked_cron
-        if (!forcarTesteManual) {
+        // 7. Salva o timestamp do item mais recente como o novo last_checked_cron (APENAS se houver novos itens no lote)
+        if (!forcarTesteManual && novosItens.length > 0) {
             const maiorTimestamp = Math.max(...novosItens.map(i => i.published || 0));
-            await fetch(`${KV_REST_API_URL}/set/last_checked_cron`, {
-                method: 'POST',
-                headers: { Authorization: `Bearer ${KV_REST_API_TOKEN}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify(maiorTimestamp)
-            });
+            if (isFinite(maiorTimestamp) && maiorTimestamp > 0) {
+                await fetch(`${KV_REST_API_URL}/set/last_checked_cron`, {
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${KV_REST_API_TOKEN}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(maiorTimestamp)
+                });
+            }
         }
 
         return res.status(200).json({ 
