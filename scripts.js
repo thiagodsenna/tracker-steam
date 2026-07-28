@@ -1617,8 +1617,8 @@ async function buscarReviewsSteam(steamId) {
 
                 return `
                     <!-- Card de Avaliação com clique para expandir/ocultar -->
-                    <div onclick="const container = this.querySelector('.review-container'); const dots = this.querySelector('.review-dots'); const btnEl = this.querySelector('.review-toggle-btn'); if (container && btnEl) { container.classList.toggle('max-h-[5.5rem]'); if (dots) dots.classList.toggle('hidden'); btnEl.textContent = container.classList.contains('max-h-[5.5rem]') ? '' : 'MENOS'; }" 
-                         class="bg-neutral-950/50 border border-neutral-800 p-4 pb-2 rounded-md cursor-pointer hover:border-neutral-700/80 transition-colors">
+                    <div onclick="const container = this.querySelector('.review-container'); const dots = this.querySelector('.review-dots'); const btnEl = this.querySelector('.review-toggle-btn'); if (container && btnEl) { container.classList.toggle('max-h-[5.5rem]'); container.classList.toggle('border-b'); if (dots) dots.classList.toggle('hidden'); btnEl.textContent = container.classList.contains('max-h-[5.5rem]') ? '' : 'MENOS'; }" 
+                        class="bg-neutral-950/50 border border-neutral-800 p-4 pb-2 rounded-md cursor-pointer hover:border-neutral-700/80 transition-colors">
                         
                         <!-- Topo do Card -->
                         <div class="flex items-center justify-between gap-2 mb-2 flex-wrap">
@@ -1645,12 +1645,12 @@ async function buscarReviewsSteam(steamId) {
 
                         <!-- Texto da Avaliação -->
                         <div>
-                            <!-- Bloco com Altura Máxima para Simular Truncate -->
-                            <div class="review-container max-h-[5.5rem] overflow-hidden transition-all duration-200">
+                            <!-- Bloco com Altura Máxima e Borda Dinâmica apenas se precisar truncar -->
+                            <div class="review-container max-h-[5.5rem] overflow-hidden transition-all duration-200 ${precisaTruncar ? 'border-b border-neutral-950 pb-2' : ''}">
                                 <div class="review-text text-[12px] text-neutral-400 break-words leading-relaxed">${formatarBbcodeSteam(r.review)}</div>
                             </div>
                             
-                            <!-- Badge Arredondado com Ícone SVG de 3 Pontos Centralizado -->
+                            <!-- Badge 'MAIS' em Pílula -->
                             ${precisaTruncar ? `
                             <div class="text-left">
                                 <div class="review-dots mt-4 inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-neutral-300/40 text-neutral-950 border-neutral-950 shadow-sm text-[8px] font-bold">
@@ -1671,7 +1671,7 @@ async function buscarReviewsSteam(steamId) {
                                 <!-- Botão MAIS / MENOS -->
                                 ${precisaTruncar ? `
                                 <button type="button" 
-                                        onclick="event.stopPropagation(); const container = this.closest('div.bg-neutral-800\\/30').querySelector('.review-container'); const dots = this.closest('div.bg-neutral-800\\/30').querySelector('.review-dots'); container.classList.toggle('max-h-[5.5rem]'); if (dots) dots.classList.toggle('hidden'); this.textContent = container.classList.contains('max-h-[5.5rem]') ? '' : 'MENOS';" 
+                                        onclick="event.stopPropagation(); const container = this.closest('div.bg-neutral-950\\/50').querySelector('.review-container'); const dots = this.closest('div.bg-neutral-950\\/50').querySelector('.review-dots'); container.classList.toggle('max-h-[5.5rem]'); container.classList.toggle('border-b'); if (dots) dots.classList.toggle('hidden'); this.textContent = container.classList.contains('max-h-[5.5rem]') ? '' : 'MENOS';" 
                                         class="review-toggle-btn text-[8px] uppercase text-neutral-500 font-bold hover:text-emerald-400 transition-colors tracking-tight"></button>
                                 ` : ''}
                             </div>
