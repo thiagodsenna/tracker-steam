@@ -27,10 +27,10 @@ export default async function handler(req, res) {
     // ============================================================================
     // 🔑 CONFIGURAÇÃO DA API KEY DO TORBOX
     // ============================================================================
-    const TORBOX_API_KEY = "3a021657-8ac9-4bf5-b6f2-5515fc92964c"; 
+    const TORBOX_API_KEY = "SUA_API_KEY_DO_TORBOX_AQUI"; 
     // ============================================================================
 
-    if (!TORBOX_API_KEY) {
+    if (!TORBOX_API_KEY || TORBOX_API_KEY === "SUA_API_KEY_DO_TORBOX_AQUI") {
         return res.status(400).json({ error: 'API Key do Torbox não configurada no backend.' });
     }
 
@@ -41,9 +41,11 @@ export default async function handler(req, res) {
         "Content-Type": "application/json"
     };
 
+    let logWebDebug = null; // Variável declarada corretamente para evitar erros
+
     try {
         // ------------------------------------------------------------------------
-        // AÇÃO 1: CHECAR CACHE (TORRENTS + WEB DOWNLOADS)
+        // AÇÃO 1: CHECAGEM DE CACHE (Focada em Torrents, onde a API é estável)
         // ------------------------------------------------------------------------
         if (action === 'check-cache') {
             if (!links || !Array.isArray(links) || links.length === 0) {
@@ -51,20 +53,8 @@ export default async function handler(req, res) {
             }
 
             const cachedItems = [];
+            const torrentLinks = links.filter(l => l.startsWith('magnet:') || l.endsWith('.torrent') || l.includes('btih:'));
 
-            // 1. SEPARAÇÃO DOS LINKS
-            const torrentLinks = [];
-            const webLinks = [];
-
-            links.forEach(l => {
-                if (l.startsWith('magnet:') || l.endsWith('.torrent') || l.includes('btih:')) {
-                    torrentLinks.push(l);
-                } else if (!l.includes('steampowered') && !l.includes('youtube') && !l.includes('steamcommunity')) {
-                    webLinks.push(l);
-                }
-            });
-
-            // 2. CHECAGEM DE TORRENTS (100% Funcional)
             if (torrentLinks.length > 0) {
                 const hashToOriginalUrl = {};
                 const hashes = [];
@@ -89,6 +79,9 @@ export default async function handler(req, res) {
                     try {
                         const resTor = await fetch(`${BASE_URL}/torrents/checkcached?hash=${hashes.join(',')}&format=list`, { method: 'GET', headers: headersJson });
                         const dataTor = await resTor.json();
+                        
+                        logWebDebug = dataTor; // Registra o retorno para debug
+
                         if (dataTor && (dataTor.success || dataTor.data)) {
                             const objData = dataTor.data || dataTor;
                             if (Array.isArray(objData)) {
@@ -104,50 +97,23 @@ export default async function handler(req, res) {
                                 });
                             }
                         }
-                    } catch (e) { console.error("Erro cache torrent:", e); }
+                    } catch (e) { 
+                        logWebDebug = { erro: e.message }; 
+                    }
                 }
-            }
-
-            // 3. CHECAGEM DE WEB DOWNLOADS (Mesmo padrão arquitetônico)
-            if (webLinks.length > 0) {
-                const webPromises = webLinks.map(async (webUrl) => {
-                    try {
-                        // Consulta o endpoint oficial de cache do módulo webdl
-                        const resWeb = await fetch(`${BASE_URL}/webdl/checkcached?url=${encodeURIComponent(webUrl)}&link=${encodeURIComponent(webUrl)}`, {
-                            method: 'GET',
-                            headers: headersJson
-                        });
-                        const dataWeb = await resWeb.json();
-                        
-                        if (dataWeb && (dataWeb.success || dataWeb.data)) {
-                            const isCached = dataWeb.data || dataWeb;
-                            // Se o Torbox confirmar que o hoster/arquivo já existe no cache global deles
-                            if (isCached === true || (Array.isArray(isCached) && isCached.length > 0) || (typeof isCached === 'object' && !isCached.error)) {
-                                let label = 'WEB DEBRID';
-                                try { label = new URL(webUrl).hostname.replace('www.', '').toUpperCase().split('.')[0]; } catch(e){}
-                                cachedItems.push({
-                                    label: `${label} (CACHED) ⚡`,
-                                    url: webUrl,
-                                    type: 'webdl'
-                                });
-                            }
-                        }
-                    } catch (e) { console.error("Erro cache webdl:", webUrl, e); }
-                });
-                await Promise.all(webPromises);
             }
 
             return res.status(200).json({ 
                 items: cachedItems,
                 debug_raw: {
                     acao: "check-cache",
-                    respostaCompletaTorbox: data || rawText
+                    respostaTorbox: logWebDebug
                 }
             });
         }
 
         // ------------------------------------------------------------------------
-        // AÇÃO 2: ADICIONAR À NUVEM E GERAR LINK DE DOWNLOAD AUTOMÁTICO
+        // AÇÃO 2: ADICIONAR À NUVEM E GERAR LINK VIP
         // ------------------------------------------------------------------------
         else if (action === 'add-and-download') {
             if (!url) return res.status(400).json({ error: 'URL ou Magnet não fornecido.' });
@@ -189,9 +155,8 @@ export default async function handler(req, res) {
                 throw new Error('Torrent adicionado, mas link VIP ainda em processamento.');
             }
 
-            // --- FLUXO B: WEB DOWNLOADS (Exatamente a mesma lógica!) ---
+            // --- FLUXO B: WEB DOWNLOADS (Criação direta via createwebdl) ---
             else {
-                // 1. Envia via FormData para o endpoint oficial do módulo webdl
                 const formData = new FormData();
                 formData.append("link", url);
 
@@ -201,35 +166,18 @@ export default async function handler(req, res) {
                     body: formData
                 });
                 const createData = await createRes.json();
-                let webId = createData?.data?.webdl_id || createData?.data?.id || createData?.data?.download_id;
-
-                // 2. Se já existia na conta do usuário, busca o ID na lista de web downloads
-                if (!webId) {
-                    const listRes = await fetch(`${BASE_URL}/webdl/mylist`, { method: 'GET', headers: headersJson });
-                    const listData = await listRes.json();
-                    if (listData && listData.data && Array.isArray(listData.data)) {
-                        const urlAlvo = url.toLowerCase().trim();
-                        const enc = listData.data.find(w => (w.url || w.link || "").toLowerCase().includes(urlAlvo) || urlAlvo.includes((w.url || w.link || "").toLowerCase()));
-                        if (enc) webId = enc.id || enc.webdl_id;
+                
+                if (createData && (createData.success || createData.data)) {
+                    // Se o Torbox aceitou e gerou o link ou iniciou
+                    const resultObj = createData.data || createData;
+                    const linkDireto = resultObj.download_url || resultObj.url || (typeof resultObj === 'string' ? resultObj : null);
+                    
+                    if (linkDireto && typeof linkDireto === 'string' && linkDireto.startsWith('http')) {
+                        return res.status(200).json({ success: true, downloadUrl: linkDireto });
                     }
                 }
 
-                if (!webId) throw new Error('Falha ao adicionar link Web na sua conta Torbox.');
-
-                // 3. Solicita o link VIP direto do arquivo (passamos variações de parâmetro de ID por garantia)
-                const dlRes = await fetch(`${BASE_URL}/webdl/requestdl?token=${TORBOX_API_KEY}&web_id=${webId}&webdl_id=${webId}&id=${webId}&zip_link=true`, {
-                    method: 'GET',
-                    headers: headersJson
-                });
-                const dlData = await dlRes.json();
-
-                if (dlData?.data) {
-                    const linkFinal = dlData.data.download_url || dlData.data.url || dlData.data;
-                    if (typeof linkFinal === 'string' && linkFinal.startsWith('http')) {
-                        return res.status(200).json({ success: true, downloadUrl: linkFinal });
-                    }
-                }
-                throw new Error('Link Web adicionado à conta, mas download VIP ainda em processamento.');
+                throw new Error(createData?.detail || 'Falha ao processar link Web no Torbox.');
             }
         }
 
