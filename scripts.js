@@ -2369,7 +2369,7 @@ window.addEventListener('load', () => {
 });
 
 // ============================================================================
-// --- FIM: IMPLEMENTAÇÃO DE NOTIFICAÇÕES PUSH ---
+// --- FIM: IMPLEMENTAÇÃO DE NOTIFICAÇÕES PUSH --- 
 // ============================================================================
 
 // Exibe a barra flutuante no bottom assim que o usuário rolar 180px para baixo no modal
