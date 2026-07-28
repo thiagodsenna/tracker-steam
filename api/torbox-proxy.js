@@ -11,10 +11,10 @@ export default async function handler(req, res) {
     // ============================================================================
     // 🔑 CONFIGURAÇÃO DA API KEY DO TORBOX
     // ============================================================================
-    const TORBOX_API_KEY = "SUA_API_KEY_DO_TORBOX_AQUI"; 
+    const TORBOX_API_KEY = "3a021657-8ac9-4bf5-b6f2-5515fc92964c"; 
     // ============================================================================
 
-    if (!TORBOX_API_KEY || TORBOX_API_KEY === "SUA_API_KEY_DO_TORBOX_AQUI") {
+    if (!TORBOX_API_KEY) {
         return res.status(400).json({ error: 'API Key do Torbox não configurada no backend.' });
     }
 
