@@ -2304,6 +2304,9 @@ async function buscarDownloadsTorbox(downloads) {
             }).then(r => r.json()).catch(() => ({ items: [] })) : Promise.resolve({ items: [] })
         ]);
 
+        console.log("🧐 [DEBUG TORBOX - TORRENTS]:", resTorrent.debug_raw);
+        console.log("🧐 [DEBUG TORBOX - WEB LINKS]:", resWeb.debug_raw);
+
         const torboxItems = [...(resTorrent.items || []), ...(resWeb.items || [])];
 
         // Se encontrou opções prontas para download de alta velocidade

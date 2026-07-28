@@ -11,18 +11,16 @@ export default async function handler(req, res) {
     // ============================================================================
     // 🔑 CONFIGURAÇÃO DA API KEY DO TORBOX
     // ============================================================================
-    // PARA TESTES INICIAIS: Cole sua chave do Torbox abaixo entre as aspas.
-    // PARA PRODUÇÃO (FUTURO): Mude para -> process.env.TORBOX_API_KEY
-    const TORBOX_API_KEY = "3a021657-8ac9-4bf5-b6f2-5515fc92964c"; 
+    const TORBOX_API_KEY = "SUA_API_KEY_DO_TORBOX_AQUI"; 
     // ============================================================================
 
-    if (!TORBOX_API_KEY) {
+    if (!TORBOX_API_KEY || TORBOX_API_KEY === "SUA_API_KEY_DO_TORBOX_AQUI") {
         return res.status(400).json({ error: 'API Key do Torbox não configurada no backend.' });
     }
 
     const { action, links } = req.body;
     if (!links || !Array.isArray(links) || links.length === 0) {
-        return res.status(200).json({ items: [] });
+        return res.status(200).json({ items: [], debug_raw: "Nenhum link enviado no array." });
     }
 
     const BASE_URL = "https://api.torbox.app/v1/api";
@@ -36,12 +34,11 @@ export default async function handler(req, res) {
         // AÇÃO 1: CHECAR CACHE DE TORRENTS / MAGNETS
         // ------------------------------------------------------------------------
         if (action === 'check-cache') {
-            // Extrai o InfoHash dos magnet links recebidos
             const hashToOriginalUrl = {};
             const hashes = [];
 
             links.forEach(url => {
-                // Regex para capturar o hash hex (40 chars) ou base32 (32 chars) do magnet
+                // Regex expandido para capturar infohashes Base32 (32 chars) e Hex (40 chars)
                 const match = url.match(/urn:btih:([a-zA-Z0-9]{32,40})/i);
                 if (match && match[1]) {
                     const hash = match[1].toLowerCase();
@@ -50,55 +47,106 @@ export default async function handler(req, res) {
                 }
             });
 
-            if (hashes.length === 0) return res.status(200).json({ items: [] });
-
-            // Envia requisição em bulk para o Torbox (aceita lista separada por vírgula)
-            const queryHashes = hashes.join(',');
-            const response = await fetch(`${BASE_URL}/torrents/checkcached?hash=${queryHashes}&format=list`, {
-                method: 'GET',
-                headers: headers
-            });
-
-            const data = await response.json();
-            const cachedItems = [];
-
-            // O Torbox retorna um array ou objeto com os hashes que estão em cache (true/1)
-            if (data && data.success && data.data) {
-                const retornados = Array.isArray(data.data) ? data.data : Object.keys(data.data);
-                retornados.forEach(item => {
-                    const hash = typeof item === 'string' ? item.toLowerCase() : (item.hash || '').toLowerCase();
-                    if (hashToOriginalUrl[hash]) {
-                        cachedItems.push({
-                            label: 'TORRENT (CACHED)',
-                            originalUrl: hashToOriginalUrl[hash],
-                            // Manda para uma rota que adiciona o torrent no Torbox já solicitando download instantâneo
-                            downloadUrl: `https://torbox.app/torrents` // Pode direcionar para o app ou integrar o create torrent depois
-                        });
-                    }
-                });
+            if (hashes.length === 0) {
+                return res.status(200).json({ items: [], debug_raw: "Nenhum InfoHash válido extraído dos links enviados." });
             }
 
-            return res.status(200).json({ items: cachedItems });
+            const queryHashes = hashes.join(',');
+            const endpointUrl = `${BASE_URL}/torrents/checkcached?hash=${queryHashes}&format=list`;
+            
+            const response = await fetch(endpointUrl, { method: 'GET', headers: headers });
+            const statusHttp = response.status;
+            const rawText = await response.text();
+            
+            let data = null;
+            try { data = JSON.parse(rawText); } catch(e){}
+
+            const cachedItems = [];
+
+            // Tenta processar o retorno caso tenha tido sucesso
+            if (data && (data.success || data.data)) {
+                const objData = data.data || data;
+                
+                // Se for array de hashes ou array de objetos
+                if (Array.isArray(objData)) {
+                    objData.forEach(item => {
+                        const hashRetornado = (typeof item === 'string' ? item : (item.hash || '')).toLowerCase();
+                        // Checa se existe no nosso mapa original ou se o Torbox retornou algo similar
+                        if (hashToOriginalUrl[hashRetornado]) {
+                            cachedItems.push({
+                                label: 'TORRENT (CACHED) ⚡',
+                                originalUrl: hashToOriginalUrl[hashRetornado],
+                                downloadUrl: `https://torbox.app/torrents`
+                            });
+                        }
+                    });
+                } 
+                // Se for objeto onde as chaves são os hashes (Ex: { "hash123": true })
+                else if (typeof objData === 'object') {
+                    Object.keys(objData).forEach(hashKey => {
+                        const hashRetornado = hashKey.toLowerCase();
+                        const isCached = objData[hashKey];
+                        
+                        // Se for true ou se for um objeto com dados do torrent
+                        if (isCached && hashToOriginalUrl[hashRetornado]) {
+                            cachedItems.push({
+                                label: 'TORRENT (CACHED) ⚡',
+                                originalUrl: hashToOriginalUrl[hashRetornado],
+                                downloadUrl: `https://torbox.app/torrents`
+                            });
+                        }
+                    });
+                }
+            }
+
+            // RETORNA OS ITENS E O DIAGNÓSTICO COMPLETO
+            return res.status(200).json({ 
+                items: cachedItems,
+                debug_raw: {
+                    acao: "check-cache",
+                    statusHttpTorbox: statusHttp,
+                    endpointConsultado: endpointUrl,
+                    hashesExtraidos: hashes,
+                    respostaCompletaTorbox: data || rawText
+                }
+            });
         }
 
         // ------------------------------------------------------------------------
         // AÇÃO 2: GERAR LINKS DIREITOS (DEBRID DE WEB DOWNLOADS)
         // ------------------------------------------------------------------------
         else if (action === 'web-download') {
-            // Dispara requisições em paralelo para converter cada link de file host
+            const debugList = [];
+
             const promises = links.map(async (url) => {
+                const endpointUrl = `${BASE_URL}/webdl/create`;
+                // Enviando tanto "link" quanto "url" por garantia de compatibilidade com a API
+                const payloadBody = JSON.stringify({ link: url, url: url }); 
+
                 try {
-                    const res = await fetch(`${BASE_URL}/webdl/create`, {
+                    const res = await fetch(endpointUrl, {
                         method: 'POST',
                         headers: headers,
-                        body: JSON.stringify({ link: url })
+                        body: payloadBody
                     });
-                    const data = await res.json();
                     
-                    // Se o Torbox aceitou e gerou/iniciou o debrid do arquivo
-                    if (data && data.success && data.data) {
-                        const linkDireto = data.data.download_url || data.data || null;
-                        if (linkDireto && typeof linkDireto === 'string') {
+                    const statusHttp = res.status;
+                    const rawText = await res.text();
+                    let data = null;
+                    try { data = JSON.parse(rawText); } catch(e){}
+
+                    // Guarda o log exato deste link para o nosso debug
+                    debugList.push({
+                        urlEnviada: url,
+                        statusHttp: statusHttp,
+                        respostaTorbox: data || rawText
+                    });
+
+                    if (data && (data.success || data.data)) {
+                        const resultObj = data.data || data;
+                        const linkDireto = resultObj.download_url || resultObj.url || (typeof resultObj === 'string' ? resultObj : null);
+                        
+                        if (linkDireto && typeof linkDireto === 'string' && linkDireto.startsWith('http')) {
                             let label = 'WEB DEBRID';
                             try { label = new URL(url).hostname.replace('www.', '').toUpperCase().split('.')[0]; } catch(e){}
                             return {
@@ -109,7 +157,7 @@ export default async function handler(req, res) {
                         }
                     }
                 } catch (e) {
-                    console.error("Erro ao converter link no Torbox:", url, e);
+                    debugList.push({ urlEnviada: url, erroFetch: e.message });
                 }
                 return null;
             });
@@ -117,13 +165,21 @@ export default async function handler(req, res) {
             const results = await Promise.all(promises);
             const validItems = results.filter(item => item !== null);
 
-            return res.status(200).json({ items: validItems });
+            // RETORNA OS ITENS E O DIAGNÓSTICO DE CADA LINK TESTADO
+            return res.status(200).json({ 
+                items: validItems,
+                debug_raw: {
+                    acao: "web-download",
+                    totalAnalisados: links.length,
+                    detalhesPorLink: debugList
+                }
+            });
         }
 
         return res.status(400).json({ error: 'Ação inválida para o Torbox.' });
 
     } catch (error) {
         console.error("Erro no proxy Torbox:", error);
-        return res.status(500).json({ error: 'Falha na comunicação com o Torbox.' });
+        return res.status(500).json({ error: 'Falha na comunicação com o Torbox.', detalhe: error.message });
     }
 }
