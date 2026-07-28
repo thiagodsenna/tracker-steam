@@ -13,7 +13,13 @@ export default async function handler(req, res) {
                 // Lógica antiga do steam-proxy.js
                 if (!appid) return res.status(400).json({ error: 'AppID é obrigatório' });
                 try {
-                  const response = await fetch(`https://store.steampowered.com/api/appdetails?appids=${appid}`);
+                  const response = await fetch(`https://store.steampowered.com/api/appdetails?appids=${appid}&l=brazilian&cc=BR`, {
+                    headers: {
+                      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                      'Cookie': 'birthtime=283993200; mature_content=1; lastagecheckage=1-0-1990',
+                      'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7'
+                    }
+                  });
                   const data = await response.json();
                   return res.status(200).json(data);
                 } catch (error) {
