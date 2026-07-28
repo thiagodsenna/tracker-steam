@@ -1550,17 +1550,24 @@ function formatarBbcodeSteam(texto) {
         .replace(/\[u\](.*?)\[\/u\]/gi, '<u class="underline decoration-neutral-500">$1</u>')
         .replace(/\[strike\](.*?)\[\/strike\]/gi, '<s class="line-through text-neutral-500">$1</s>')
 
-        // 4. Spoilers (Efeito interativo: borrado que revela ao passar o mouse)
+        // 4. Spoilers
         .replace(/\[spoiler\](.*?)\[\/spoiler\]/gi, '<span class="bg-neutral-800 text-transparent hover:text-neutral-200 select-none hover:select-text rounded px-1 transition-colors cursor-pointer" title="Spoiler">$1</span>')
 
         // 5. Citações e Código
         .replace(/\[quote\](.*?)\[\/quote\]/gi, '<blockquote class="border-l-2 border-neutral-600 pl-2 my-1 italic text-neutral-400 bg-neutral-900/40 py-0.5">$1</blockquote>')
         .replace(/\[code\](.*?)\[\/code\]/gi, '<code class="bg-neutral-900 border border-neutral-800 text-emerald-400 font-mono text-[11px] px-1 py-0.5 rounded">$1</code>')
 
-        // 6. Listas e Links
+        // 6. Listas e Links no formato BBCode [url=...]...[/url] ou [url]...[/url]
         .replace(/\[list\](.*?)\[\/list\]/gi, '<ul class="list-disc list-inside my-1 space-y-0.5">$1</ul>')
         .replace(/\[\*\]/gi, '• ')
-        .replace(/\[url=(.*?)\](.*?)\[\/url\]/gi, '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:underline">$2</a>');
+        .replace(/\[url=(.*?)\](.*?)\[\/url\]/gi, '<a href="$1" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();" class="text-emerald-400 hover:underline underline-offset-2">$2</a>')
+        .replace(/\[url\](.*?)\[\/url\]/gi, '<a href="$1" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();" class="text-emerald-400 hover:underline underline-offset-2">$1</a>')
+
+        // 7. URLs brutas soltas no texto (http, https ou www) que não estão dentro de tags HTML nem do BBCode
+        .replace(/(^|[\s>])((?:https?:\/\/|www\.)[^\s<\[]+)/gi, (match, prefix, url) => {
+            const href = url.startsWith('www.') ? `http://${url}` : url;
+            return `${prefix}<a href="${href}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation();" class="text-emerald-400 hover:underline underline-offset-2">${url}</a>`;
+        });
 }
 
 async function buscarReviewsSteam(steamId) {
