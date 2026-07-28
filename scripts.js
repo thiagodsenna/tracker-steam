@@ -1617,7 +1617,7 @@ async function buscarReviewsSteam(steamId) {
                 return `
                     <!-- Card de Avaliação com clique para expandir/ocultar -->
                     <div onclick="const textEl = this.querySelector('.review-text'); const btnEl = this.querySelector('.review-toggle-btn'); if (textEl && btnEl) { textEl.classList.toggle('line-clamp-4'); btnEl.textContent = textEl.classList.contains('line-clamp-4') ? 'MAIS' : 'MENOS'; }" 
-                         class="bg-neutral-800/30 border border-neutral-800 p-4 pb-2 rounded-md cursor-pointer hover:border-neutral-700/80 transition-colors">
+                         class="bg-neutral-950/50 border border-neutral-800 p-4 pb-2 rounded-md cursor-pointer hover:border-neutral-700/80 transition-colors">
                         
                         <!-- Topo do Card -->
                         <div class="flex items-center justify-between gap-2 mb-2 flex-wrap">
