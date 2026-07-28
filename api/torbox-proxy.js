@@ -162,13 +162,7 @@ export default async function handler(req, res) {
 
             await Promise.all(promises);
 
-            return res.status(200).json({
-                items: validItems,
-                debug_raw: {
-                    acao: "web-download",
-                    detalhesPorLink: debugList
-                }
-            });
+            return res.status(200).json({ items: validItems });
         }
 
         // ------------------------------------------------------------------------
