@@ -1952,7 +1952,7 @@ window.addEventListener('popstate', () => {
 });
 
 // PWA: Registrar Service Worker para aceitar instalação do app no navegador mobile
-if ('serviceWorker' in navigator) {
+if ('serviceWorker' in navigator && window.location.protocol !== 'file:' && window.location.origin !== 'null') {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('/sw.js')
         .then(reg => console.log('Service Worker registrado!'))
@@ -2261,6 +2261,42 @@ async function executarDownloadTorbox(urlEncoded, btnId, type) {
 // ============================================================================
 // --- FIM: INTEGRAÇÃO TORBOX UNIFICADA ---
 // ============================================================================
+
+
+// ============================================================================
+// --- INÍCIO: IMPLEMENTAÇÃO DE NOTIFICAÇÕES PUSH ---
+// ============================================================================
+
+async function meSincronizarPush(subscription) {
+    try {
+        await fetch(`${API_BASE_URL}/api/push-subscribe`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                subscription: subscription,
+                token: userToken
+            })
+        });
+    } catch (e) {
+        console.error("Erro ao sincronizar inscrição push com o servidor:", e);
+    }
+}
+
+async function verificarStatusNotificacao() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    if (window.location.protocol === 'file:' || window.location.origin === 'null') return;
+
+    try {
+        const reg = await navigator.serviceWorker.ready;
+        const sub = await reg.pushManager.getSubscription();
+        if (sub && Notification.permission === 'granted') {
+            await meSincronizarPush(sub);
+        }
+    } catch (e) {
+        console.error("Erro ao verificar status de notificação:", e);
+    }
+}
+
 // Executa a checagem no carregamento da página em segundo plano
 window.addEventListener('load', () => {
     setTimeout(verificarStatusNotificacao, 1500);
