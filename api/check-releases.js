@@ -64,6 +64,7 @@ export default async function handler(req, res) {
 
     // Função auxiliar para extrair ou resolver o Steam ID (suportando /app/ e /bundle/)
     async function resolverSteamId(contentText) {
+        if (!contentText) return null;
         let match = contentText.match(/(?:store\.steampowered\.com|steamcommunity\.com)\/app\/(\d+)/i);
         if (match) return match[1];
 
