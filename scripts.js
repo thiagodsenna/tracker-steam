@@ -369,7 +369,7 @@ function parseFeedlyItem(item, index) {
     doc.querySelectorAll('a').forEach(a => {
         const href = a.href || '';
         if (href.includes('skidrowreloaded') || href.includes('steampowered') || href.includes('youtube') || href.includes('steamcommunity')) return;
-        if (a.textContent.length > 2 && downloads.length < 16) {
+        if (a.textContent.length > 2 && downloads.length < 30) {
             let label = href.startsWith('magnet:') ? 'TORRENT' : new URL(a.href).hostname.replace('www.', '').toUpperCase().split('.')[0];
             downloads.push({ label: label, url: a.href });
         }
@@ -2199,9 +2199,9 @@ async function buscarDownloadsTorbox(downloads) {
                 <button type="button" id="btn-tb-${idx}" onclick="executarDownloadTorbox('${encodeURIComponent(item.url)}', 'btn-tb-${idx}', '${item.type}')" class="w-full bg-emerald-950/30 hover:bg-emerald-900/50 p-2.5 flex items-center justify-between gap-2 rounded text-xs font-bold text-emerald-300 border border-emerald-500/40 transition-all shadow-sm group cursor-pointer" title="${item.url}">
                     <div class="flex items-center gap-2 truncate">
                         <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400 group-hover:scale-110 transition-transform shrink-0"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-                        <span class="truncate">${item.label}</span>
+                        <span class="truncate">${item?.label.startsWith('magnet:') ? 'TORRENT' : item?.label.replace('www.', '').toUpperCase().split('.')[0]}</span>
                     </div>
-                    <span class="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded uppercase font-mono shrink-0">AUTO VIP</span>
+                    <span class="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded uppercase font-mono shrink-0">CACHED</span>
                 </button>
             `).join('');
         } else {

@@ -95,7 +95,7 @@ export default async function handler(req, res) {
                                     const h = (typeof item === 'string' ? item : (item.hash || '')).toLowerCase();
                                     if (hashToOriginalUrl[h]) {
                                         cachedItems.push({
-                                            label: 'TORRENT (CACHED) ⚡',
+                                            label: 'TORRENT ⚡',
                                             url: hashToOriginalUrl[h],
                                             type: 'torrent'
                                         });
