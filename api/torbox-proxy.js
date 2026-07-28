@@ -107,7 +107,7 @@ export default async function handler(req, res) {
                 }
             }
 
-            // 2. Checagem de Web Downloads via MD5 (Conforme documentação oficial)
+            // 2. Checagem de Web Downloads via MD5 (Conforme página 11 da documentação oficial)
             if (webLinks.length > 0) {
                 const md5Map = {};
                 const md5Hashes = [];
@@ -193,18 +193,19 @@ export default async function handler(req, res) {
                 throw new Error('Torrent adicionado, mas link VIP ainda em processamento.');
             }
 
-            // --- FLUXO B: WEB DOWNLOADS (Adicionar e solicitar link VIP) ---
+            // --- FLUXO B: WEB DOWNLOADS (Usando a rota oficial /webdl/createwebdownload com FormData) ---
             else {
-                // 1. Cria/Adiciona o Web Download na conta
-                const createRes = await fetch(`${BASE_URL}/webdl/createwebdl`, {
+                const formData = new FormData();
+                formData.append("link", url);
+
+                const createRes = await fetch(`${BASE_URL}/webdl/createwebdownload`, {
                     method: 'POST',
-                    headers: headersJson,
-                    body: JSON.stringify({ link: url })
+                    headers: { "Authorization": `Bearer ${TORBOX_API_KEY}` },
+                    body: formData
                 });
                 const createData = await createRes.json();
                 let webId = createData?.data?.webdl_id || createData?.data?.id || createData?.data?.download_id;
 
-                // Se já estiver na lista da conta, busca o ID pelo link
                 if (!webId) {
                     const listRes = await fetch(`${BASE_URL}/webdl/mylist`, { method: 'GET', headers: headersJson });
                     const listData = await listRes.json();
@@ -217,7 +218,6 @@ export default async function handler(req, res) {
 
                 if (!webId) throw new Error('Falha ao adicionar link Web na sua conta Torbox.');
 
-                // 2. Solicita o link VIP direto usando o requestdl do webdl
                 const dlRes = await fetch(`${BASE_URL}/webdl/requestdl?token=${TORBOX_API_KEY}&web_id=${webId}&webdl_id=${webId}&id=${webId}&zip_link=true`, {
                     method: 'GET',
                     headers: headersJson
@@ -230,7 +230,12 @@ export default async function handler(req, res) {
                         return res.status(200).json({ success: true, downloadUrl: linkFinal });
                     }
                 }
-                throw new Error('Link Web adicionado à conta, mas link VIP ainda em processamento.');
+
+                // Se o link ainda estiver gerando na nuvem, redireciona o usuário para o dashboard do Torbox para acompanhar
+                return res.status(200).json({ 
+                    success: true, 
+                    downloadUrl: `https://torbox.app/webdl` 
+                });
             }
         }
 
