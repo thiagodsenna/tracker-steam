@@ -2157,7 +2157,7 @@ function verificarTokenSincroniaURL() {
 // --- FIM: NOVAS FUNÇÕES EXCLUSIVAS PARA CONTROLE DA WISHLIST ---
 
 // ============================================================================
-// --- INÍCIO: INTEGRAÇÃO TORBOX AUTOMATIZADA (TORRENTS + WEB DL) ---
+// --- INÍCIO: INTEGRAÇÃO TORBOX COM CHAMADAS SEPARADAS ---
 // ============================================================================
 
 async function buscarDownloadsTorbox(downloads) {
@@ -2167,42 +2167,53 @@ async function buscarDownloadsTorbox(downloads) {
     if (!secaoTorbox || !gridTorbox) return;
 
     gridTorbox.innerHTML = '';
-    statusTag.textContent = "Verificando cache...";
+    statusTag.textContent = "Verificando Torbox...";
     statusTag.className = "text-[10px] bg-neutral-900 border border-neutral-800 text-amber-400 px-2 py-0.5 rounded font-mono animate-pulse";
     secaoTorbox.classList.remove('hidden');
     atualizarVisibilidadeAtalho('torbox', true);
 
-    // Coleta todos os links válidos de download (Torrents e File Hosters)
-    const linksParaChecar = [];
-    downloads.forEach(dl => {
-        if (!dl.url.includes('steampowered') && !dl.url.includes('youtube') && !dl.url.includes('steamcommunity') && !dl.url.includes('skidrowreloaded')) {
-            linksParaChecar.push(dl.url);
-        }
-    });
+    const todosOsLinks = downloads.map(dl => dl.url);
 
-    if (linksParaChecar.length === 0) {
-        statusTag.textContent = "Sem links para checagem";
+    if (todosOsLinks.length === 0) {
+        statusTag.textContent = "Sem links disponíveis";
         statusTag.className = "text-[10px] bg-neutral-900 border border-neutral-800 text-neutral-500 px-2 py-0.5 rounded font-mono";
-        gridTorbox.innerHTML = `<div class="col-span-full text-center py-4 text-xs text-neutral-500 bg-neutral-950/40 rounded border border-neutral-800/60">Este release não possui links compatíveis para verificação no Torbox.</div>`;
+        gridTorbox.innerHTML = `<div class="col-span-full text-center py-4 text-xs text-neutral-500 bg-neutral-950/40 rounded border border-neutral-800/60">Este release não possui links para verificação.</div>`;
         return;
     }
 
     try {
-        const res = await fetch(`${API_BASE_URL}/api/torbox-proxy`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'check-cache', links: linksParaChecar })
-        });
-        const data = await res.json();
-        const torboxItems = data.items || [];
+        // Dispara as DUAS CHAMADAS SEPARADAS em paralelo para o backend (uma para torrents, outra para web downloads)
+        const [resTorrent, resWeb] = await Promise.all([
+            fetch(`${API_BASE_URL}/api/torbox-proxy`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'check-cache', links: todosOsLinks })
+            }).then(r => r.json()).catch(() => ({ items: [] })),
 
-        if (torboxItems.length > 0) {
-            statusTag.textContent = `${torboxItems.length} disponível(is) em cache`;
+            fetch(`${API_BASE_URL}/api/torbox-proxy`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'web-download', links: todosOsLinks })
+            }).then(r => r.json()).catch(() => ({ items: [] }))
+        ]);
+
+        // Exibe os logs de debug no console para você inspecionar exatamente o que cada rota retornou
+        console.log("🧐 [DEBUG TORBOX - TORRENTS]:", resTorrent.debug_raw);
+        console.log("🧐 [DEBUG TORBOX - WEB LINKS]:", resWeb.debug_raw);
+
+        const itensTorrents = resTorrent.items || [];
+        const itensWeb = resWeb.items || [];
+        const totalEncontrado = itensTorrents.length + itensWeb.length;
+
+        if (totalEncontrado > 0) {
+            statusTag.textContent = `${totalEncontrado} disponível(is)`;
             statusTag.className = "text-[10px] bg-emerald-950/40 border border-emerald-500/30 text-emerald-400 px-2 py-0.5 rounded font-mono font-bold";
 
-            // Renderiza botões para Torrents OU Web Downloads em cache
-            gridTorbox.innerHTML = torboxItems.map((item, idx) => `
-                <button type="button" id="btn-torbox-${idx}" onclick="executarDownloadTorbox('${encodeURIComponent(item.url)}', 'btn-torbox-${idx}', '${item.type}')" class="w-full bg-emerald-950/30 hover:bg-emerald-900/50 p-2.5 flex items-center justify-between gap-2 rounded text-xs font-bold text-emerald-300 border border-emerald-500/40 transition-all shadow-sm group cursor-pointer" title="${item.url}">
+            let htmlBotoes = '';
+
+            // 1. Renderiza os botões de Torrents (que exigem adição automática ao clicar)
+            htmlBotoes += itensTorrents.map((item, idx) => `
+                <button type="button" id="btn-tor-${idx}" onclick="executarDownloadTorbox('${encodeURIComponent(item.url)}', 'btn-tor-${idx}', 'torrent')" class="w-full bg-emerald-950/30 hover:bg-emerald-900/50 p-2.5 flex items-center justify-between gap-2 rounded text-xs font-bold text-emerald-300 border border-emerald-500/40 transition-all shadow-sm group cursor-pointer" title="${item.url}">
                     <div class="flex items-center gap-2 truncate">
                         <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400 group-hover:scale-110 transition-transform shrink-0"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
                         <span class="truncate">${item.label}</span>
@@ -2210,10 +2221,23 @@ async function buscarDownloadsTorbox(downloads) {
                     <span class="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded uppercase font-mono shrink-0">AUTO VIP</span>
                 </button>
             `).join('');
+
+            // 2. Renderiza os botões de Web Downloads (que já retornam o link direto pronto para abrir)
+            htmlBotoes += itensWeb.map((item) => `
+                <a href="${item.downloadUrl}" target="_blank" class="w-full bg-emerald-950/30 hover:bg-emerald-900/50 p-2.5 flex items-center justify-between gap-2 rounded text-xs font-bold text-emerald-300 border border-emerald-500/40 transition-all shadow-sm group" title="${item.url}">
+                    <div class="flex items-center gap-2 truncate">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400 group-hover:scale-110 transition-transform shrink-0"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        <span class="truncate">${item.label}</span>
+                    </div>
+                    <span class="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded uppercase font-mono shrink-0">DIRECT VIP</span>
+                </a>
+            `).join('');
+
+            gridTorbox.innerHTML = htmlBotoes;
         } else {
             statusTag.textContent = "Nenhum em cache";
             statusTag.className = "text-[10px] bg-neutral-900 border border-neutral-800 text-neutral-500 px-2 py-0.5 rounded font-mono";
-            gridTorbox.innerHTML = `<div class="col-span-full text-center py-4 text-xs text-neutral-500 bg-neutral-950/40 rounded border border-neutral-800/60">Os arquivos dos links web e torrents ainda não estão cacheados nos servidores do Torbox.</div>`;
+            gridTorbox.innerHTML = `<div class="col-span-full text-center py-4 text-xs text-neutral-500 bg-neutral-950/40 rounded border border-neutral-800/60">Nenhum dos links deste release foi encontrado no cache do Torbox.</div>`;
         }
     } catch (e) {
         console.error("Erro ao verificar Torbox:", e);
@@ -2223,7 +2247,6 @@ async function buscarDownloadsTorbox(downloads) {
     }
 }
 
-// Função acionada com 1 clique: Adiciona à nuvem e abre o download VIP na hora
 async function executarDownloadTorbox(urlEncoded, btnId, type) {
     const btn = document.getElementById(btnId);
     const urlDecoded = decodeURIComponent(urlEncoded);
@@ -2266,7 +2289,7 @@ async function executarDownloadTorbox(urlEncoded, btnId, type) {
     }
 }
 // ============================================================================
-// --- FIM: INTEGRAÇÃO TORBOX AUTOMATIZADA (TORRENTS + WEB DL) ---
+// --- FIM: INTEGRAÇÃO TORBOX COM CHAMADAS SEPARADAS ---
 // ============================================================================
 
 // Executa a checagem no carregamento da página em segundo plano

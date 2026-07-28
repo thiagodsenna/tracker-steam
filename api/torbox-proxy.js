@@ -41,25 +41,20 @@ export default async function handler(req, res) {
         "Content-Type": "application/json"
     };
 
-    let logWebDebug = null; // Variável declarada corretamente para evitar erros
-
     try {
         // ------------------------------------------------------------------------
-        // AÇÃO 1: CHECAGEM DE CACHE (Focada em Torrents, onde a API é estável)
+        // AÇÃO 1: VERIFICAR CACHE DE TORRENTS (Magnets / .torrent)
         // ------------------------------------------------------------------------
         if (action === 'check-cache') {
             if (!links || !Array.isArray(links) || links.length === 0) {
                 return res.status(200).json({ items: [] });
             }
 
-            const cachedItems = [];
-            const torrentLinks = links.filter(l => l.startsWith('magnet:') || l.endsWith('.torrent') || l.includes('btih:'));
+            const hashToOriginalUrl = {};
+            const hashes = [];
 
-            if (torrentLinks.length > 0) {
-                const hashToOriginalUrl = {};
-                const hashes = [];
-
-                torrentLinks.forEach(u => {
+            links.forEach(u => {
+                if (u.startsWith('magnet:') || u.endsWith('.torrent') || u.includes('btih:')) {
                     const match = u.match(/urn:btih:([a-zA-Z0-9]{32,40})/i);
                     if (match && match[1]) {
                         let hash = match[1].toLowerCase();
@@ -73,33 +68,30 @@ export default async function handler(req, res) {
                         hashToOriginalUrl[hash] = u;
                         if (!hashes.includes(hash)) hashes.push(hash);
                     }
-                });
+                }
+            });
 
-                if (hashes.length > 0) {
-                    try {
-                        const resTor = await fetch(`${BASE_URL}/torrents/checkcached?hash=${hashes.join(',')}&format=list`, { method: 'GET', headers: headersJson });
-                        const dataTor = await resTor.json();
-                        
-                        logWebDebug = dataTor; // Registra o retorno para debug
+            if (hashes.length === 0) {
+                return res.status(200).json({ items: [], debug_raw: { acao: "check-cache", info: "Nenhum magnet válido encontrado." } });
+            }
 
-                        if (dataTor && (dataTor.success || dataTor.data)) {
-                            const objData = dataTor.data || dataTor;
-                            if (Array.isArray(objData)) {
-                                objData.forEach(item => {
-                                    const h = (typeof item === 'string' ? item : (item.hash || '')).toLowerCase();
-                                    if (hashToOriginalUrl[h]) {
-                                        cachedItems.push({
-                                            label: 'TORRENT (CACHED) ⚡',
-                                            url: hashToOriginalUrl[h],
-                                            type: 'torrent'
-                                        });
-                                    }
-                                });
-                            }
+            const response = await fetch(`${BASE_URL}/torrents/checkcached?hash=${hashes.join(',')}&format=list`, { method: 'GET', headers: headersJson });
+            const dataTor = await response.json();
+            const cachedItems = [];
+
+            if (dataTor && (dataTor.success || dataTor.data)) {
+                const objData = dataTor.data || dataTor;
+                if (Array.isArray(objData)) {
+                    objData.forEach(item => {
+                        const h = (typeof item === 'string' ? item : (item.hash || '')).toLowerCase();
+                        if (hashToOriginalUrl[h]) {
+                            cachedItems.push({
+                                label: 'TORRENT (CACHED) ⚡',
+                                url: hashToOriginalUrl[h],
+                                type: 'torrent'
+                            });
                         }
-                    } catch (e) { 
-                        logWebDebug = { erro: e.message }; 
-                    }
+                    });
                 }
             }
 
@@ -107,18 +99,96 @@ export default async function handler(req, res) {
                 items: cachedItems,
                 debug_raw: {
                     acao: "check-cache",
-                    respostaTorbox: logWebDebug
+                    respostaTorbox: dataTor
                 }
             });
         }
 
         // ------------------------------------------------------------------------
-        // AÇÃO 2: ADICIONAR À NUVEM E GERAR LINK VIP
+        // AÇÃO 2: PROCESSAR WEB DOWNLOADS (1fichier, GoFile, etc.)
+        // ------------------------------------------------------------------------
+        else if (action === 'web-download') {
+            if (!links || !Array.isArray(links) || links.length === 0) {
+                return res.status(200).json({ items: [] });
+            }
+
+            // Filtra apenas links de hosters (ignora steam, youtube, magnets)
+            const webLinks = links.filter(l => 
+                !l.startsWith('magnet:') && 
+                !l.endsWith('.torrent') && 
+                !l.includes('steampowered') && 
+                !l.includes('youtube') && 
+                !l.includes('steamcommunity') && 
+                !l.includes('skidrowreloaded')
+            );
+
+            if (webLinks.length === 0) {
+                return res.status(200).json({ items: [], debug_raw: { acao: "web-download", info: "Nenhum link web válido encontrado." } });
+            }
+
+            const debugList = [];
+            const validItems = [];
+
+            // Dispara requisições em paralelo para cada link web usando FormData no endpoint createwebdl
+            const promises = webLinks.map(async (webUrl) => {
+                try {
+                    const formData = new FormData();
+                    formData.append("link", webUrl);
+
+                    const res = await fetch(`${BASE_URL}/webdl/createwebdl`, {
+                        method: 'POST',
+                        headers: { "Authorization": `Bearer ${TORBOX_API_KEY}` },
+                        body: formData
+                    });
+
+                    const statusHttp = res.status;
+                    const rawText = await res.text();
+                    let data = null;
+                    try { data = JSON.parse(rawText); } catch(e){}
+
+                    debugList.push({
+                        urlEnviada: webUrl,
+                        statusHttp: statusHttp,
+                        respostaTorbox: data || rawText
+                    });
+
+                    if (data && (data.success || data.data)) {
+                        const resultObj = data.data || data;
+                        const linkDireto = resultObj.download_url || resultObj.url || (typeof resultObj === 'string' ? resultObj : null);
+
+                        if (linkDireto && typeof linkDireto === 'string' && linkDireto.startsWith('http')) {
+                            let label = 'WEB DEBRID';
+                            try { label = new URL(webUrl).hostname.replace('www.', '').toUpperCase().split('.')[0]; } catch(e){}
+                            validItems.push({
+                                label: `${label} ⚡`,
+                                url: webUrl,
+                                downloadUrl: linkDireto,
+                                type: 'webdl'
+                            });
+                        }
+                    }
+                } catch (e) {
+                    debugList.push({ urlEnviada: webUrl, erroFetch: e.message });
+                }
+            });
+
+            await Promise.all(promises);
+
+            return res.status(200).json({
+                items: validItems,
+                debug_raw: {
+                    acao: "web-download",
+                    detalhesPorLink: debugList
+                }
+            });
+        }
+
+        // ------------------------------------------------------------------------
+        // AÇÃO 3: ADICIONAR E BAIXAR (Para cliques em botões específicos)
         // ------------------------------------------------------------------------
         else if (action === 'add-and-download') {
             if (!url) return res.status(400).json({ error: 'URL ou Magnet não fornecido.' });
 
-            // --- FLUXO A: TORRENT (100% Funcional) ---
             if (type === 'torrent' || url.startsWith('magnet:') || url.includes('btih:')) {
                 const formData = new FormData();
                 formData.append("magnet", url);
@@ -155,30 +225,7 @@ export default async function handler(req, res) {
                 throw new Error('Torrent adicionado, mas link VIP ainda em processamento.');
             }
 
-            // --- FLUXO B: WEB DOWNLOADS (Criação direta via createwebdl) ---
-            else {
-                const formData = new FormData();
-                formData.append("link", url);
-
-                const createRes = await fetch(`${BASE_URL}/webdl/createwebdl`, {
-                    method: 'POST',
-                    headers: { "Authorization": `Bearer ${TORBOX_API_KEY}` },
-                    body: formData
-                });
-                const createData = await createRes.json();
-                
-                if (createData && (createData.success || createData.data)) {
-                    // Se o Torbox aceitou e gerou o link ou iniciou
-                    const resultObj = createData.data || createData;
-                    const linkDireto = resultObj.download_url || resultObj.url || (typeof resultObj === 'string' ? resultObj : null);
-                    
-                    if (linkDireto && typeof linkDireto === 'string' && linkDireto.startsWith('http')) {
-                        return res.status(200).json({ success: true, downloadUrl: linkDireto });
-                    }
-                }
-
-                throw new Error(createData?.detail || 'Falha ao processar link Web no Torbox.');
-            }
+            return res.status(400).json({ error: 'Tipo de ação inválido para add-and-download.' });
         }
 
         return res.status(400).json({ error: 'Ação inválida.' });
