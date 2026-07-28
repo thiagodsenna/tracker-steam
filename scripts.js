@@ -1613,10 +1613,11 @@ async function buscarReviewsSteam(steamId) {
 
                 const dataFormatada = formatarTimestamp(r.timestamp_updated || r.timestamp_created);
                 const pHoras = r.author.playtime_forever ? Math.round(r.author.playtime_forever / 60) + 'h' : '0h';
+                const precisaTruncar = r.review.length > 250 || r.review.split('\n').length > 4;
 
                 return `
                     <!-- Card de Avaliação com clique para expandir/ocultar -->
-                    <div onclick="const textEl = this.querySelector('.review-text'); const btnEl = this.querySelector('.review-toggle-btn'); if (textEl && btnEl) { textEl.classList.toggle('line-clamp-4'); btnEl.textContent = textEl.classList.contains('line-clamp-4') ? 'MAIS' : 'MENOS'; }" 
+                    <div onclick="const container = this.querySelector('.review-container'); const dots = this.querySelector('.review-dots'); const btnEl = this.querySelector('.review-toggle-btn'); if (container && btnEl) { container.classList.toggle('max-h-[5.5rem]'); if (dots) dots.classList.toggle('hidden'); btnEl.textContent = container.classList.contains('max-h-[5.5rem]') ? 'MAIS' : 'MENOS'; }" 
                          class="bg-neutral-950/50 border border-neutral-800 p-4 pb-2 rounded-md cursor-pointer hover:border-neutral-700/80 transition-colors">
                         
                         <!-- Topo do Card -->
@@ -1644,9 +1645,15 @@ async function buscarReviewsSteam(steamId) {
 
                         <!-- Texto da Avaliação -->
                         <div>
-                            <div class="review-text text-[12px] text-neutral-400 line-clamp-4 break-words">${formatarBbcodeSteam(r.review)}</div>
+                            <!-- Bloco com Altura Máxima para Simular Truncate -->
+                            <div class="review-container max-h-[5.5rem] overflow-hidden transition-all duration-200">
+                                <div class="review-text text-[12px] text-neutral-400 break-words leading-relaxed">${formatarBbcodeSteam(r.review)}</div>
+                            </div>
                             
-                            <div class="flex items-center justify-between mt-3.5 min-h-[20px]">
+                            <!-- Reticências na linha de baixo (exibido apenas quando truncado) -->
+                            ${precisaTruncar ? `<div class="review-dots text-[12px] text-neutral-500 font-bold leading-none mt-0.5">...</div>` : ''}
+
+                            <div class="flex items-center justify-between mt-2 min-h-[20px]">
                                 <!-- Upvotes alinhado à esquerda estilo Reddit -->
                                 <div>
                                     ${r.votes_up > 0 ? `
@@ -1657,9 +1664,9 @@ async function buscarReviewsSteam(steamId) {
                                 </div>
 
                                 <!-- Botão MAIS / MENOS -->
-                                ${r.review.length > 250 || r.review.split('\n').length > 4 ? `
+                                ${precisaTruncar ? `
                                 <button type="button" 
-                                        onclick="event.stopPropagation(); const textEl = this.parentElement.previousElementSibling; textEl.classList.toggle('line-clamp-4'); this.textContent = textEl.classList.contains('line-clamp-4') ? 'MAIS' : 'MENOS';" 
+                                        onclick="event.stopPropagation(); const container = this.closest('div.bg-neutral-800\\/30').querySelector('.review-container'); const dots = this.closest('div.bg-neutral-800\\/30').querySelector('.review-dots'); container.classList.toggle('max-h-[5.5rem]'); if (dots) dots.classList.toggle('hidden'); this.textContent = container.classList.contains('max-h-[5.5rem]') ? 'MAIS' : 'MENOS';" 
                                         class="review-toggle-btn text-[8px] uppercase text-neutral-500 font-bold hover:text-emerald-400 transition-colors tracking-tight">MAIS</button>
                                 ` : ''}
                             </div>
