@@ -1617,7 +1617,7 @@ async function buscarReviewsSteam(steamId) {
 
                 return `
                     <!-- Card de Avaliação com clique para expandir/ocultar -->
-                    <div onclick="const container = this.querySelector('.review-container'); const dots = this.querySelector('.review-dots'); const btnEl = this.querySelector('.review-toggle-btn'); if (container && btnEl) { container.classList.toggle('max-h-[5.5rem]'); if (dots) dots.classList.toggle('hidden'); btnEl.textContent = container.classList.contains('max-h-[5.5rem]') ? 'MAIS' : 'MENOS'; }" 
+                    <div onclick="const container = this.querySelector('.review-container'); const dots = this.querySelector('.review-dots'); const btnEl = this.querySelector('.review-toggle-btn'); if (container && btnEl) { container.classList.toggle('max-h-[5.5rem]'); if (dots) dots.classList.toggle('hidden'); btnEl.textContent = container.classList.contains('max-h-[5.5rem]') ? '' : 'MENOS'; }" 
                          class="bg-neutral-950/50 border border-neutral-800 p-4 pb-2 rounded-md cursor-pointer hover:border-neutral-700/80 transition-colors">
                         
                         <!-- Topo do Card -->
@@ -1650,8 +1650,13 @@ async function buscarReviewsSteam(steamId) {
                                 <div class="review-text text-[12px] text-neutral-400 break-words leading-relaxed">${formatarBbcodeSteam(r.review)}</div>
                             </div>
                             
-                            <!-- Reticências na linha de baixo (exibido apenas quando truncado) -->
-                            ${precisaTruncar ? `<div class="review-dots text-[12px] text-neutral-500 font-bold leading-none mt-1">...</div>` : ''}
+                            <!-- Badge Arredondado com Ícone SVG de 3 Pontos Centralizado -->
+                            ${precisaTruncar ? `
+                            <div class="text-left">
+                                <div class="review-dots mt-4 inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-neutral-300/40 text-neutral-950 border-neutral-950 shadow-sm text-[8px] font-bold">
+                                    MAIS
+                                </div>
+                            </div>` : ''}
 
                             <div class="flex items-center justify-between mt-3.5 min-h-[20px]">
                                 <!-- Upvotes alinhado à esquerda estilo Reddit -->
@@ -1666,8 +1671,8 @@ async function buscarReviewsSteam(steamId) {
                                 <!-- Botão MAIS / MENOS -->
                                 ${precisaTruncar ? `
                                 <button type="button" 
-                                        onclick="event.stopPropagation(); const container = this.closest('div.bg-neutral-800\\/30').querySelector('.review-container'); const dots = this.closest('div.bg-neutral-800\\/30').querySelector('.review-dots'); container.classList.toggle('max-h-[5.5rem]'); if (dots) dots.classList.toggle('hidden'); this.textContent = container.classList.contains('max-h-[5.5rem]') ? 'MAIS' : 'MENOS';" 
-                                        class="review-toggle-btn text-[8px] uppercase text-neutral-500 font-bold hover:text-emerald-400 transition-colors tracking-tight">MAIS</button>
+                                        onclick="event.stopPropagation(); const container = this.closest('div.bg-neutral-800\\/30').querySelector('.review-container'); const dots = this.closest('div.bg-neutral-800\\/30').querySelector('.review-dots'); container.classList.toggle('max-h-[5.5rem]'); if (dots) dots.classList.toggle('hidden'); this.textContent = container.classList.contains('max-h-[5.5rem]') ? '' : 'MENOS';" 
+                                        class="review-toggle-btn text-[8px] uppercase text-neutral-500 font-bold hover:text-emerald-400 transition-colors tracking-tight"></button>
                                 ` : ''}
                             </div>
                         </div>
