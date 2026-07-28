@@ -1569,35 +1569,63 @@ async function buscarReviewsSteam(steamId) {
                 review.language === 'brazilian' || review.language === 'english'
             );
             list.innerHTML = filteredReviews.map(r => {
-
                 const iconHtml = r.voted_up
-                    ? `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="inline mr-1"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>`
-                    : `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="inline mr-1"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm10-13h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-3"/></svg>`;
+                    ? `<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="inline mr-2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>`
+                    : `<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="inline mr-2"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm10-13h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-3"/></svg>`;
 
                 const dataFormatada = formatarTimestamp(r.timestamp_updated || r.timestamp_created);
+                const pHoras = r.author.playtime_forever ? Math.round(r.author.playtime_forever / 60) + 'h' : '0h';
 
                 return `
-                        <div class="bg-neutral-800/30 border border-neutral-800 p-4 rounded-md">
-                            <div class="flex items-center gap-2 mb-2 flex-wrap">
-                                <span class="${r.voted_up ? 'text-emerald-500' : 'text-red-500'} font-bold text-[10px] tracking-wider uppercase flex items-center">
-                                    ${iconHtml} ${r.voted_up ? ' RECOMENDADO' : ' NÃO RECOMENDADO'}
-                                </span>
-                                <span class="text-neutral-500 text-[10px]">• ${r.author.playtime_forever ? Math.round(r.author.playtime_forever / 60) + 'h' : '0h'}</span>
-                                ${r.votes_up > 0 ? `
-                                <span class="text-neutral-500 text-[10px] flex items-center gap-1">
-                                    • <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-neutral-400 inline"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
-                                    ${r.votes_up}
-                                </span>` : ''}
-                                <span class="text-neutral-500 text-[10px] ml-auto">${dataFormatada}</span>
-                            </div>
-                            <div>
-                                <div class="text-[12px] text-neutral-400 line-clamp-4 break-words">${r.review.replace(/\n/g, '<br>')}</div>
+                    <!-- Requisito 2: Atributo onclick e cursor-pointer no card todo para expandir/ocultar -->
+                    <div onclick="const textEl = this.querySelector('.review-text'); const btnEl = this.querySelector('.review-toggle-btn'); if (textEl && btnEl) { textEl.classList.toggle('line-clamp-4'); btnEl.textContent = textEl.classList.contains('line-clamp-4') ? 'MAIS' : 'MENOS'; }" 
+                         class="bg-neutral-800/30 border border-neutral-800 p-4 rounded-md cursor-pointer hover:border-neutral-700/80 transition-colors">
+                        
+                        <!-- Topo do Card -->
+                        <div class="flex items-center gap-2 mb-2 flex-wrap">
+                            <span class="${r.voted_up ? 'text-emerald-500' : 'text-red-500'} font-bold text-[10px] tracking-wider uppercase flex items-center">
+                                ${iconHtml} ${r.voted_up ? ' RECOMENDADO' : ' NÃO RECOMENDADO'}
+                            </span>
+
+                            <!-- Requisito 4: Ícone de Controle de Videogame cinza claro ao lado de Horas Jogadas -->
+                            <span class="text-neutral-500 text-[10px] flex items-center gap-1">
+                                • 
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-neutral-400 inline shrink-0"><line x1="6" y1="12" x2="10" y2="12"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="15" y1="13" x2="15.01" y2="13"/><line x1="18" y1="11" x2="18.01" y2="11"/><path d="M17.32 5H6.68a4 4 0 0 0-3.97 3.55l-.6 6.06A4 4 0 0 0 6 19h12a4 4 0 0 0 3.89-4.39l-.6-6.06A4 4 0 0 0 17.32 5z"/></svg>
+                                ${pHoras}
+                            </span>
+
+                            <!-- Requisito 5: Ícone de Calendário cinza claro ao lado da Data da Avaliação -->
+                            <span class="text-neutral-500 text-[10px] ml-auto flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-neutral-400 inline shrink-0 mr-0.5"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                ${dataFormatada}
+                            </span>
+                        </div>
+
+                        <!-- Texto da Avaliação -->
+                        <div>
+                            <div class="review-text text-[12px] text-neutral-400 line-clamp-4 break-words">${r.review.replace(/\n/g, '<br>')}</div>
+                            
+                            <div class="flex items-center justify-between mt-2 min-h-[20px]">
+                                <!-- Requisito 3: Upvotes desceu, alinhado à esquerda com seta para cima no estilo Reddit -->
+                                <div>
+                                    ${r.votes_up > 0 ? `
+                                    <span class="text-neutral-500 text-[10px] flex items-center gap-1">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-500/80 inline"><path d="m18 15-6-6-6 6"/></svg>
+                                        ${r.votes_up}
+                                    </span>` : ''}
+                                </div>
+
+                                <!-- Requisito 1: Fonte menor (text-[9px]) e Uppercase (MAIS / MENOS) -->
                                 ${r.review.length > 250 || r.review.split('\n').length > 4 ? `
-                                <button onclick="this.previousElementSibling.classList.toggle('line-clamp-4'); this.textContent = this.previousElementSibling.classList.contains('line-clamp-4') ? 'Mais' : 'Menos';" class="block ml-auto text-[11px] text-neutral-200 font-bold mt-1 hover:text-emerald-400 transition-colors">Mais</button>
+                                <button type="button" 
+                                        onclick="event.stopPropagation(); const textEl = this.parentElement.previousElementSibling; textEl.classList.toggle('line-clamp-4'); this.textContent = textEl.classList.contains('line-clamp-4') ? 'MAIS' : 'MENOS';" 
+                                        class="review-toggle-btn text-[9px] uppercase tracking-wider text-neutral-300 font-bold hover:text-emerald-400 transition-colors">MAIS</button>
                                 ` : ''}
                             </div>
                         </div>
-                        `;
+
+                    </div>
+                `;
             }).join('');
         }
     } catch (e) { console.error("Erro ao buscar reviews", e); }
