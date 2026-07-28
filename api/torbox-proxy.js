@@ -43,11 +43,11 @@ export default async function handler(req, res) {
 
     try {
         // ------------------------------------------------------------------------
-        // AÇÃO 1: VERIFICAR CACHE DE TORRENTS (Magnets / .torrent)
+        // AÇÃO 1: VERIFICAR CACHE DE TORRENTS
         // ------------------------------------------------------------------------
         if (action === 'check-cache') {
             if (!links || !Array.isArray(links) || links.length === 0) {
-                return res.status(200).json({ items: [] });
+                return res.status(200).json({ items: [], debug_raw: { acao: "check-cache", info: "Nenhum link enviado." } });
             }
 
             const hashToOriginalUrl = {};
@@ -72,7 +72,7 @@ export default async function handler(req, res) {
             });
 
             if (hashes.length === 0) {
-                return res.status(200).json({ items: [], debug_raw: { acao: "check-cache", info: "Nenhum magnet válido encontrado." } });
+                return res.status(200).json({ items: [], debug_raw: { acao: "check-cache", info: "Nenhum magnet válido." } });
             }
 
             const response = await fetch(`${BASE_URL}/torrents/checkcached?hash=${hashes.join(',')}&format=list`, { method: 'GET', headers: headersJson });
@@ -105,12 +105,11 @@ export default async function handler(req, res) {
         }
 
         // ------------------------------------------------------------------------
-        // AÇÃO 2: PROCESSAR WEB DOWNLOADS (1fichier, GoFile, etc.)
+        // AÇÃO 2: PROCESSAR WEB DOWNLOADS (Com Debug Total Retornado)
         // ------------------------------------------------------------------------
-        // Trecho corrigido para a Ação de Web Downloads no seu api/torbox-proxy.js
         else if (action === 'web-download') {
             if (!links || !Array.isArray(links) || links.length === 0) {
-                return res.status(200).json({ items: [] });
+                return res.status(200).json({ items: [], debug_raw: { acao: "web-download", info: "Nenhum link enviado." } });
             }
 
             const webLinks = links.filter(l => 
@@ -122,9 +121,13 @@ export default async function handler(req, res) {
                 !l.includes('skidrowreloaded')
             );
 
+            if (webLinks.length === 0) {
+                return res.status(200).json({ items: [], debug_raw: { acao: "web-download", info: "Nenhum link web compatível." } });
+            }
+
+            const debugList = [];
             const validItems = [];
 
-            // Envia cada link diretamente para o endpoint de criação do Torbox
             const promises = webLinks.map(async (webUrl) => {
                 try {
                     const formData = new FormData();
@@ -136,12 +139,20 @@ export default async function handler(req, res) {
                         body: formData
                     });
 
-                    const data = await res.json();
+                    const statusHttp = res.status;
+                    const rawText = await res.text();
+                    let data = null;
+                    try { data = JSON.parse(rawText); } catch(e){}
 
-                    // Se o Torbox aceitou (seja porque estava em cache instantâneo ou porque iniciou)
+                    // Salva o rastreio detalhado para você inspecionar
+                    debugList.push({
+                        urlEnviada: webUrl,
+                        statusHttp: statusHttp,
+                        respostaTorbox: data || rawText
+                    });
+
                     if (data && (data.success || data.data)) {
                         const resultObj = data.data || data;
-                        // Procura pelo link direto gerado na resposta
                         const linkDireto = resultObj.download_url || resultObj.url || (typeof resultObj === 'string' ? resultObj : null);
 
                         if (linkDireto && typeof linkDireto === 'string' && linkDireto.startsWith('http')) {
@@ -156,17 +167,23 @@ export default async function handler(req, res) {
                         }
                     }
                 } catch (e) {
-                    console.error("Erro ao processar web download:", webUrl, e);
+                    debugList.push({ urlEnviada: webUrl, erroFetch: e.message });
                 }
             });
 
             await Promise.all(promises);
 
-            return res.status(200).json({ items: validItems });
+            return res.status(200).json({
+                items: validItems,
+                debug_raw: {
+                    acao: "web-download",
+                    detalhesPorLink: debugList
+                }
+            });
         }
 
         // ------------------------------------------------------------------------
-        // AÇÃO 3: ADICIONAR E BAIXAR (Para cliques em botões específicos)
+        // AÇÃO 3: ADICIONAR E BAIXAR (Torrents)
         // ------------------------------------------------------------------------
         else if (action === 'add-and-download') {
             if (!url) return res.status(400).json({ error: 'URL ou Magnet não fornecido.' });
@@ -207,7 +224,7 @@ export default async function handler(req, res) {
                 throw new Error('Torrent adicionado, mas link VIP ainda em processamento.');
             }
 
-            return res.status(400).json({ error: 'Tipo de ação inválido para add-and-download.' });
+            return res.status(400).json({ error: 'Tipo inválido.' });
         }
 
         return res.status(400).json({ error: 'Ação inválida.' });
