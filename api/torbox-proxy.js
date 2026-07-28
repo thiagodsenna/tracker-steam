@@ -55,7 +55,6 @@ export default async function handler(req, res) {
             const torrentLinks = [];
             const webLinks = [];
 
-            // Separa os links entre Torrents e Web Downloads
             links.forEach(l => {
                 if (l.startsWith('magnet:') || l.endsWith('.torrent') || l.includes('btih:')) {
                     torrentLinks.push(l);
@@ -64,7 +63,7 @@ export default async function handler(req, res) {
                 }
             });
 
-            // 1. Checagem de Torrents (Base32/Hex -> checkcached)
+            // 1. Checagem de Torrents
             if (torrentLinks.length > 0) {
                 const hashToOriginalUrl = {};
                 const hashes = [];
@@ -108,13 +107,12 @@ export default async function handler(req, res) {
                 }
             }
 
-            // 2. Checagem de Web Downloads (Conforme documentação: MD5 da URL -> /webdl/checkcached)
+            // 2. Checagem de Web Downloads via MD5 (Conforme documentação oficial)
             if (webLinks.length > 0) {
                 const md5Map = {};
                 const md5Hashes = [];
 
                 webLinks.forEach(webUrl => {
-                    // Limpa e normaliza a URL antes de gerar o MD5 para garantir consistência
                     const cleanUrl = webUrl.trim();
                     const hashMd5 = crypto.createHash('md5').update(cleanUrl).digest('hex');
                     md5Map[hashMd5] = cleanUrl;
@@ -127,16 +125,14 @@ export default async function handler(req, res) {
                         const resWeb = await fetch(endpointWebCache, { method: 'GET', headers: headersJson });
                         const dataWeb = await resWeb.json();
 
-                        // Conforme o exemplo de resposta da documentação: data é um objeto contendo os hashes encontrados
                         if (dataWeb && dataWeb.success && dataWeb.data) {
                             const dataObj = dataWeb.data;
                             Object.keys(dataObj).forEach(foundHash => {
-                                // Se o hash retornar dados (não for nulo/vazio), está em cache!
                                 if (dataObj[foundHash] && md5Map[foundHash]) {
                                     const originalUrl = md5Map[foundHash];
                                     let label = 'WEB DEBRID';
                                     try { 
-                                        label = new URL(originalUrl).hostname.replace('www.', '').toUpperCase().split('.')[0] + ' (CACHED) ⚡'; 
+                                        label = new URL(originalUrl).hostname.replace('www.', '').toUpperCase() + ' (CACHED) ⚡'; 
                                     } catch(e){}
 
                                     cachedItems.push({
@@ -197,19 +193,18 @@ export default async function handler(req, res) {
                 throw new Error('Torrent adicionado, mas link VIP ainda em processamento.');
             }
 
-            // --- FLUXO B: WEB DOWNLOADS ---
+            // --- FLUXO B: WEB DOWNLOADS (Adicionar e solicitar link VIP) ---
             else {
-                const formData = new FormData();
-                formData.append("link", url);
-
+                // 1. Cria/Adiciona o Web Download na conta
                 const createRes = await fetch(`${BASE_URL}/webdl/createwebdl`, {
                     method: 'POST',
-                    headers: { "Authorization": `Bearer ${TORBOX_API_KEY}` },
-                    body: formData
+                    headers: headersJson,
+                    body: JSON.stringify({ link: url })
                 });
                 const createData = await createRes.json();
                 let webId = createData?.data?.webdl_id || createData?.data?.id || createData?.data?.download_id;
 
+                // Se já estiver na lista da conta, busca o ID pelo link
                 if (!webId) {
                     const listRes = await fetch(`${BASE_URL}/webdl/mylist`, { method: 'GET', headers: headersJson });
                     const listData = await listRes.json();
@@ -222,6 +217,7 @@ export default async function handler(req, res) {
 
                 if (!webId) throw new Error('Falha ao adicionar link Web na sua conta Torbox.');
 
+                // 2. Solicita o link VIP direto usando o requestdl do webdl
                 const dlRes = await fetch(`${BASE_URL}/webdl/requestdl?token=${TORBOX_API_KEY}&web_id=${webId}&webdl_id=${webId}&id=${webId}&zip_link=true`, {
                     method: 'GET',
                     headers: headersJson
@@ -234,7 +230,7 @@ export default async function handler(req, res) {
                         return res.status(200).json({ success: true, downloadUrl: linkFinal });
                     }
                 }
-                throw new Error('Link Web adicionado à conta, mas download VIP ainda em processamento.');
+                throw new Error('Link Web adicionado à conta, mas link VIP ainda em processamento.');
             }
         }
 
