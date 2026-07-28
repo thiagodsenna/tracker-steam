@@ -1647,7 +1647,7 @@ async function buscarReviewsSteam(steamId) {
                         <div>
                             <!-- Bloco com Altura Máxima para Simular Truncate -->
                             <div class="review-container max-h-[5.5rem] overflow-hidden transition-all duration-200">
-                                <div class="review-text text-[11px] text-neutral-400 break-words leading-relaxed">${formatarBbcodeSteam(r.review)}</div>
+                                <div class="review-text text-[12px] text-neutral-400 break-words leading-relaxed">${formatarBbcodeSteam(r.review)}</div>
                             </div>
                             
                             <!-- Reticências na linha de baixo (exibido apenas quando truncado) -->
