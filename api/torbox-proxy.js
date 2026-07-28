@@ -107,12 +107,12 @@ export default async function handler(req, res) {
         // ------------------------------------------------------------------------
         // AÇÃO 2: PROCESSAR WEB DOWNLOADS (1fichier, GoFile, etc.)
         // ------------------------------------------------------------------------
+        // Trecho corrigido para a Ação de Web Downloads no seu api/torbox-proxy.js
         else if (action === 'web-download') {
             if (!links || !Array.isArray(links) || links.length === 0) {
                 return res.status(200).json({ items: [] });
             }
 
-            // Filtra apenas links de hosters (ignora steam, youtube, magnets)
             const webLinks = links.filter(l => 
                 !l.startsWith('magnet:') && 
                 !l.endsWith('.torrent') && 
@@ -122,14 +122,9 @@ export default async function handler(req, res) {
                 !l.includes('skidrowreloaded')
             );
 
-            if (webLinks.length === 0) {
-                return res.status(200).json({ items: [], debug_raw: { acao: "web-download", info: "Nenhum link web válido encontrado." } });
-            }
-
-            const debugList = [];
             const validItems = [];
 
-            // Dispara requisições em paralelo para cada link web usando FormData no endpoint createwebdl
+            // Envia cada link diretamente para o endpoint de criação do Torbox
             const promises = webLinks.map(async (webUrl) => {
                 try {
                     const formData = new FormData();
@@ -141,19 +136,12 @@ export default async function handler(req, res) {
                         body: formData
                     });
 
-                    const statusHttp = res.status;
-                    const rawText = await res.text();
-                    let data = null;
-                    try { data = JSON.parse(rawText); } catch(e){}
+                    const data = await res.json();
 
-                    debugList.push({
-                        urlEnviada: webUrl,
-                        statusHttp: statusHttp,
-                        respostaTorbox: data || rawText
-                    });
-
+                    // Se o Torbox aceitou (seja porque estava em cache instantâneo ou porque iniciou)
                     if (data && (data.success || data.data)) {
                         const resultObj = data.data || data;
+                        // Procura pelo link direto gerado na resposta
                         const linkDireto = resultObj.download_url || resultObj.url || (typeof resultObj === 'string' ? resultObj : null);
 
                         if (linkDireto && typeof linkDireto === 'string' && linkDireto.startsWith('http')) {
@@ -168,7 +156,7 @@ export default async function handler(req, res) {
                         }
                     }
                 } catch (e) {
-                    debugList.push({ urlEnviada: webUrl, erroFetch: e.message });
+                    console.error("Erro ao processar web download:", webUrl, e);
                 }
             });
 
