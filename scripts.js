@@ -1532,6 +1532,37 @@ function abrirModalDestaque() {
     }
 }
 
+function formatarBbcodeSteam(texto) {
+    if (!texto) return '';
+
+    return texto
+        // 1. Quebras de linha
+        .replace(/\n/g, '<br>')
+
+        // 2. Títulos
+        .replace(/\[h1\](.*?)\[\/h1\]/gi, '<h1 class="text-sm font-bold text-white mt-2 mb-1 border-b border-neutral-700/50 pb-0.5">$1</h1>')
+        .replace(/\[h2\](.*?)\[\/h2\]/gi, '<h2 class="text-xs font-bold text-white mt-1.5 mb-1">$1</h2>')
+        .replace(/\[h3\](.*?)\[\/h3\]/gi, '<h3 class="text-xs font-semibold text-neutral-200 mt-1 mb-0.5">$1</h3>')
+
+        // 3. Estilos de Texto
+        .replace(/\[b\](.*?)\[\/b\]/gi, '<b class="font-bold text-neutral-200">$1</b>')
+        .replace(/\[i\](.*?)\[\/i\]/gi, '<i class="italic">$1</i>')
+        .replace(/\[u\](.*?)\[\/u\]/gi, '<u class="underline decoration-neutral-500">$1</u>')
+        .replace(/\[strike\](.*?)\[\/strike\]/gi, '<s class="line-through text-neutral-500">$1</s>')
+
+        // 4. Spoilers (Efeito interativo: borrado que revela ao passar o mouse)
+        .replace(/\[spoiler\](.*?)\[\/spoiler\]/gi, '<span class="bg-neutral-800 text-transparent hover:text-neutral-200 select-none hover:select-text rounded px-1 transition-colors cursor-pointer" title="Spoiler">$1</span>')
+
+        // 5. Citações e Código
+        .replace(/\[quote\](.*?)\[\/quote\]/gi, '<blockquote class="border-l-2 border-neutral-600 pl-2 my-1 italic text-neutral-400 bg-neutral-900/40 py-0.5">$1</blockquote>')
+        .replace(/\[code\](.*?)\[\/code\]/gi, '<code class="bg-neutral-900 border border-neutral-800 text-emerald-400 font-mono text-[11px] px-1 py-0.5 rounded">$1</code>')
+
+        // 6. Listas e Links
+        .replace(/\[list\](.*?)\[\/list\]/gi, '<ul class="list-disc list-inside my-1 space-y-0.5">$1</ul>')
+        .replace(/\[\*\]/gi, '• ')
+        .replace(/\[url=(.*?)\](.*?)\[\/url\]/gi, '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:underline">$2</a>');
+}
+
 async function buscarReviewsSteam(steamId) {
     try {
         const res = await fetch(`${API_BASE_URL}/api/steam-proxy?action=reviews&appid=${steamId}`);
@@ -1577,49 +1608,52 @@ async function buscarReviewsSteam(steamId) {
                 const pHoras = r.author.playtime_forever ? Math.round(r.author.playtime_forever / 60) + 'h' : '0h';
 
                 return `
-                    <!-- Requisito 2: Atributo onclick e cursor-pointer no card todo para expandir/ocultar -->
+                    <!-- Card de Avaliação com clique para expandir/ocultar -->
                     <div onclick="const textEl = this.querySelector('.review-text'); const btnEl = this.querySelector('.review-toggle-btn'); if (textEl && btnEl) { textEl.classList.toggle('line-clamp-4'); btnEl.textContent = textEl.classList.contains('line-clamp-4') ? 'MAIS' : 'MENOS'; }" 
-                         class="bg-neutral-800/30 border border-neutral-800 p-4 rounded-md cursor-pointer hover:border-neutral-700/80 transition-colors">
+                         class="bg-neutral-800/30 border border-neutral-800 p-4 pb-2 rounded-md cursor-pointer hover:border-neutral-700/80 transition-colors">
                         
                         <!-- Topo do Card -->
-                        <div class="flex items-center gap-2 mb-2 flex-wrap">
-                            <span class="${r.voted_up ? 'text-emerald-500' : 'text-red-500'} font-bold text-[10px] tracking-wider uppercase flex items-center">
+                        <div class="flex items-center justify-between gap-2 mb-2 flex-wrap">
+                            <!-- Esquerda: Recomendado / Não Recomendado -->
+                            <span class="${r.voted_up ? 'text-emerald-500' : 'text-red-500'} font-bold text-[10px] tracking-wider uppercase flex items-center shrink-0">
                                 ${iconHtml} ${r.voted_up ? ' RECOMENDADO' : ' NÃO RECOMENDADO'}
                             </span>
 
-                            <!-- Requisito 4: Ícone de Controle de Videogame cinza claro ao lado de Horas Jogadas -->
-                            <span class="text-neutral-500 text-[10px] flex items-center gap-1">
-                                • 
-                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-neutral-400 inline shrink-0"><line x1="6" y1="12" x2="10" y2="12"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="15" y1="13" x2="15.01" y2="13"/><line x1="18" y1="11" x2="18.01" y2="11"/><path d="M17.32 5H6.68a4 4 0 0 0-3.97 3.55l-.6 6.06A4 4 0 0 0 6 19h12a4 4 0 0 0 3.89-4.39l-.6-6.06A4 4 0 0 0 17.32 5z"/></svg>
-                                ${pHoras}
-                            </span>
+                            <!-- Direita: Horas jogadas + Ponto divisor + Data de avaliação -->
+                            <div class="flex items-center gap-1.5 text-neutral-500 text-[10px] ml-auto shrink-0">
+                                <span class="flex items-center gap-1">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-neutral-400 inline shrink-0"><line x1="6" y1="12" x2="10" y2="12"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="15" y1="13" x2="15.01" y2="13"/><line x1="18" y1="11" x2="18.01" y2="11"/><path d="M17.32 5H6.68a4 4 0 0 0-3.97 3.55l-.6 6.06A4 4 0 0 0 6 19h12a4 4 0 0 0 3.89-4.39l-.6-6.06A4 4 0 0 0 17.32 5z"/></svg>
+                                    ${pHoras}
+                                </span>
+                                
+                                <span>•</span>
 
-                            <!-- Requisito 5: Ícone de Calendário cinza claro ao lado da Data da Avaliação -->
-                            <span class="text-neutral-500 text-[10px] ml-auto flex items-center gap-1">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-neutral-400 inline shrink-0 mr-0.5"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                                ${dataFormatada}
-                            </span>
+                                <span class="flex items-center gap-1">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-neutral-400 inline shrink-0"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                    ${dataFormatada}
+                                </span>
+                            </div>
                         </div>
 
                         <!-- Texto da Avaliação -->
                         <div>
-                            <div class="review-text text-[12px] text-neutral-400 line-clamp-4 break-words">${r.review.replace(/\n/g, '<br>')}</div>
+                            <div class="review-text text-[12px] text-neutral-400 line-clamp-4 break-words">${formatarBbcodeSteam(r.review)}</div>
                             
-                            <div class="flex items-center justify-between mt-2 min-h-[20px]">
-                                <!-- Requisito 3: Upvotes desceu, alinhado à esquerda com seta para cima no estilo Reddit -->
+                            <div class="flex items-center justify-between mt-3.5 min-h-[20px]">
+                                <!-- Upvotes alinhado à esquerda estilo Reddit -->
                                 <div>
                                     ${r.votes_up > 0 ? `
                                     <span class="text-neutral-500 text-[10px] flex items-center gap-1">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-500/80 inline"><path d="m18 15-6-6-6 6"/></svg>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-500/80 inline"><path d="m18 15-6-6-6 6"/></svg>
                                         ${r.votes_up}
                                     </span>` : ''}
                                 </div>
 
-                                <!-- Requisito 1: Fonte menor (text-[9px]) e Uppercase (MAIS / MENOS) -->
+                                <!-- Botão MAIS / MENOS -->
                                 ${r.review.length > 250 || r.review.split('\n').length > 4 ? `
                                 <button type="button" 
                                         onclick="event.stopPropagation(); const textEl = this.parentElement.previousElementSibling; textEl.classList.toggle('line-clamp-4'); this.textContent = textEl.classList.contains('line-clamp-4') ? 'MAIS' : 'MENOS';" 
-                                        class="review-toggle-btn text-[9px] uppercase tracking-wider text-neutral-300 font-bold hover:text-emerald-400 transition-colors">MAIS</button>
+                                        class="review-toggle-btn text-[8px] uppercase text-neutral-500 font-bold hover:text-emerald-400 transition-colors tracking-tight">MAIS</button>
                                 ` : ''}
                             </div>
                         </div>
