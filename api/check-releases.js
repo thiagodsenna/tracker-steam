@@ -155,11 +155,13 @@ export default async function handler(req, res) {
         const filaParaAtualizar = [];
 
         for (const item of candidatosHome) {
-            const content = item.content?.content || item.summary?.content || '';
-            const steamId = await resolverSteamId(content);
+            const htmlContent = item.content?.content || item.summary?.content || '';
+            const textContent = item.summary?.content || htmlContent;
+            const steamId = await resolverSteamId(htmlContent + ' ' + textContent);
 
-            if (steamId && steamCache[steamId]) {
-                const dados = steamCache[steamId];
+            // CORREÇÃO: Permitir itens novos sem cache prévio ou com cache existente
+            if (steamId) {
+                const dados = steamCache[steamId] || {};
                 const ultimaAtualizacao = dados.updated_at || 0;
                 const tempoDesdeAtualizacao = agora - ultimaAtualizacao;
                 const totalReviews = dados.total_reviews || 0;
@@ -174,9 +176,12 @@ export default async function handler(req, res) {
                     cooldownNecessario = 3 * 60 * 60 * 1000; // Tier 2: 3 horas
                 }
 
-                // Se o tempo sem atualizar superou o cooldown, entra na fila
-                if (tempoDesdeAtualizacao >= cooldownNecessario) {
-                    filaParaAtualizar.push({ steamId, tempoDesdeAtualizacao });
+                // Se não existir no cache ou se o tempo sem atualizar superou o cooldown, entra na fila
+                if (!steamCache[steamId] || tempoDesdeAtualizacao >= cooldownNecessario) {
+                    filaParaAtualizar.push({ 
+                        steamId, 
+                        tempoDesdeAtualizacao: !steamCache[steamId] ? Infinity : tempoDesdeAtualizacao 
+                    });
                 }
             }
         }
@@ -199,8 +204,8 @@ export default async function handler(req, res) {
 
                     if (steamJson[alvo.steamId]?.success && steamJson[alvo.steamId]?.data) {
                         const gData = steamJson[alvo.steamId].data;
-                        let notaNum = steamCache[alvo.steamId].rating || 0;
-                        let totalReviews = steamCache[alvo.steamId].total_reviews || 0;
+                        let notaNum = steamCache[alvo.steamId]?.rating || 0;
+                        let totalReviews = steamCache[alvo.steamId]?.total_reviews || 0;
 
                         if (revJson && revJson.success && revJson.query_summary) {
                             totalReviews = revJson.query_summary.total_reviews || 0;
@@ -209,9 +214,9 @@ export default async function handler(req, res) {
                             }
                         }
 
-                        // Preserva o cache, atualizando apenas os dados novos e o carimbo de tempo
+                        // Preserva o cache com fallback seguro, atualizando apenas os dados novos e o carimbo de tempo
                         steamCache[alvo.steamId] = { 
-                            ...steamCache[alvo.steamId], 
+                            ...(steamCache[alvo.steamId] || {}), 
                             ...gData, 
                             rating: notaNum, 
                             total_reviews: totalReviews, 
@@ -273,13 +278,14 @@ export default async function handler(req, res) {
             const sizeMatch = textContent.match(/Size:\s*([\d.,]+\s*[a-zA-Z]+)/i);
             const size = sizeMatch ? sizeMatch[1].trim() : 'N/A';
 
-            // Extrai o Steam ID do post
+            // Extrai o Steam ID do post (suportando app e bundle)
             const steamId = await resolverSteamId(htmlContent + ' ' + textContent);
 
             let steamHeaderImg = '';
             // 2) DECLARAÇÃO DE VARIÁVEIS COM ESCOPO EXTERNO PARA O PAYLOAD
             let notaTexto = 'Sem nota';
             let lancamento = 'N/A';
+            let totalReviews = 0;
             
             // =================================================================
             // --- INÍCIO: ENRIQUECIMENTO COMPLETO & AVALIAÇÕES STEAM ---
@@ -306,7 +312,6 @@ export default async function handler(req, res) {
 
                         // Cálculo da Nota e extração do Total de Avaliações
                         let notaNum = 0;
-                        let totalReviews = 0;
                         if (revJson && revJson.success && revJson.query_summary) {
                             totalReviews = revJson.query_summary.total_reviews || 0;
                             if (totalReviews > 0) {
@@ -317,6 +322,7 @@ export default async function handler(req, res) {
 
                         // Salva no cache do KV usando o valor numérico
                         steamCache[steamId] = {
+                            ...(steamCache[steamId] || {}),
                             name: gData.name,
                             header_image: gData.header_image,
                             background_raw: gData.background_raw || gData.background || '',
@@ -425,15 +431,15 @@ export default async function handler(req, res) {
 
                 // 2. Calcula os Top 5 Destaques avaliando APENAS os 50 itens mais recentes 
                 // e que tenham sido postados no Feedly dentro das últimas 24 horas.
-                const agora = Date.now();
+                const agoraDestaque = Date.now();
                 const limite24h = 24 * 60 * 60 * 1000;
-                const candidatos = items.slice(0, 50).filter(i => (agora - (i.published || 0)) <= limite24h);
+                const candidatos = items.slice(0, 50).filter(i => (agoraDestaque - (i.published || 0)) <= limite24h);
 
                 const listaJogos = [];
                 for (const item of candidatos) {
-                    const content = item.content?.content || item.summary?.content || '';
-                    const match = content.match(/(?:store\.steampowered\.com|steamcommunity\.com)\/app\/(\d+)/i);
-                    const id = match ? match[1] : null;
+                    const htmlContent = item.content?.content || item.summary?.content || '';
+                    const textContent = item.summary?.content || htmlContent;
+                    const id = await resolverSteamId(htmlContent + ' ' + textContent);
 
                     if (id && steamCache[id]) {
                         const dados = steamCache[id];
