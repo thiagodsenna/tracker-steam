@@ -1719,9 +1719,9 @@ async function buscarHowLongToBeat(steamId) {
 
         // Configuração visual de cada barra com cores distintas do Tailwind
         const barras = [
-            { label: 'História Principal', tempo: main, cor: 'from-emerald-600 to-emerald-400', bgDot: 'bg-emerald-500', textCor: 'text-emerald-400' },
-            { label: 'História + Extras', tempo: extras, cor: 'from-sky-600 to-sky-400', bgDot: 'bg-sky-500', textCor: 'text-sky-400' },
-            { label: 'Completista (100%)', tempo: comp, cor: 'from-purple-600 to-purple-400', bgDot: 'bg-purple-500', textCor: 'text-purple-400' }
+            { label: 'História Principal', tempo: main, cor: 'from-emerald-900 to-emerald-400', bgDot: 'bg-emerald-600', textCor: 'text-emerald-400' },
+            { label: 'História + Extras', tempo: extras, cor: 'from-sky-900 to-sky-400', bgDot: 'bg-sky-600', textCor: 'text-sky-400' },
+            { label: 'Completista (100%)', tempo: comp, cor: 'from-red-950 to-red-400', bgDot: 'bg-red-800', textCor: 'text-red-400' }
         ].filter(item => item.tempo > 0); // Filtra para mostrar apenas o que tem dados
 
         // Renderiza as barras horizontais
