@@ -2208,7 +2208,7 @@ async function buscarDownloadsTorbox(downloads) {
         } else {
             statusTag.textContent = "Nenhum em cache";
             statusTag.className = "text-[10px] bg-neutral-900 border border-neutral-800 text-neutral-500 px-2 py-0.5 rounded font-mono";
-            gridTorbox.innerHTML = `<div class="col-span-full text-center py-4 text-xs text-neutral-500 bg-neutral-950/40 rounded border border-neutral-800/60">Nenhum dos links deste release foi encontrado no cache do Torbox.</div>`;
+            gridTorbox.innerHTML = `<div class="col-span-full text-center py-4 text-xs text-neutral-500 bg-neutral-950/40 rounded border border-neutral-800/60">Nenhum link encontrado no cache do Torbox.</div>`;
         }
     } catch (e) {
         console.error("Erro ao verificar Torbox:", e);
