@@ -2257,7 +2257,7 @@ async function verificarStatusNotificacao() {
 }
 
 // ============================================================================
-// --- INÍCIO: INTEGRAÇÃO TORBOX DEBRID & CACHE ---
+// --- INÍCIO: INTEGRAÇÃO TORBOX AUTOMATIZADA ---
 // ============================================================================
 
 async function buscarDownloadsTorbox(downloads) {
@@ -2266,79 +2266,108 @@ async function buscarDownloadsTorbox(downloads) {
     const statusTag = document.getElementById('torbox-status-tag');
     if (!secaoTorbox || !gridTorbox) return;
 
-    // Reseta e exibe a seção em estado de carregamento
     gridTorbox.innerHTML = '';
-    statusTag.textContent = "Verificando servidores...";
+    statusTag.textContent = "Verificando cache...";
     statusTag.className = "text-[10px] bg-neutral-900 border border-neutral-800 text-amber-400 px-2 py-0.5 rounded font-mono animate-pulse";
     secaoTorbox.classList.remove('hidden');
     atualizarVisibilidadeAtalho('torbox', true);
 
-    // Separa os links do array jogo.downloads entre Torrents e File Hosters (Web)
+    // Filtramos apenas os magnets/torrents, pois os Web Downloads não suportam streaming instantâneo
     const linksTorrent = [];
-    const linksWeb = [];
-
     downloads.forEach(dl => {
         if (dl.url.startsWith('magnet:') || dl.url.endsWith('.torrent') || dl.label === 'TORRENT') {
             linksTorrent.push(dl.url);
-        } else {
-            // Ignora links que claramente não são file hosters de download
-            if (!dl.url.includes('steampowered') && !dl.url.includes('youtube')) {
-                linksWeb.push(dl.url);
-            }
         }
     });
 
+    if (linksTorrent.length === 0) {
+        statusTag.textContent = "Sem torrents disponíveis";
+        statusTag.className = "text-[10px] bg-neutral-900 border border-neutral-800 text-neutral-500 px-2 py-0.5 rounded font-mono";
+        gridTorbox.innerHTML = `<div class="col-span-full text-center py-4 text-xs text-neutral-500 bg-neutral-950/40 rounded border border-neutral-800/60">Este release não possui links de Torrent/Magnet para verificação de cache.</div>`;
+        return;
+    }
+
     try {
-        // Dispara as duas requisições EM PARALELO para a Serverless Function
-        const [resTorrent, resWeb] = await Promise.all([
-            linksTorrent.length > 0 ? fetch(`${API_BASE_URL}/api/torbox-proxy`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'check-cache', links: linksTorrent })
-            }).then(r => r.json()).catch(() => ({ items: [] })) : Promise.resolve({ items: [] }),
+        const res = await fetch(`${API_BASE_URL}/api/torbox-proxy`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'check-cache', links: linksTorrent })
+        });
+        const data = await res.json();
+        const torboxItems = data.items || [];
 
-            linksWeb.length > 0 ? fetch(`${API_BASE_URL}/api/torbox-proxy`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'web-download', links: linksWeb })
-            }).then(r => r.json()).catch(() => ({ items: [] })) : Promise.resolve({ items: [] })
-        ]);
-
-        console.log("🧐 [DEBUG TORBOX - TORRENTS]:", resTorrent.debug_raw);
-        console.log("🧐 [DEBUG TORBOX - WEB LINKS]:", resWeb.debug_raw);
-
-        const torboxItems = [...(resTorrent.items || []), ...(resWeb.items || [])];
-
-        // Se encontrou opções prontas para download de alta velocidade
         if (torboxItems.length > 0) {
-            statusTag.textContent = `${torboxItems.length} disponível(is)`;
+            statusTag.textContent = `${torboxItems.length} disponível(is) em cache`;
             statusTag.className = "text-[10px] bg-emerald-950/40 border border-emerald-500/30 text-emerald-400 px-2 py-0.5 rounded font-mono font-bold";
 
-            gridTorbox.innerHTML = torboxItems.map(item => `
-                <a href="${item.downloadUrl}" target="_blank" class="bg-emerald-950/20 hover:bg-emerald-900/40 p-2 flex items-center justify-between gap-2 rounded text-xs font-bold text-emerald-300 border border-emerald-500/30 transition-all shadow-sm group">
+            // Renderiza um BOTÃO (e não um link), que acionará o download automático ao ser clicado
+            gridTorbox.innerHTML = torboxItems.map((item, idx) => `
+                <button type="button" id="btn-torbox-${idx}" onclick="executarDownloadTorbox('${encodeURIComponent(item.magnetUrl)}', 'btn-torbox-${idx}')" class="w-full bg-emerald-950/30 hover:bg-emerald-900/50 p-2.5 flex items-center justify-between gap-2 rounded text-xs font-bold text-emerald-300 border border-emerald-500/40 transition-all shadow-sm group cursor-pointer">
                     <div class="flex items-center gap-2 truncate">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400 group-hover:scale-110 transition-transform shrink-0"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-                        <span class="truncate">${item.label}</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400 group-hover:scale-110 transition-transform shrink-0"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        <span class="truncate">BAIXAR DIRETO ⚡</span>
                     </div>
-                    <span class="text-[9px] bg-emerald-500/20 text-emerald-300 px-1 rounded uppercase font-mono shrink-0">MAX SPEEDS</span>
-                </a>
+                    <span class="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded uppercase font-mono shrink-0">AUTO VIP</span>
+                </button>
             `).join('');
         } else {
-            // Se nenhum arquivo estava em cache ou o hoster falhou
-            statusTag.textContent = "Nenhum em cache/suportado";
+            statusTag.textContent = "Nenhum em cache";
             statusTag.className = "text-[10px] bg-neutral-900 border border-neutral-800 text-neutral-500 px-2 py-0.5 rounded font-mono";
-            gridTorbox.innerHTML = `<div class="col-span-full text-center py-4 text-xs text-neutral-500 bg-neutral-950/40 rounded border border-neutral-800/60">Os links originais ainda não estão no cache do Torbox ou o host não é suportado no momento.</div>`;
+            gridTorbox.innerHTML = `<div class="col-span-full text-center py-4 text-xs text-neutral-500 bg-neutral-950/40 rounded border border-neutral-800/60">O torrent deste jogo ainda não foi semeado nos servidores do Torbox.</div>`;
         }
-
     } catch (e) {
-        console.error("Erro ao processar Torbox no frontend:", e);
+        console.error("Erro ao verificar Torbox:", e);
         statusTag.textContent = "Erro na consulta";
         statusTag.className = "text-[10px] bg-red-950/30 border border-red-800/40 text-red-400 px-2 py-0.5 rounded font-mono";
         gridTorbox.innerHTML = `<div class="col-span-full text-center py-4 text-xs text-red-400/80">Falha ao se comunicar com o serviço do Torbox.</div>`;
     }
 }
+
+// Função acionada ao clicar no botão: Adiciona à biblioteca Torbox e abre o download
+async function executarDownloadTorbox(magnetEncoded, btnId) {
+    const btn = document.getElementById(btnId);
+    const magnetUrl = decodeURIComponent(magnetEncoded);
+
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `
+            <div class="flex items-center justify-center gap-2 w-full text-amber-300">
+                <svg class="animate-spin h-4 w-4 text-amber-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                <span>Gerando Link VIP...</span>
+            </div>
+        `;
+    }
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/torbox-proxy`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'add-and-download', magnet: magnetUrl })
+        });
+        const data = await res.json();
+
+        if (data && data.success && data.downloadUrl) {
+            if (btn) {
+                btn.className = "w-full bg-emerald-600 text-white p-2.5 flex items-center justify-center gap-2 rounded text-xs font-bold transition-all shadow-md";
+                btn.innerHTML = `<span>✔ Download Iniciado!</span>`;
+            }
+            // Dispara o download diretamente na aba atual ou em nova aba
+            window.open(data.downloadUrl, '_blank');
+        } else {
+            throw new Error(data.error || "Não foi possível resgatar o link.");
+        }
+    } catch (e) {
+        console.error("Erro ao gerar link VIP:", e);
+        alert(`Erro ao iniciar download pelo Torbox:\n${e.message}`);
+        if (btn) {
+            btn.disabled = false;
+            btn.className = "w-full bg-red-950/40 hover:bg-red-900/50 p-2.5 flex items-center justify-between gap-2 rounded text-xs font-bold text-red-300 border border-red-500/40 transition-all cursor-pointer";
+            btn.innerHTML = `<span>Tentar Novamente ✕</span>`;
+        }
+    }
+}
 // ============================================================================
-// --- FIM: INTEGRAÇÃO TORBOX DEBRID & CACHE ---
+// --- FIM: INTEGRAÇÃO TORBOX AUTOMATIZADA ---
 // ============================================================================
 
 // Executa a checagem no carregamento da página em segundo plano
