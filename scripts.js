@@ -1651,9 +1651,9 @@ async function buscarReviewsSteam(steamId) {
                             </div>
                             
                             <!-- Reticências na linha de baixo (exibido apenas quando truncado) -->
-                            ${precisaTruncar ? `<div class="review-dots text-[12px] text-neutral-500 font-bold leading-none mt-0.5">...</div>` : ''}
+                            ${precisaTruncar ? `<div class="review-dots text-[12px] text-neutral-500 font-bold leading-none mt-1">...</div>` : ''}
 
-                            <div class="flex items-center justify-between mt-2 min-h-[20px]">
+                            <div class="flex items-center justify-between mt-3.5 min-h-[20px]">
                                 <!-- Upvotes alinhado à esquerda estilo Reddit -->
                                 <div>
                                     ${r.votes_up > 0 ? `
