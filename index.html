@@ -311,6 +311,11 @@
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                         </button>
 
+                        <!-- Torbox -->
+                        <button id="shortcut-torbox" onclick="rolarParaSecaoModal('modal-section-torbox')" class="group flex items-center p-1 text-neutral-400 hover:text-emerald-400 transition-all shrink-0 hidden" title="Torbox">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        </button>
+
                         <!-- Fechar -->
                         <button onclick="fecharModal()" class="group flex items-center p-1 text-neutral-500 hover:text-red-400 transition-all shrink-0 ml-auto pl-2" title="Fechar Modal">
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform group-hover:rotate-90"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
@@ -454,6 +459,18 @@
                         <div id="modal-downloads-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-2"></div>
                     </div>
 
+                    <!-- Seção: Torbox -->
+                    <div id="modal-section-torbox" class="hidden space-y-3 pb-6">
+                        <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2 flex items-center justify-between gap-2 w-full">
+                            <div class="flex items-center gap-2 text-emerald-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                                Torbox
+                            </div>
+                            <span id="torbox-status-tag" class="text-[10px] bg-neutral-900 border border-neutral-800 text-neutral-400 px-2 py-0.5 rounded font-mono">Verificando...</span>
+                        </h4>
+                        <div id="modal-torbox-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-2"></div>
+                    </div>
+
                     <!-- Seção: Links -->
                     <div id="modal-section-links" class="space-y-3 pb-6">
                         <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2 flex items-center gap-2">
@@ -529,6 +546,11 @@
             <!-- Download -->
             <button id="float-shortcut-downloads" onclick="rolarParaSecaoModal('modal-section-downloads')" class="group flex items-center p-1 text-neutral-400 hover:text-emerald-400 transition-all shrink-0" title="Download">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </button>
+
+            <!-- Torbox -->
+            <button id="float-shortcut-torbox" onclick="rolarParaSecaoModal('modal-section-torbox')" class="group flex items-center p-1 text-neutral-400 hover:text-emerald-400 transition-all shrink-0 hidden" title="Torbox">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
             </button>
 
             <!-- Fechar -->

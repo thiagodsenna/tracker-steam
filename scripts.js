@@ -989,7 +989,7 @@ async function abrirModal(id, options = {}) {
     document.getElementById('modal-section-similares')?.classList.add('hidden');
 
     // Esconde os botões correspondentes que são assíncronos na barra da navegação
-    ['hltb', 'recursos', 'screenshots', 'videos', 'reviews', 'similares'].forEach(sec => {
+    ['hltb', 'recursos', 'screenshots', 'videos', 'reviews', 'similares', 'torbox'].forEach(sec => {
         atualizarVisibilidadeAtalho(sec, false);
     });
 
@@ -1034,6 +1034,11 @@ async function abrirModal(id, options = {}) {
         buscarJogosSimilares(jogo.steamId);
     } else {
         document.getElementById('modal-description').textContent = "Sem ID Steam detectado no post original.";
+    }
+
+    // Dispara a busca do Torbox independentemente de ter ID Steam ou não (pois depende apenas dos downloads)
+    if (jogo.downloads && jogo.downloads.length > 0) {
+        buscarDownloadsTorbox(jogo.downloads);
     }
 }
 
@@ -2251,10 +2256,93 @@ async function verificarStatusNotificacao() {
     }
 }
 
+// ============================================================================
+// --- INÍCIO: INTEGRAÇÃO TORBOX DEBRID & CACHE ---
+// ============================================================================
+
+async function buscarDownloadsTorbox(downloads) {
+    const secaoTorbox = document.getElementById('modal-section-torbox');
+    const gridTorbox = document.getElementById('modal-torbox-grid');
+    const statusTag = document.getElementById('torbox-status-tag');
+    if (!secaoTorbox || !gridTorbox) return;
+
+    // Reseta e exibe a seção em estado de carregamento
+    gridTorbox.innerHTML = '';
+    statusTag.textContent = "Verificando servidores...";
+    statusTag.className = "text-[10px] bg-neutral-900 border border-neutral-800 text-amber-400 px-2 py-0.5 rounded font-mono animate-pulse";
+    secaoTorbox.classList.remove('hidden');
+    atualizarVisibilidadeAtalho('torbox', true);
+
+    // Separa os links do array jogo.downloads entre Torrents e File Hosters (Web)
+    const linksTorrent = [];
+    const linksWeb = [];
+
+    downloads.forEach(dl => {
+        if (dl.url.startsWith('magnet:') || dl.url.endsWith('.torrent') || dl.label === 'TORRENT') {
+            linksTorrent.push(dl.url);
+        } else {
+            // Ignora links que claramente não são file hosters de download
+            if (!dl.url.includes('steampowered') && !dl.url.includes('youtube')) {
+                linksWeb.push(dl.url);
+            }
+        }
+    });
+
+    try {
+        // Dispara as duas requisições EM PARALELO para a Serverless Function
+        const [resTorrent, resWeb] = await Promise.all([
+            linksTorrent.length > 0 ? fetch(`${API_BASE_URL}/api/torbox-proxy`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'check-cache', links: linksTorrent })
+            }).then(r => r.json()).catch(() => ({ items: [] })) : Promise.resolve({ items: [] }),
+
+            linksWeb.length > 0 ? fetch(`${API_BASE_URL}/api/torbox-proxy`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'web-download', links: linksWeb })
+            }).then(r => r.json()).catch(() => ({ items: [] })) : Promise.resolve({ items: [] })
+        ]);
+
+        const torboxItems = [...(resTorrent.items || []), ...(resWeb.items || [])];
+
+        // Se encontrou opções prontas para download de alta velocidade
+        if (torboxItems.length > 0) {
+            statusTag.textContent = `${torboxItems.length} disponível(is)`;
+            statusTag.className = "text-[10px] bg-emerald-950/40 border border-emerald-500/30 text-emerald-400 px-2 py-0.5 rounded font-mono font-bold";
+
+            gridTorbox.innerHTML = torboxItems.map(item => `
+                <a href="${item.downloadUrl}" target="_blank" class="bg-emerald-950/20 hover:bg-emerald-900/40 p-2 flex items-center justify-between gap-2 rounded text-xs font-bold text-emerald-300 border border-emerald-500/30 transition-all shadow-sm group">
+                    <div class="flex items-center gap-2 truncate">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400 group-hover:scale-110 transition-transform shrink-0"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        <span class="truncate">${item.label}</span>
+                    </div>
+                    <span class="text-[9px] bg-emerald-500/20 text-emerald-300 px-1 rounded uppercase font-mono shrink-0">MAX SPEEDS</span>
+                </a>
+            `).join('');
+        } else {
+            // Se nenhum arquivo estava em cache ou o hoster falhou
+            statusTag.textContent = "Nenhum em cache/suportado";
+            statusTag.className = "text-[10px] bg-neutral-900 border border-neutral-800 text-neutral-500 px-2 py-0.5 rounded font-mono";
+            gridTorbox.innerHTML = `<div class="col-span-full text-center py-4 text-xs text-neutral-500 bg-neutral-950/40 rounded border border-neutral-800/60">Os links originais ainda não estão no cache do Torbox ou o host não é suportado no momento.</div>`;
+        }
+
+    } catch (e) {
+        console.error("Erro ao processar Torbox no frontend:", e);
+        statusTag.textContent = "Erro na consulta";
+        statusTag.className = "text-[10px] bg-red-950/30 border border-red-800/40 text-red-400 px-2 py-0.5 rounded font-mono";
+        gridTorbox.innerHTML = `<div class="col-span-full text-center py-4 text-xs text-red-400/80">Falha ao se comunicar com o serviço do Torbox.</div>`;
+    }
+}
+// ============================================================================
+// --- FIM: INTEGRAÇÃO TORBOX DEBRID & CACHE ---
+// ============================================================================
+
 // Executa a checagem no carregamento da página em segundo plano
 window.addEventListener('load', () => {
     setTimeout(verificarStatusNotificacao, 1500);
 });
+
 // ============================================================================
 // --- FIM: IMPLEMENTAÇÃO DE NOTIFICAÇÕES PUSH ---
 // ============================================================================
