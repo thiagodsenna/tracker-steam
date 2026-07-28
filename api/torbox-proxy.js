@@ -1,5 +1,22 @@
 // Arquivo: api/torbox-proxy.js
 
+// Função auxiliar para converter InfoHash de Base32 (32 chars) para Hexadecimal (40 chars)
+function base32ToHex(base32) {
+    const base32chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+    let bits = "";
+    let hex = "";
+    for (let i = 0; i < base32.length; i++) {
+        const val = base32chars.indexOf(base32.charAt(i).toUpperCase());
+        if (val === -1) return null;
+        bits += val.toString(2).padStart(5, '0');
+    }
+    for (let i = 0; i + 4 <= bits.length; i += 4) {
+        const chunk = bits.substr(i, 4);
+        hex += parseInt(chunk, 2).toString(16);
+    }
+    return hex;
+}
+
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
@@ -38,12 +55,22 @@ export default async function handler(req, res) {
             const hashes = [];
 
             links.forEach(url => {
-                // Regex expandido para capturar infohashes Base32 (32 chars) e Hex (40 chars)
                 const match = url.match(/urn:btih:([a-zA-Z0-9]{32,40})/i);
                 if (match && match[1]) {
-                    const hash = match[1].toLowerCase();
-                    hashes.push(hash);
+                    let hash = match[1].toLowerCase();
+                    
+                    // Se for Base32 (32 chars), converte para Hex (40 chars) para a API aceitar
+                    if (hash.length === 32) {
+                        const convertedHex = base32ToHex(hash);
+                        if (convertedHex) {
+                            hashToOriginalUrl[convertedHex] = url;
+                            hashes.push(convertedHex);
+                        }
+                    }
+                    
+                    // Mantém o hash original mapeado por segurança
                     hashToOriginalUrl[hash] = url;
+                    if (!hashes.includes(hash)) hashes.push(hash);
                 }
             });
 
@@ -105,8 +132,7 @@ export default async function handler(req, res) {
                 debug_raw: {
                     acao: "check-cache",
                     statusHttpTorbox: statusHttp,
-                    endpointConsultado: endpointUrl,
-                    hashesExtraidos: hashes,
+                    hashesEnviados: hashes,
                     respostaCompletaTorbox: data || rawText
                 }
             });
@@ -119,9 +145,9 @@ export default async function handler(req, res) {
             const debugList = [];
 
             const promises = links.map(async (url) => {
-                const endpointUrl = `${BASE_URL}/webdl/create`;
-                // Enviando tanto "link" quanto "url" por garantia de compatibilidade com a API
-                const payloadBody = JSON.stringify({ link: url, url: url }); 
+                // 👇 CORREÇÃO: Endpoint correto na API v1 do Torbox é /webdl/createwebdl
+                const endpointUrl = `${BASE_URL}/webdl/createwebdl`;
+                const payloadBody = JSON.stringify({ link: url }); 
 
                 try {
                     const res = await fetch(endpointUrl, {
@@ -142,6 +168,7 @@ export default async function handler(req, res) {
                         respostaTorbox: data || rawText
                     });
 
+                    // Verifica sucesso no retorno do Torbox
                     if (data && (data.success || data.data)) {
                         const resultObj = data.data || data;
                         const linkDireto = resultObj.download_url || resultObj.url || (typeof resultObj === 'string' ? resultObj : null);
