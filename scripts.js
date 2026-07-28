@@ -2157,107 +2157,7 @@ function verificarTokenSincroniaURL() {
 // --- FIM: NOVAS FUNÇÕES EXCLUSIVAS PARA CONTROLE DA WISHLIST ---
 
 // ============================================================================
-// --- INÍCIO: IMPLEMENTAÇÃO DE NOTIFICAÇÕES PUSH ---
-// ============================================================================
-
-const VAPID_PUBLIC_KEY = 'BEhE1RfL8fm9fCNq9XgB1tyBaeQWtodWyJX-61TMMj5-4MmL3jAU1wAvEyhi3BsCSMDUc5etZwwIiGNt7lBFRBM';
-
-// Converte a chave VAPID base64 para Uint8Array (exigido pelo navegador)
-function urlBase64ToUint8Array(base64String) {
-    const padding = '='.repeat((4 - base64String.length % 4) % 4);
-    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-    const rawData = window.atob(base64);
-    const outputArray = new Uint8Array(rawData.length);
-    for (let i = 0; i < rawData.length; ++i) {
-        outputArray[i] = rawData.charCodeAt(i);
-    }
-    return outputArray;
-}
-
-async function assinarNotificacoes() {
-    
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-        alert('Seu navegador não possui suporte a Notificações Push em segundo plano.');
-        return;
-    }
-
-    try {
-        const registration = await navigator.serviceWorker.ready;
-        let subscription = await registration.pushManager.getSubscription();
-
-        // Se já for assinado, podemos avisar ou não fazer nada
-        if (subscription) {
-            alert('Seu dispositivo já está ativo para receber alertas de novos releases!');
-            atualizarBotaoNotificacaoUI(true);
-            return;
-        }
-
-        // Pede permissão e assina no PushManager do navegador
-        subscription = await registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-        });
-
-        // Envia a inscrição para o nosso endpoint no Vercel KV
-        const res = await fetch(`${API_BASE_URL}/api/push-subscribe`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                subscription: subscription,
-                token: userToken // Atrela a inscrição ao userToken da sua sessão
-            })
-        });
-
-        if (res.ok) {
-            alert('Alerta ativado! Você receberá notificações neste dispositivo quando novos jogos surgirem.');
-            atualizarBotaoNotificacaoUI(true);
-        } else {
-            throw new Error('Falha ao registrar no servidor.');
-        }
-    } catch (err) {
-        console.error('Erro na assinatura de notificações:', err);
-        if (Notification.permission === 'denied') {
-            alert('Você bloqueou as notificações para este site. Libere nas configurações do seu navegador.');
-        } else {
-            alert('Erro ao ativar notificações. Tente novamente mais tarde.');
-        }
-    }
-}
-
-function atualizarBotaoNotificacaoUI(ativo) {
-    const btn = document.getElementById('btn-header-notify');
-    const icon = document.getElementById('icon-notify');
-    const text = document.getElementById('text-notify');
-    if (!btn || !icon || !text) return;
-
-    if (ativo) {
-        btn.classList.add('border-emerald-500/50', 'bg-emerald-950/30', 'text-emerald-400');
-        icon.classList.remove('text-neutral-500');
-        icon.classList.add('text-emerald-400');
-        text.textContent = 'Alerta Ativo';
-    } else {
-        btn.classList.remove('border-emerald-500/50', 'bg-emerald-950/30', 'text-emerald-400');
-        icon.classList.add('text-neutral-500');
-        icon.classList.remove('text-emerald-400');
-        text.textContent = 'Notificações';
-    }
-}
-
-async function verificarStatusNotificacao() {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
-    try {
-        const registration = await navigator.serviceWorker.ready;
-        const subscription = await registration.pushManager.getSubscription();
-        if (subscription) {
-            atualizarBotaoNotificacaoUI(true);
-        }
-    } catch (e) {
-        console.log('Verificação inicial de Push silenciosa falhou:', e);
-    }
-}
-
-// ============================================================================
-// --- INÍCIO: INTEGRAÇÃO TORBOX AUTOMATIZADA ---
+// --- INÍCIO: INTEGRAÇÃO TORBOX AUTOMATIZADA (TORRENTS + WEB DL) ---
 // ============================================================================
 
 async function buscarDownloadsTorbox(downloads) {
@@ -2272,18 +2172,18 @@ async function buscarDownloadsTorbox(downloads) {
     secaoTorbox.classList.remove('hidden');
     atualizarVisibilidadeAtalho('torbox', true);
 
-    // Filtramos apenas os magnets/torrents, pois os Web Downloads não suportam streaming instantâneo
-    const linksTorrent = [];
+    // Coleta todos os links válidos de download (Torrents e File Hosters)
+    const linksParaChecar = [];
     downloads.forEach(dl => {
-        if (dl.url.startsWith('magnet:') || dl.url.endsWith('.torrent') || dl.label === 'TORRENT') {
-            linksTorrent.push(dl.url);
+        if (!dl.url.includes('steampowered') && !dl.url.includes('youtube') && !dl.url.includes('steamcommunity') && !dl.url.includes('skidrowreloaded')) {
+            linksParaChecar.push(dl.url);
         }
     });
 
-    if (linksTorrent.length === 0) {
-        statusTag.textContent = "Sem torrents disponíveis";
+    if (linksParaChecar.length === 0) {
+        statusTag.textContent = "Sem links para checagem";
         statusTag.className = "text-[10px] bg-neutral-900 border border-neutral-800 text-neutral-500 px-2 py-0.5 rounded font-mono";
-        gridTorbox.innerHTML = `<div class="col-span-full text-center py-4 text-xs text-neutral-500 bg-neutral-950/40 rounded border border-neutral-800/60">Este release não possui links de Torrent/Magnet para verificação de cache.</div>`;
+        gridTorbox.innerHTML = `<div class="col-span-full text-center py-4 text-xs text-neutral-500 bg-neutral-950/40 rounded border border-neutral-800/60">Este release não possui links compatíveis para verificação no Torbox.</div>`;
         return;
     }
 
@@ -2291,7 +2191,7 @@ async function buscarDownloadsTorbox(downloads) {
         const res = await fetch(`${API_BASE_URL}/api/torbox-proxy`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'check-cache', links: linksTorrent })
+            body: JSON.stringify({ action: 'check-cache', links: linksParaChecar })
         });
         const data = await res.json();
         const torboxItems = data.items || [];
@@ -2300,12 +2200,12 @@ async function buscarDownloadsTorbox(downloads) {
             statusTag.textContent = `${torboxItems.length} disponível(is) em cache`;
             statusTag.className = "text-[10px] bg-emerald-950/40 border border-emerald-500/30 text-emerald-400 px-2 py-0.5 rounded font-mono font-bold";
 
-            // Renderiza um BOTÃO (e não um link), que acionará o download automático ao ser clicado
+            // Renderiza botões para Torrents OU Web Downloads em cache
             gridTorbox.innerHTML = torboxItems.map((item, idx) => `
-                <button type="button" id="btn-torbox-${idx}" onclick="executarDownloadTorbox('${encodeURIComponent(item.magnetUrl)}', 'btn-torbox-${idx}')" class="w-full bg-emerald-950/30 hover:bg-emerald-900/50 p-2.5 flex items-center justify-between gap-2 rounded text-xs font-bold text-emerald-300 border border-emerald-500/40 transition-all shadow-sm group cursor-pointer">
+                <button type="button" id="btn-torbox-${idx}" onclick="executarDownloadTorbox('${encodeURIComponent(item.url)}', 'btn-torbox-${idx}', '${item.type}')" class="w-full bg-emerald-950/30 hover:bg-emerald-900/50 p-2.5 flex items-center justify-between gap-2 rounded text-xs font-bold text-emerald-300 border border-emerald-500/40 transition-all shadow-sm group cursor-pointer" title="${item.url}">
                     <div class="flex items-center gap-2 truncate">
                         <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400 group-hover:scale-110 transition-transform shrink-0"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-                        <span class="truncate">BAIXAR DIRETO ⚡</span>
+                        <span class="truncate">${item.label}</span>
                     </div>
                     <span class="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded uppercase font-mono shrink-0">AUTO VIP</span>
                 </button>
@@ -2313,7 +2213,7 @@ async function buscarDownloadsTorbox(downloads) {
         } else {
             statusTag.textContent = "Nenhum em cache";
             statusTag.className = "text-[10px] bg-neutral-900 border border-neutral-800 text-neutral-500 px-2 py-0.5 rounded font-mono";
-            gridTorbox.innerHTML = `<div class="col-span-full text-center py-4 text-xs text-neutral-500 bg-neutral-950/40 rounded border border-neutral-800/60">O torrent deste jogo ainda não foi semeado nos servidores do Torbox.</div>`;
+            gridTorbox.innerHTML = `<div class="col-span-full text-center py-4 text-xs text-neutral-500 bg-neutral-950/40 rounded border border-neutral-800/60">Os arquivos dos links web e torrents ainda não estão cacheados nos servidores do Torbox.</div>`;
         }
     } catch (e) {
         console.error("Erro ao verificar Torbox:", e);
@@ -2323,10 +2223,10 @@ async function buscarDownloadsTorbox(downloads) {
     }
 }
 
-// Função acionada ao clicar no botão: Adiciona à biblioteca Torbox e abre o download
-async function executarDownloadTorbox(magnetEncoded, btnId) {
+// Função acionada com 1 clique: Adiciona à nuvem e abre o download VIP na hora
+async function executarDownloadTorbox(urlEncoded, btnId, type) {
     const btn = document.getElementById(btnId);
-    const magnetUrl = decodeURIComponent(magnetEncoded);
+    const urlDecoded = decodeURIComponent(urlEncoded);
 
     if (btn) {
         btn.disabled = true;
@@ -2342,7 +2242,7 @@ async function executarDownloadTorbox(magnetEncoded, btnId) {
         const res = await fetch(`${API_BASE_URL}/api/torbox-proxy`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'add-and-download', magnet: magnetUrl })
+            body: JSON.stringify({ action: 'add-and-download', url: urlDecoded, type: type })
         });
         const data = await res.json();
 
@@ -2351,13 +2251,12 @@ async function executarDownloadTorbox(magnetEncoded, btnId) {
                 btn.className = "w-full bg-emerald-600 text-white p-2.5 flex items-center justify-center gap-2 rounded text-xs font-bold transition-all shadow-md";
                 btn.innerHTML = `<span>✔ Download Iniciado!</span>`;
             }
-            // Dispara o download diretamente na aba atual ou em nova aba
             window.open(data.downloadUrl, '_blank');
         } else {
-            throw new Error(data.error || "Não foi possível resgatar o link.");
+            throw new Error(data.error || "Não foi possível resgatar o link direto.");
         }
     } catch (e) {
-        console.error("Erro ao gerar link VIP:", e);
+        console.error("Erro ao gerar link VIP Torbox:", e);
         alert(`Erro ao iniciar download pelo Torbox:\n${e.message}`);
         if (btn) {
             btn.disabled = false;
@@ -2367,7 +2266,7 @@ async function executarDownloadTorbox(magnetEncoded, btnId) {
     }
 }
 // ============================================================================
-// --- FIM: INTEGRAÇÃO TORBOX AUTOMATIZADA ---
+// --- FIM: INTEGRAÇÃO TORBOX AUTOMATIZADA (TORRENTS + WEB DL) ---
 // ============================================================================
 
 // Executa a checagem no carregamento da página em segundo plano
