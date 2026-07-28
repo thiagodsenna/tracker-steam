@@ -137,7 +137,14 @@ export default async function handler(req, res) {
                 await Promise.all(webPromises);
             }
 
-            return res.status(200).json({ items: cachedItems });
+            return res.status(200).json({ 
+                items: cachedItems,
+                debug_raw: {
+                    acao: "check-cache",
+                    linksAnalisados: links,
+                    respostaCacheWeb: logWebDebug || "Nenhum log web"
+                }
+            });
         }
 
         // ------------------------------------------------------------------------
@@ -231,6 +238,10 @@ export default async function handler(req, res) {
 
     } catch (error) {
         console.error("Erro no proxy Torbox:", error);
-        return res.status(500).json({ error: 'Falha na comunicação com o Torbox.', detalhe: error.message });
+        return res.status(500).json({ 
+            error: 'Falha na comunicação com o Torbox.', 
+            detalhe: error.message,
+            debug_raw: { urlEnviada: url, erroBruto: error.toString() }
+        });
     }
 }
