@@ -120,24 +120,42 @@ function formatarTimestamp(timestamp) {
 }
 
 function formatarDataRelativa(dataString) {
+    if (!dataString) return '';
+
     let dataPost;
-    
-    // Verifica se é uma data no formato "MMM DD, YYYY" (Ex: Jul 16, 2026)
-    if (isNaN(Date.parse(dataString)) && /^[a-zA-Z]{3}\s\d{1,2},\s\d{4}$/.test(dataString)) {
-        const mesesIngles = {
-            'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'May': 4, 'Jun': 5,
-            'Jul': 6, 'Aug': 7, 'Sep': 8, 'Oct': 9, 'Nov': 10, 'Dec': 11
-        };
-        const partes = dataString.replace(',', '').split(' ');
-        const mes = mesesIngles[partes[0]];
-        const dia = parseInt(partes[1]);
-        const ano = parseInt(partes[2]);
+    const str = String(dataString).trim();
+
+    // 1. Mapeamento Unificado de Meses (Inglês e Português)
+    const mesesMap = {
+        'jan': 0, 'feb': 1, 'fev': 1, 'mar': 2, 'apr': 3, 'abr': 3,
+        'may': 4, 'mai': 4, 'jun': 5, 'jul': 6, 'aug': 7, 'ago': 7,
+        'sep': 8, 'set': 8, 'oct': 9, 'out': 9, 'nov': 10, 'dec': 11, 'dez': 11
+    };
+
+    // REGEX 1: Novo padrão da Steam BR (Ex: "25/fev./2016" ou "25/fev/2016")
+    const matchBR = str.match(/^(\d{1,2})\/([a-zA-Z]{3})\.?\/(\d{4})$/i);
+
+    // REGEX 2: Padrão antigo em inglês (Ex: "Feb 25, 2016")
+    const matchEN = str.match(/^([a-zA-Z]{3})\s(\d{1,2}),\s(\d{4})$/i);
+
+    if (matchBR) {
+        const dia = parseInt(matchBR[1], 10);
+        const mesStr = matchBR[2].toLowerCase();
+        const ano = parseInt(matchBR[3], 10);
+        const mes = mesesMap[mesStr] !== undefined ? mesesMap[mesStr] : 0;
+        dataPost = new Date(ano, mes, dia);
+    } else if (matchEN) {
+        const mesStr = matchEN[1].toLowerCase();
+        const dia = parseInt(matchEN[2], 10);
+        const ano = parseInt(matchEN[3], 10);
+        const mes = mesesMap[mesStr] !== undefined ? mesesMap[mesStr] : 0;
         dataPost = new Date(ano, mes, dia);
     } else {
+        // Fallback para datas ISO padrão ou timestamps passados como string
         dataPost = new Date(dataString);
     }
 
-    if (isNaN(dataPost.getTime())) return dataString; // Fallback caso falhe
+    if (isNaN(dataPost.getTime())) return dataString; // Fallback caso falhe no parse
 
     const hoje = new Date();
     
@@ -158,7 +176,6 @@ function formatarDataRelativa(dataString) {
     if (diffMeses < 12) return `Há ${diffMeses} ${diffMeses === 1 ? 'mês' : 'meses'}`;
 
     return dataString;
-    //return dataPost.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
 }
 
 function mapearRelease(stringEntrada) {
