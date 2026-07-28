@@ -141,8 +141,6 @@ export default async function handler(req, res) {
                 items: cachedItems,
                 debug_raw: {
                     acao: "check-cache",
-                    statusHttpTorbox: statusHttp,
-                    hashesEnviados: hashes,
                     respostaCompletaTorbox: data || rawText
                 }
             });
