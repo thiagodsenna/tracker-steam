@@ -43,7 +43,7 @@ export default async function handler(req, res) {
 
     try {
         // ------------------------------------------------------------------------
-        // AÇÃO 1: VERIFICAR CACHE DE TORRENTS (100% Funcional)
+        // AÇÃO 1: VERIFICAR CACHE DE TORRENTS
         // ------------------------------------------------------------------------
         if (action === 'check-cache') {
             if (!links || !Array.isArray(links) || links.length === 0) {
@@ -105,7 +105,7 @@ export default async function handler(req, res) {
         }
 
         // ------------------------------------------------------------------------
-        // AÇÃO 2: WEB DOWNLOADS COM VARREDOR AUTOMÁTICO DE ROTAS (PROBER)
+        // AÇÃO 2: WEB DOWNLOADS (Com payload JSON correto para /webdl/createwebdl)
         // ------------------------------------------------------------------------
         else if (action === 'web-download') {
             if (!links || !Array.isArray(links) || links.length === 0) {
@@ -125,74 +125,16 @@ export default async function handler(req, res) {
                 return res.status(200).json({ items: [], debug_raw: { acao: "web-download", info: "Nenhum link web compatível." } });
             }
 
-            // Lista de candidatas oficiais baseadas em padrões da API v1 do Torbox
-            const rotasCandidatas = [
-                "/webdl/create",
-                "/webdl/createwebdl",
-                "/dl/create",
-                "/debrid/create",
-                "/web/create",
-                "/user/webdl/create"
-            ];
-
-            let rotaValida = null;
-            const logProbes = [];
-            const primeiroLink = webLinks[0];
-
-            // Testa qual rota NÃO retorna 404 Not Found
-            for (const rota of rotasCandidatas) {
-                try {
-                    const formData = new FormData();
-                    formData.append("link", primeiroLink);
-
-                    const testRes = await fetch(`${BASE_URL}${rota}`, {
-                        method: 'POST',
-                        headers: { "Authorization": `Bearer ${TORBOX_API_KEY}` },
-                        body: formData
-                    });
-
-                    const status = testRes.status;
-                    const text = await testRes.text();
-                    let json = null;
-                    try { json = JSON.parse(text); } catch(e){}
-
-                    logProbes.push({ rota, status, resposta: json || text });
-
-                    // Se o status for diferente de 404, encontramos a rota existente!
-                    if (status !== 404) {
-                        rotaValida = rota;
-                        break;
-                    }
-                } catch (e) {
-                    logProbes.push({ rota, erro: e.message });
-                }
-            }
-
-            if (!rotaValida) {
-                return res.status(200).json({
-                    items: [],
-                    debug_raw: {
-                        acao: "web-download-probe",
-                        erro: "Todas as rotas candidatas testadas retornaram 404.",
-                        tentativas: logProbes
-                    }
-                });
-            }
-
-            // Se achou a rota válida, processa todos os links web usando ela
-            const endpointReal = `${BASE_URL}${rotaValida}`;
             const debugList = [];
             const validItems = [];
 
             const promises = webLinks.map(async (webUrl) => {
                 try {
-                    const formData = new FormData();
-                    formData.append("link", webUrl);
-
-                    const res = await fetch(endpointReal, {
+                    // A documentação da API v1 do Torbox para webdl exige JSON application/json
+                    const res = await fetch(`${BASE_URL}/webdl/createwebdl`, {
                         method: 'POST',
-                        headers: { "Authorization": `Bearer ${TORBOX_API_KEY}` },
-                        body: formData
+                        headers: headersJson,
+                        body: JSON.stringify({ link: webUrl })
                     });
 
                     const statusHttp = res.status;
@@ -232,8 +174,6 @@ export default async function handler(req, res) {
                 items: validItems,
                 debug_raw: {
                     acao: "web-download",
-                    rotaEncontrada: rotaValida,
-                    probes: logProbes,
                     detalhesPorLink: debugList
                 }
             });
