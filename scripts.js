@@ -1835,6 +1835,7 @@ async function executarBusca(termo) {
 
     // Esconde a tag de filtro da Wishlist se estiver aberta
     document.getElementById('wishlist-filter-tag')?.classList.add('hidden');
+    document.getElementById('wishlist-filter-header')?.classList.add('hidden');
     
     // Mostra o container de filtros de busca
     const filterTag = document.getElementById('search-filter-tag');
@@ -2182,6 +2183,7 @@ function abrirModoWishlist() {
     document.getElementById('search-filter-tag')?.classList.add('hidden');
     document.getElementById('search-filter-header')?.classList.add('hidden');
     document.getElementById('wishlist-filter-tag')?.classList.remove('hidden');
+    document.getElementById('wishlist-filter-header')?.classList.remove('hidden');
     const btnWishlist = document.getElementById('btn-header-wishlist');
     if (btnWishlist) btnWishlist.classList.add('border-emerald-500/50', 'bg-emerald-950/30');
     
@@ -2192,6 +2194,7 @@ function abrirModoWishlist() {
 function fecharModoWishlist() {
     fonteAtual = 'feedly';
     document.getElementById('wishlist-filter-tag')?.classList.add('hidden');
+    document.getElementById('wishlist-filter-header')?.classList.add('hidden');
     const btnWishlist = document.getElementById('btn-header-wishlist');
     if (btnWishlist) btnWishlist.classList.remove('border-emerald-500/50', 'bg-emerald-950/30');
     
