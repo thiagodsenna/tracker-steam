@@ -1838,7 +1838,10 @@ async function executarBusca(termo) {
     
     // Mostra o container de filtros de busca
     const filterTag = document.getElementById('search-filter-tag');
+    const filterHeader = document.getElementById('search-filter-header');
     if (filterTag) filterTag.classList.remove('hidden');
+    if (filterHeader) filterHeader.classList.remove('hidden');
+    
     
     // Atualiza o texto do termo pesquisado
     const termText = document.getElementById('search-term-text');
@@ -1950,7 +1953,9 @@ function limparBusca() {
     if (searchInput) searchInput.value = '';
 
     const filterTag = document.getElementById('search-filter-tag');
+    const filterHeader = document.getElementById('search-filter-header');
     if (filterTag) filterTag.classList.add('hidden');
+    if (filterHeader) filterHeader.classList.add('hidden');
 
     // --- INÍCIO: ALTERAR COMPORTAMENTO LIMPAR BUSCA PARA WISHLIST ---
     if (fonteAtual === 'wishlist') {
@@ -2175,6 +2180,7 @@ function alternarModoWishlist() {
 function abrirModoWishlist() {
     fonteAtual = 'wishlist';
     document.getElementById('search-filter-tag')?.classList.add('hidden');
+    document.getElementById('search-filter-header')?.classList.add('hidden');
     document.getElementById('wishlist-filter-tag')?.classList.remove('hidden');
     const btnWishlist = document.getElementById('btn-header-wishlist');
     if (btnWishlist) btnWishlist.classList.add('border-emerald-500/50', 'bg-emerald-950/30');
