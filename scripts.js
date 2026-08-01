@@ -1010,6 +1010,8 @@ async function abrirModal(id, options = {}) {
     document.getElementById('modal-section-videos').classList.add('hidden');
     document.getElementById('modal-section-hltb')?.classList.add('hidden');
     document.getElementById('modal-section-similares')?.classList.add('hidden');
+    document.getElementById('badge-download-torbox')?.classList.add('hidden');
+    document.getElementById('float-badge-download-torbox')?.classList.add('hidden');
 
     // Esconde os botões correspondentes que são assíncronos na barra da navegação
     ['hltb', 'recursos', 'screenshots', 'videos', 'reviews', 'similares', 'torbox'].forEach(sec => {
@@ -2308,6 +2310,10 @@ async function buscarDownloadsTorbox(downloads) {
         if (torboxItems.length > 0) {
             statusTag.textContent = `CONECTADO`;
             statusTag.className = "text-[11px] bg-emerald-950/40 border border-emerald-500/30 text-emerald-400 px-2 py-0.5 rounded font-mono font-bold tracking-normal";
+
+            // Exibe a badge com ícone de raio nos dois ícones de download das barras de atalho
+            document.getElementById('badge-download-torbox')?.classList.remove('hidden');
+            document.getElementById('float-badge-download-torbox')?.classList.remove('hidden');
 
             // Renderiza os botões unificados com AUTO VIP para Torrents e Web Downloads em cache
             gridTorbox.innerHTML = torboxItems.map((item, idx) => `

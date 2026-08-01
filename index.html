@@ -309,8 +309,13 @@
                         </button>
 
                         <!-- Download -->
-                        <button id="shortcut-downloads" onclick="rolarParaSecaoModal('modal-section-downloads')" class="group flex items-center p-1 text-neutral-400 hover:text-emerald-400 transition-all shrink-0" title="Download">
+                        <button id="shortcut-downloads" onclick="rolarParaSecaoModal('modal-section-downloads')" class="group relative flex items-center p-1 text-neutral-400 hover:text-emerald-400 transition-all shrink-0" title="Download">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            
+                            <!-- Badge Torbox (Canto Inferior Direito) -->
+                            <span id="badge-download-torbox" class="hidden absolute -bottom-1 -right-1 bg-emerald-950 border border-emerald-500/50 text-emerald-400 p-0.5 rounded-full shadow-md">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                            </span>
                         </button>
 
                         <!-- Fechar -->
@@ -543,8 +548,13 @@
             </button>
 
             <!-- Download -->
-            <button id="float-shortcut-downloads" onclick="rolarParaSecaoModal('modal-section-downloads')" class="group flex items-center p-1 text-neutral-400 hover:text-emerald-400 transition-all shrink-0" title="Download">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <button id="float-shortcut-downloads" onclick="rolarParaSecaoModal('modal-section-downloads')" class="group relative inline-flex items-center justify-center p-1 text-neutral-400 hover:text-emerald-400 transition-all shrink-0" title="Download">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform block"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                
+                <!-- Badge Torbox -->
+                <span id="float-badge-download-torbox" class="hidden absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-950 border border-emerald-500/50 text-emerald-400 rounded-full shadow-md grid place-items-center overflow-hidden">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="w-2.5 h-2.5 translate-x-[0.5px] translate-y-[0.5px]"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                </span>
             </button>
 
             <!-- Fechar -->
