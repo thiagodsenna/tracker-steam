@@ -978,7 +978,7 @@ async function abrirModal(id, options = {}) {
 
     const shareUrl = getShareUrl(jogo.feedlyId);
     const historyState = { modalOpen: true, gameId: jogo.feedlyId };
-    const svgSize = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-neutral-400 shrink-0 mt-[1px] mr-1"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>`;
+    const svgSize = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-neutral-400 shrink-0 mt-[1px] mr-0.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>`;
     const svgReviews = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400 shrink-0"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;    
 
     if (options.fromDeepLink) {
@@ -2300,7 +2300,7 @@ async function buscarDownloadsTorbox(downloads) {
         const torboxItems = data.items || [];
 
         if (torboxItems.length > 0) {
-            statusTag.textContent = `${torboxItems.length} disponível(is)`;
+            statusTag.textContent = `CONECTADO`;
             statusTag.className = "text-[10px] bg-emerald-950/40 border border-emerald-500/30 text-emerald-400 px-2 py-0.5 rounded font-mono font-bold";
 
             // Renderiza os botões unificados com AUTO VIP para Torrents e Web Downloads em cache
