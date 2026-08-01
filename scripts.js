@@ -1040,6 +1040,23 @@ async function abrirModal(id, options = {}) {
         floatingNav.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
         floatingNav.classList.remove('translate-y-0', 'opacity-100', 'pointer-events-auto');
     }
+
+    // Garante que a barra flutuante do topo comece oculta e reseta os valores com os dados do novo jogo
+    const floatingNavTop = document.getElementById('modal-floating-top-bar');
+    if (floatingNavTop) {
+        floatingNavTop.classList.add('-translate-y-full', 'opacity-0', 'pointer-events-none');
+        floatingNavTop.classList.remove('translate-y-0', 'opacity-100', 'pointer-events-auto');
+        
+        const floatingTitle = document.getElementById('floating-top-title');
+        if (floatingTitle) {
+            floatingTitle.textContent = jogo.release?.tituloOriginal ? jogo.release.tituloOriginal.toUpperCase() : jogo.title.toUpperCase();
+        }
+        
+        const floatingScoreContainer = document.getElementById('floating-top-score-container');
+        if (floatingScoreContainer) {
+            floatingScoreContainer.classList.add('hidden'); // Oculta a nota até que a requisição da Steam a preencha
+        }
+    }
     document.body.style.overflow = 'hidden';
     rolarParaSecaoModal('modal-content');
 
@@ -1602,6 +1619,16 @@ async function buscarReviewsSteam(steamId) {
                 reviewsSectionScoreEl.className = `inline-flex items-center justify-center ${bg} border ${border} px-1.5 py-0.5 rounded text-base font-black text-white shadow-md leading-none ml-auto [text-shadow:0_1px_3px_rgba(0,0,0,0.8)] tracking-tight`;
             }
 
+            // 3. Atualiza a nota na nova barra flutuante do topo (Desktop)
+            const floatingTopScoreEl = document.getElementById('floating-top-score');
+            const floatingTopScoreContainer = document.getElementById('floating-top-score-container');
+            if (floatingTopScoreEl && floatingTopScoreContainer) {
+                floatingTopScoreEl.textContent = `${notaSteam}`;
+                // Replica exatemente o estilo dinâmico usado na seção de reviews
+                floatingTopScoreEl.className = `inline-flex items-center justify-center ${bg} border ${border} px-1.5 py-0.5 rounded text-base font-black text-white shadow-md leading-none [text-shadow:0_1px_3px_rgba(0,0,0,0.8)] tracking-tight`;
+                floatingTopScoreContainer.classList.remove('hidden');
+            }
+
             //Total avaliações
             const svgReviews = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400 shrink-0"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
             const totalReviews = json?.query_summary?.total_reviews?.toLocaleString('pt-BR') || 0;
@@ -1807,11 +1834,17 @@ function fecharModal(fromPopstate = false) {
         history.back();
     }
 
-    // Oculta a barra flutuante ao fechar
+    // Oculta as barras flutuantes ao fechar o modal
     const floatingNav = document.getElementById('modal-floating-shortcuts');
     if (floatingNav) {
         floatingNav.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
         floatingNav.classList.remove('translate-y-0', 'opacity-100', 'pointer-events-auto');
+    }
+
+    const floatingNavTop = document.getElementById('modal-floating-top-bar');
+    if (floatingNavTop) {
+        floatingNavTop.classList.add('-translate-y-full', 'opacity-0', 'pointer-events-none');
+        floatingNavTop.classList.remove('translate-y-0', 'opacity-100', 'pointer-events-auto');
     }
 
     modalJogoAtual = null;
@@ -2493,16 +2526,35 @@ window.addEventListener('load', () => {
 // --- FIM: IMPLEMENTAÇÃO DE NOTIFICAÇÕES PUSH --- 
 // ============================================================================
 
-// Exibe a barra flutuante no bottom assim que o usuário rolar 180px para baixo no modal
+// Controle das barras flutuantes (Top e Bottom) ao rolar o modal
 document.getElementById('modal-overlay')?.addEventListener('scroll', function () {
-    const floatingNav = document.getElementById('modal-floating-shortcuts');
-    if (!floatingNav) return;
+    const floatingNavBottom = document.getElementById('modal-floating-shortcuts');
+    const floatingNavTop = document.getElementById('modal-floating-top-bar');
+    const navShortcutsOriginal = document.getElementById('modal-nav-shortcuts');
 
-    if (this.scrollTop > 180) {
-        floatingNav.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
-        floatingNav.classList.add('translate-y-0', 'opacity-100', 'pointer-events-auto');
-    } else {
-        floatingNav.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
-        floatingNav.classList.remove('translate-y-0', 'opacity-100', 'pointer-events-auto');
+    // 1. Controle da barra flutuante do bottom (Mobile)
+    if (floatingNavBottom) {
+        if (this.scrollTop > 180) {
+            floatingNavBottom.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+            floatingNavBottom.classList.add('translate-y-0', 'opacity-100', 'pointer-events-auto');
+        } else {
+            floatingNavBottom.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+            floatingNavBottom.classList.remove('translate-y-0', 'opacity-100', 'pointer-events-auto');
+        }
+    }
+
+    // 2. Controle da barra flutuante do topo (Desktop)
+    if (floatingNavTop && navShortcutsOriginal) {
+        // Usa as coordenadas da barra original relativas a janela do navegador
+        const rect = navShortcutsOriginal.getBoundingClientRect();
+        
+        // Se a barra fixa original sumiu pelo topo da tela (bottom <= 0), a nova barra desliza para baixo
+        if (rect.bottom <= 0) {
+            floatingNavTop.classList.remove('-translate-y-full', 'opacity-0', 'pointer-events-none');
+            floatingNavTop.classList.add('translate-y-0', 'opacity-100', 'pointer-events-auto');
+        } else {
+            floatingNavTop.classList.add('-translate-y-full', 'opacity-0', 'pointer-events-none');
+            floatingNavTop.classList.remove('translate-y-0', 'opacity-100', 'pointer-events-auto');
+        }
     }
 });

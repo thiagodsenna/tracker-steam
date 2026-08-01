@@ -238,6 +238,7 @@
 
     <!-- Modal de Detalhes -->
     <div id="modal-overlay" onclick="fecharModalFora(event)" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden overflow-y-auto">
+        
         <div class="min-h-full w-full flex items-center justify-center p-0 sm:p-6">
             <div id="modal-content" class="bg-neutral-900 border border-neutral-800 w-full max-w-4xl min-h-[80vh] sm:rounded-xl flex flex-col shadow-2xl relative animate-modal my-0 sm:my-8">
                 
@@ -250,8 +251,8 @@
                     </div>
                 </div>
 
-                <!-- Barra de Atalhos -->
-                <nav id="modal-nav-shortcuts" class="relative sm:sticky sm:top-0 z-10 sm:z-50 w-full bg-neutral-950/85 backdrop-blur-md border-b border-neutral-800/80 shadow-lg transition-all">
+                <!-- Barra de Atalhos (Agora estritamente fixa abaixo do hero) -->
+                <nav id="modal-nav-shortcuts" class="relative z-10 w-full bg-neutral-950/85 backdrop-blur-md border-b border-neutral-800/80 shadow-lg transition-all">
                     <div class="flex items-center justify-start sm:justify-center overflow-x-auto no-scrollbar py-0.5 px-2 sm:gap-2.5 max-w-4xl mx-auto">
                         
                         <!-- Topo -->
@@ -488,6 +489,28 @@
             </div>
         </div>
     </div>
+
+    <!-- INÍCIO: Nova Barra Flutuante de Título e Nota no Topo -->
+    <nav id="modal-floating-top-bar" class="fixed flex top-0 left-1/2 -translate-x-1/2 z-[60] w-full max-w-4xl bg-neutral-950/75 backdrop-blur-md border-b border-x-0 sm:border-x border-neutral-800/80 shadow-lg transition-all duration-300 transform -translate-y-full opacity-0 pointer-events-none sm:rounded-b-xl">
+        
+        <!-- Contêiner principal com justify-between e padding (px-5 sm:px-8) igual ao do modal -->
+        <div class="flex items-center justify-between w-full py-2.5 px-4 sm:px-8 gap-4">
+            
+            <!-- Título do Jogo (flex-1 força ele a empurrar a nota para o lado oposto) -->
+            <div id="floating-top-title" class="font-rajdhani font-bold text-lg sm:text-xl text-white tracking-tight leading-tight truncate flex-1 text-left">
+                <!-- Título injetado pelo JS -->
+            </div>
+            
+            <!-- Nota (shrink-0 garante que a div não seja esmagada pelo título) -->
+            <div id="floating-top-score-container" class="shrink-0 flex items-center justify-end">
+                <span id="floating-top-score" class="inline-flex items-center justify-center px-1.5 py-0.5 rounded border text-base sm:text-lg font-black text-white shadow-md leading-none [text-shadow:0_1px_3px_rgba(0,0,0,0.8)] tracking-tight">
+                    <!-- Nota injetada pelo JS -->
+                </span>
+            </div>
+
+        </div>
+    </nav>
+    <!-- FIM da nova barra -->
 
     <!-- Barra de Atalhos Flutuante no Bottom -->
     <nav id="modal-floating-shortcuts" class="fixed sm:hidden bottom-2 left-1/2 -translate-x-1/2 z-[60] w-[97%] max-w-2xl bg-neutral-950/70 backdrop-blur-md border border-neutral-800/70 shadow-2xl rounded-full transition-all duration-300 transform translate-y-20 opacity-0 pointer-events-none">
