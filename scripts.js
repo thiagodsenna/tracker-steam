@@ -1016,12 +1016,12 @@ async function abrirModal(id, options = {}) {
     document.getElementById('metacritic-score-value').textContent = '';
     document.getElementById('reviews-section-score')?.classList.add('hidden');
     document.getElementById('modal-links-grid').innerHTML = jogo.links.map(link => `
-                <a href="${link.url}" target="_blank" class="bg-neutral-800 hover:bg-neutral-700 p-2 flex items-center gap-2 rounded text-xs font-bold text-neutral-300 border border-neutral-700">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                <a href="${link.url}" target="_blank" class="bg-neutral-800 hover:bg-neutral-700 p-2 flex gap-2 rounded text-[11px] uppercase font-bold text-neutral-300 border border-neutral-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mt-[1px]"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
                     ${link.label}
                 </a>`).join('');
     document.getElementById('modal-downloads-grid').innerHTML = jogo.downloads.map(dl => `
-                <a href="${dl.url}" target="_blank" class="bg-neutral-800 hover:bg-neutral-700 p-2 flex items-center gap-2 rounded text-[10px] font-bold text-neutral-300 border border-neutral-700">
+                <a href="${dl.url}" target="_blank" class="bg-neutral-800 hover:bg-neutral-700 p-2 flex items-center gap-2 rounded text-[11px] font-bold text-neutral-300 border border-neutral-700">
                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                     ${dl.label}
                 </a>`).join('');
@@ -1143,14 +1143,14 @@ async function buscarDadosSteam(steamId) {
 
                 const videoId = `vjs-player-${idx}`;
                 container.innerHTML += `
-                            <div class="mb-4">
-                                <div class="aspect-video w-full !h-full">
-                                    <video id="${videoId}" class="video-js vjs-default-skin w-full !h-full" controls preload="auto" poster="${m.thumbnail}">
-                                    <source src="${src}" type="${type}">
-                                </video>
-                                </div>
-                                ${m.name ? `<div class="bg-black text-neutral-400 text-xs font-bold uppercase tracking-widest px-3 py-2">${m.name}</div>` : ''}
-                            </div>`;
+                    <div class="mb-4">
+                        <div class="aspect-video w-full !h-full ${m.name ? 'rounded-t-md' : 'rounded-md'} overflow-hidden">
+                            <video id="${videoId}" class="video-js vjs-default-skin w-full !h-full" controls preload="auto" poster="${m.thumbnail}">
+                                <source src="${src}" type="${type}">
+                            </video>
+                        </div>
+                        ${m.name ? `<div class="bg-black text-neutral-400 text-[11px] uppercase tracking-widest px-3 py-2 rounded-b-md">${m.name}</div>` : ''}
+                    </div>`;
 
                 // Inicializa o player Video.js para este vídeo
                 // Aguarda o próximo ciclo do DOM para inicializar
@@ -1228,12 +1228,12 @@ function renderizarDadosSteamNoModal(game) {
             const videoId = `vjs-player-cache-${idx}`;
             container.innerHTML += `
                 <div class="mb-4">
-                    <div class="aspect-video w-full !h-full">
+                    <div class="aspect-video w-full !h-full ${m.name ? 'rounded-t-md' : 'rounded-md'} overflow-hidden">
                         <video id="${videoId}" class="video-js vjs-default-skin w-full !h-full" controls preload="auto" poster="${m.thumbnail}">
-                        <source src="${src}" type="${type}">
-                    </video>
+                            <source src="${src}" type="${type}">
+                        </video>
                     </div>
-                    ${m.name ? `<div class="bg-black text-neutral-400 text-xs font-bold uppercase tracking-widest px-3 py-2">${m.name}</div>` : ''}
+                    ${m.name ? `<div class="bg-black text-neutral-400 text-[11px] uppercase tracking-widest px-3 py-2 rounded-b-md">${m.name}</div>` : ''}
                 </div>`;
 
             setTimeout(() => {
@@ -2301,11 +2301,11 @@ async function buscarDownloadsTorbox(downloads) {
 
         if (torboxItems.length > 0) {
             statusTag.textContent = `CONECTADO`;
-            statusTag.className = "text-[10px] bg-emerald-950/40 border border-emerald-500/30 text-emerald-400 px-2 py-0.5 rounded font-mono font-bold";
+            statusTag.className = "text-[11px] bg-emerald-950/40 border border-emerald-500/30 text-emerald-400 px-2 py-0.5 rounded font-mono font-bold";
 
             // Renderiza os botões unificados com AUTO VIP para Torrents e Web Downloads em cache
             gridTorbox.innerHTML = torboxItems.map((item, idx) => `
-                <button type="button" id="btn-tb-${idx}" onclick="executarDownloadTorbox('${encodeURIComponent(item.url)}', 'btn-tb-${idx}', '${item.type}')" class="w-full bg-emerald-950/30 hover:bg-emerald-900/50 p-2.5 flex items-center justify-between gap-2 rounded text-[10px] font-bold text-emerald-300 border border-emerald-500/40 transition-all shadow-sm group cursor-pointer" title="${item.url}">
+                <button type="button" id="btn-tb-${idx}" onclick="executarDownloadTorbox('${encodeURIComponent(item.url)}', 'btn-tb-${idx}', '${item.type}')" class="w-full bg-emerald-950/30 hover:bg-emerald-900/50 p-2.5 flex items-center justify-between gap-2 rounded text-[11px] font-bold text-emerald-300 border border-emerald-500/40 transition-all shadow-sm group cursor-pointer" title="${item.url}">
                     <div class="flex items-center gap-2 truncate">
                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400 group-hover:scale-110 transition-transform shrink-0"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
                         <span class="truncate">${item?.label.startsWith('magnet:') ? 'TORRENT' : item?.label.replace('www.', '').toUpperCase().split('.')[0]}</span>
