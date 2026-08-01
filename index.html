@@ -334,23 +334,24 @@
                                 <!-- Sub-container de Metadados dentro do Modal -->
                                 <div id="steam-metadata" class="text-xs text-neutral-400 space-y-1 hidden">
                                     <div class="flex flex-wrap items-center gap-2 mb-4">
-                                        <!-- Tag 1: Tamanho (Ícone Download) -->
-                                        <div id="game-size" title="Tamanho" onclick="rolarParaSecaoModal('modal-section-downloads')" class="hover:cursor-pointer inline-flex items-center gap-1.5 bg-neutral-900 border border-neutral-800 text-neutral-300 px-1.5 py-1 rounded text-[10px] font-semibold">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400 shrink-0"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                                            <span class="value">--</span>
-                                        </div>
-
-                                        <!-- Tag 2: Lançamento (Ícone Calendário) -->
+                                        <!-- Tag 1: Lançamento (Ícone Calendário) -->
                                         <div id="release-date" title="Data de Lançamento" class="inline-flex items-center gap-1.5 bg-neutral-900 border border-neutral-800 text-neutral-300 px-1.5 py-1 rounded text-[10px] font-semibold">
                                             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400 shrink-0"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                                             <span class="value">--</span>
                                         </div>
 
-                                        <!-- Tag 3: Avaliações (Ícone Comentários) -->
+                                        <!-- Tag 2: Avaliações (Ícone Comentários) -->
                                         <div id="total-reviews" title="Total de Avaliações" onclick="rolarParaSecaoModal('modal-section-reviews')" class="hover:cursor-pointer inline-flex items-center gap-1.5 bg-neutral-900 border border-neutral-800 text-neutral-300 px-1.5 py-1 rounded text-[10px] font-semibold">
                                             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400 shrink-0"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                                             <span class="value">--</span>
                                         </div>
+
+                                        <!-- Tag 3: Tamanho (Ícone Download) -->
+                                        <div id="game-size" title="Tamanho" onclick="rolarParaSecaoModal('modal-section-downloads')" class="hover:cursor-pointer inline-flex items-center gap-1.5 bg-neutral-900 border border-neutral-800 text-neutral-300 px-1.5 py-1 rounded text-[10px] font-semibold">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400 shrink-0"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                            <span class="value">--</span>
+                                        </div>
+
                                     </div>
 
                                     <!-- Demais informações mantidas abaixo -->
@@ -377,7 +378,7 @@
 
                     <!-- Seção: How Long to Beat -->
                     <div id="modal-section-hltb" class="hidden space-y-3 pb-6">
-                        <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2 flex items-center gap-2">
+                        <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-normal border-b border-neutral-800 pb-2 flex items-center gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                             How Long to Beat
                         </h4>
@@ -386,7 +387,7 @@
                     
                     <!-- Seção: Descrição -->
                     <div id="modal-section-descricao" class="space-y-3 pb-6">
-                        <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2 flex items-center gap-2">
+                        <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-normal border-b border-neutral-800 pb-2 flex items-center gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
                             Descrição
                         </h4>
@@ -395,7 +396,7 @@
 
                     <!-- Seção: Recursos -->
                     <div id="modal-section-recursos" class="hidden space-y-3 pb-6">
-                        <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2 flex items-center gap-2">
+                        <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-normal border-b border-neutral-800 pb-2 flex items-center gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                             Recursos
                         </h4>
@@ -404,7 +405,7 @@
 
                     <!-- Seção: Screenshots -->
                     <div id="modal-section-screenshots" class="hidden space-y-3 pb-6">
-                        <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2 flex items-center gap-2">
+                        <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-normal border-b border-neutral-800 pb-2 flex items-center gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
                             Screenshots
                         </h4>
@@ -413,7 +414,7 @@
 
                     <!-- Seção: Vídeos -->
                     <div id="modal-section-videos" class="hidden space-y-3 pb-6">
-                        <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2 flex items-center gap-2">
+                        <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-normal border-b border-neutral-800 pb-2 flex items-center gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                             Vídeos
                         </h4>
@@ -422,12 +423,12 @@
 
                     <!-- Seção: Avaliações -->
                     <div id="modal-section-reviews" class="hidden space-y-3 pb-6">
-                        <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2 flex items-center justify-between gap-2 w-full">
+                        <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-normal border-b border-neutral-800 pb-2 flex items-center justify-between gap-2 w-full">
                             <div class="flex items-center gap-2">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                                 <span>Avaliações</span>
                             </div>
-                            <span id="total-reviews-section" class="text-xs text-neutral-600 tracking-widest"></span>
+                            <span id="total-reviews-section" class="text-xs text-neutral-600 tracking-normal"></span>
                             <span id="reviews-section-score" class="hidden px-1.5 py-0.5 rounded border text-base font-black text-white shadow-md leading-none ml-auto [text-shadow:0_1px_2px_rgba(0,0,0,0.8)] tracking-tight"></span>
                         </h4>
                         <div id="modal-reviews-list" class="space-y-4"></div>
@@ -435,7 +436,7 @@
 
                     <!-- Seção: Jogos Similares -->
                     <div id="modal-section-similares" class="hidden space-y-3 pb-6">
-                        <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2 flex items-center gap-2">
+                        <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-normal border-b border-neutral-800 pb-2 flex items-center gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="12" x2="10" y2="12"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="15" y1="13" x2="15.01" y2="13"/><line x1="18" y1="11" x2="18.01" y2="11"/><path d="M17.32 5H6.68a4 4 0 0 0-3.97 3.55l-.6 6.06A4 4 0 0 0 6 19h12a4 4 0 0 0 3.89-4.39l-.6-6.06A4 4 0 0 0 17.32 5z"/></svg>
                             Jogos Similares
                         </h4>
@@ -444,14 +445,14 @@
 
                     <!-- Seção: Downloads -->
                     <div id="modal-section-downloads" class="space-y-3 pb-6">
-                        <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2 flex items-center justify-between gap-2 w-full">
+                        <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-normal border-b border-neutral-800 pb-2 flex items-center justify-between gap-2 w-full">
                             <div class="flex items-center gap-2">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                                 Downloads
                             </div>
                             <div id="game-size-section" title="Tamanho" class="inline-flex gap-1.5 bg-neutral-900 border border-neutral-800 text-neutral-300 px-1.5 py-1 rounded text-[11px] font-semibold">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-neutral-400 shrink-0"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-                                <span class="value">--</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-neutral-400 shrink-0 mt-[1px] mr-0.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                                <span id="game-size-value" class="value">--</span>
                             </div>
                         </h4>
                         <div id="modal-downloads-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-2"></div>
@@ -459,7 +460,7 @@
 
                     <!-- Seção: Torbox -->
                     <div id="modal-section-torbox" class="hidden space-y-3 pb-6">
-                        <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2 flex items-center justify-between gap-2 w-full">
+                        <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-normal border-b border-neutral-800 pb-2 flex items-center justify-between gap-2 w-full">
                             <div class="flex items-center gap-2 text-emerald-400">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
                                 Torbox
@@ -471,7 +472,7 @@
 
                     <!-- Seção: Links -->
                     <div id="modal-section-links" class="space-y-3 pb-6">
-                        <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-widest border-b border-neutral-800 pb-2 flex items-center gap-2">
+                        <h4 class="text-xs font-bold text-neutral-400 uppercase tracking-normal border-b border-neutral-800 pb-2 flex items-center gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
                             Links
                         </h4>
