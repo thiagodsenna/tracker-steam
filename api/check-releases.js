@@ -25,15 +25,21 @@ export default async function handler(req, res) {
         if (!dataString) return '';
 
         let dataPost;
+        let dataStringBR;
         const str = String(dataString).trim();
+        const capitalize = ([first, ...rest]) => first ? first.toUpperCase() + rest.join('') : '';
 
+        // 1. Mapeamento Unificado de Meses (Inglês e Português)
         const mesesMap = {
             'jan': 0, 'feb': 1, 'fev': 1, 'mar': 2, 'apr': 3, 'abr': 3,
-            'may': 4, 'mai': 4, 'jun': 5, 'jul': 6, 'ago': 7, 'aug': 7,
+            'may': 4, 'mai': 4, 'jun': 5, 'jul': 6, 'aug': 7, 'ago': 7,
             'sep': 8, 'set': 8, 'oct': 9, 'out': 9, 'nov': 10, 'dec': 11, 'dez': 11
         };
 
+        // REGEX 1: Novo padrão da Steam BR (Ex: "25/fev./2016" ou "25/fev/2016")
         const matchBR = str.match(/^(\d{1,2})\/([a-zA-Z]{3})\.?\/(\d{4})$/i);
+
+        // REGEX 2: Padrão antigo em inglês (Ex: "Feb 25, 2016")
         const matchEN = str.match(/^([a-zA-Z]{3})\s(\d{1,2}),\s(\d{4})$/i);
 
         if (matchBR) {
@@ -41,6 +47,7 @@ export default async function handler(req, res) {
             const mesStr = matchBR[2].toLowerCase();
             const ano = parseInt(matchBR[3], 10);
             const mes = mesesMap[mesStr] !== undefined ? mesesMap[mesStr] : 0;
+            dataStringBR = `${capitalize(mesStr)} ${dia}, ${ano}`;
             dataPost = new Date(ano, mes, dia);
         } else if (matchEN) {
             const mesStr = matchEN[1].toLowerCase();
@@ -49,13 +56,15 @@ export default async function handler(req, res) {
             const mes = mesesMap[mesStr] !== undefined ? mesesMap[mesStr] : 0;
             dataPost = new Date(ano, mes, dia);
         } else {
+            // Fallback para datas ISO padrão ou timestamps passados como string
             dataPost = new Date(dataString);
         }
 
-        if (isNaN(dataPost.getTime())) return dataString;
+        if (isNaN(dataPost.getTime())) return dataString; // Fallback caso falhe no parse
 
         const hoje = new Date();
         
+        // Zera as horas para comparar apenas os dias
         const d1 = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
         const d2 = new Date(dataPost.getFullYear(), dataPost.getMonth(), dataPost.getDate());
         const diffTempo = d1 - d2;
@@ -71,6 +80,7 @@ export default async function handler(req, res) {
         if (diffMeses <= -1) return `Em ${Math.abs(diffMeses)} ${diffMeses === -1 ? 'mês' : 'meses'}`;
         if (diffMeses < 12) return `Há ${diffMeses} ${diffMeses === 1 ? 'mês' : 'meses'}`;
 
+        if (matchBR && dataStringBR) return dataStringBR;
         return dataString;
     }
 

@@ -123,7 +123,9 @@ function formatarDataRelativa(dataString) {
     if (!dataString) return '';
 
     let dataPost;
+    let dataStringBR;
     const str = String(dataString).trim();
+    const capitalize = ([first, ...rest]) => first ? first.toUpperCase() + rest.join('') : '';
 
     // 1. Mapeamento Unificado de Meses (Inglês e Português)
     const mesesMap = {
@@ -143,6 +145,7 @@ function formatarDataRelativa(dataString) {
         const mesStr = matchBR[2].toLowerCase();
         const ano = parseInt(matchBR[3], 10);
         const mes = mesesMap[mesStr] !== undefined ? mesesMap[mesStr] : 0;
+        dataStringBR = `${capitalize(mesStr)} ${dia}, ${ano}`;
         dataPost = new Date(ano, mes, dia);
     } else if (matchEN) {
         const mesStr = matchEN[1].toLowerCase();
@@ -175,6 +178,7 @@ function formatarDataRelativa(dataString) {
     if (diffMeses <= -1) return `Em ${Math.abs(diffMeses)} ${diffMeses === -1 ? 'mês' : 'meses'}`;
     if (diffMeses < 12) return `Há ${diffMeses} ${diffMeses === 1 ? 'mês' : 'meses'}`;
 
+    if (matchBR && dataStringBR) return dataStringBR;
     return dataString;
 }
 
