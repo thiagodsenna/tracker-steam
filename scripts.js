@@ -1716,6 +1716,7 @@ async function buscarHowLongToBeat(steamId) {
             const horas = Math.floor(h);
             const minutos = Math.round((h - horas) * 60);
             if (minutos === 0) return `${horas}h`;
+            if (minutos < 10) minutos = `0${minutos}`;
             return `${horas}h ${minutos}m`;
         };
 
@@ -1733,12 +1734,12 @@ async function buscarHowLongToBeat(steamId) {
             
             return `
                 <div class="space-y-1.5">
-                    <div class="flex justify-between items-center text-xs font-bold">
+                    <div class="flex justify-between items-center text-[11px] font-bold">
                         <span class="text-neutral-300 flex items-center gap-2">
                             <span class="w-2 h-2 rounded-full ${b.bgDot} inline-block shadow-sm"></span>
                             ${b.label}
                         </span>
-                        <span class="${b.textCor} font-mono text-xs sm:text-sm bg-neutral-900 px-2.5 py-0.5 rounded border border-neutral-800">${formatarHoras(b.tempo)}</span>
+                        <span class="${b.textCor} font-mono text-[11px] sm:text-sm bg-neutral-900 px-2.5 py-0.5 rounded border border-neutral-800">${formatarHoras(b.tempo)}</span>
                     </div>
                     <div class="w-full bg-neutral-900/90 h-2.5 rounded-full overflow-hidden border border-neutral-800 p-0.5">
                         <div class="bg-gradient-to-r ${b.cor} h-full rounded-full transition-all duration-1000 ease-out shadow-sm" style="width: ${porcentagem}%"></div>
