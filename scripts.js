@@ -657,132 +657,6 @@ async function buscarItemFeedlyRemoto(feedlyId) {
     return res.json();
 }
 
-async function processarDeepLink() {
-    const sharedId = new URLSearchParams(window.location.search).get('id');
-    if (!sharedId) return;
-
-    // 1. Se o jogo já estiver no grid/memória, abre diretamente
-    let index = encontrarJogoPorFeedlyId(sharedId);
-    if (index >= 0) {
-        abrirModal(index, { fromDeepLink: true });
-        return;
-    }
-
-    const grid = document.getElementById('grid');
-    grid.insertAdjacentHTML('afterbegin',
-        '<div id="deep-link-loading" class="col-span-full text-center py-6 text-emerald-500 animate-pulse text-sm">Carregando jogo compartilhado...</div>'
-    );
-
-    try {
-        let jogo = null;
-
-        // 2. RAMIFICAÇÃO: Verifica se o ID é da Steam
-        if (sharedId.startsWith('steam-')) {
-            const steamId = sharedId.replace('steam-', '').trim();
-            const res = await fetch(`${PROXY_BASE_URL}${steamId}`);
-            const json = await res.json();
-            const gameData = json[steamId]?.data;
-
-            if (gameData) {
-                const cover = `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${steamId}/library_600x900.jpg`;
-                const rawCover = `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${steamId}/library_capsule.jpg`;
-                const fallbackImage = gameData.header_image || `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${steamId}/header.jpg`;
-                const postLink = `https://store.steampowered.com/app/${steamId}`;
-                
-                jogo = {
-                    id: jogosCarregados.length,
-                    feedlyId: sharedId,
-                    title: gameData.name,
-                    cover: cover,
-                    rawCover: rawCover,
-                    fallbackImage: fallbackImage,
-                    postLink: postLink,
-                    downloads: [],
-                    date: 'Steam',
-                    steamId: steamId.toString(),
-                    links: [
-                        { label: 'Atualizações', url: `https://store.steampowered.com/newshub/?appids=${steamId}` },
-                        { label: 'Discussões', url: `https://steamcommunity.com/app/${steamId}/discussions/` },
-                        { label: 'Steam', url: postLink }
-                    ],
-                    size: '...',
-                    release: {
-                        tituloOriginal: gameData.name,
-                        versao: '',
-                        tags: []
-                    },
-                    steamDetails: {
-                        name: gameData.name,
-                        header_image: gameData.header_image,
-                        release_date: gameData.release_date,
-                        genres: gameData.genres,
-                        developers: gameData.developers,
-                        detailed_description: gameData.detailed_description,
-                        short_description: gameData.short_description,
-                        screenshots: gameData.screenshots,
-                        categories: gameData.categories,
-                        movies: gameData.movies
-                    }
-                };
-            }
-        } else if (sharedId.startsWith('skidrow-')) {
-            // CORREÇÃO: Trata IDs do Skidrow vindos de Outras Releases ou Busca direta via F5
-            const postUrl = sharedId.replace('skidrow-', '');
-            try {
-                const urlObj = new URL(postUrl);
-                const slug = urlObj.pathname.split('/').filter(Boolean).pop() || '';
-                const searchTerm = slug.split(/[-_]v\d|[-_]build|[-_]p2p/i)[0].replace(/[-_]/g, ' ');
-
-                const resSearch = await fetch(`${API_BASE_URL}/api/skidrow-search?query=${encodeURIComponent(searchTerm)}`);
-                const dataSearch = await resSearch.json();
-
-                if (dataSearch.items && dataSearch.items.length > 0) {
-                    const encontrado = dataSearch.items.find(item => {
-                        const parsed = parseFeedlyItem(item, 0);
-                        return parsed.feedlyId === sharedId || parsed.postLink === postUrl;
-                    });
-
-                    if (encontrado) {
-                        jogo = parseFeedlyItem(encontrado, jogosCarregados.length);
-                    } else {
-                        jogo = parseFeedlyItem(dataSearch.items[0], jogosCarregados.length);
-                    }
-                }
-            } catch (errSkidrow) {
-                console.error("Erro ao recuperar post do Skidrow via deep link:", errSkidrow);
-            }
-        } else {
-            // 3. Caso contrário, faz a busca remota normal via Feedly/Skidrow Proxy
-            const item = await buscarItemFeedlyRemoto(sharedId);
-            if (item) {
-                jogo = parseFeedlyItem(item, jogosCarregados.length);
-            }
-        }
-
-        document.getElementById('deep-link-loading')?.remove();
-
-        if (!jogo) {
-            grid.insertAdjacentHTML('afterbegin',
-                '<div class="col-span-full text-center py-6 text-amber-400 text-sm">Jogo compartilhado não encontrado ou indisponível.</div>'
-            );
-            return;
-        }
-
-        // 4. Adiciona o jogo à lista e abre o modal
-        jogosCarregados.push(jogo);
-        const card = viewMode === 'compact' ? criarCardJogoCompacto(jogo) : criarCardJogo(jogo);
-        grid.prepend(card);
-        abrirModal(jogo.id, { fromDeepLink: true });
-
-    } catch (err) {
-        console.error('Erro ao carregar deep link:', err);
-        document.getElementById('deep-link-loading')?.remove();
-        grid.insertAdjacentHTML('afterbegin',
-            '<div class="col-span-full text-center py-6 text-red-400 text-sm">Erro ao carregar o jogo compartilhado.</div>'
-        );
-    }
-}
-
 function setViewMode(mode) {
     viewMode = mode;
     localStorage.setItem('viewMode', mode);
@@ -849,52 +723,178 @@ function renderizarJogos() {
     });
 }
 
-async function carregarJogos() {
-    const grid = document.getElementById('grid');
-    jogosCarregados = [];
-    grid.innerHTML = '<div class="col-span-full text-center py-20 text-emerald-500 animate-pulse">Carregando releases...</div>';
-    
-    updateViewButtons();
-    // --- INÍCIO: CARREGAMENTO DE DADOS DA WISHLIST ---
-    verificarTokenSincroniaURL();
-    carregarWishlistDoServidor();
-    // --- FIM: CARREGAMENTO DE DADOS DA WISHLIST ---
+async function resolverJogoPorSharedId(sharedId) {
+    if (sharedId.startsWith('steam-')) {
+        const steamId = sharedId.replace('steam-', '').trim();
+        const res = await fetch(`${PROXY_BASE_URL}${steamId}`);
+        const json = await res.json();
+        const gameData = json[steamId]?.data;
 
+        if (gameData) {
+            const cover = `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${steamId}/library_600x900.jpg`;
+            const rawCover = `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${steamId}/library_capsule.jpg`;
+            const fallbackImage = gameData.header_image || `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${steamId}/header.jpg`;
+            const postLink = `https://store.steampowered.com/app/${steamId}`;
+            
+            return {
+                id: 0,
+                feedlyId: sharedId,
+                title: gameData.name,
+                cover: cover,
+                rawCover: rawCover,
+                fallbackImage: fallbackImage,
+                postLink: postLink,
+                downloads: [],
+                date: 'Steam',
+                steamId: steamId.toString(),
+                links: [
+                    { label: 'Atualizações', url: `https://store.steampowered.com/newshub/?appids=${steamId}` },
+                    { label: 'Discussões', url: `https://steamcommunity.com/app/${steamId}/discussions/` },
+                    { label: 'Steam', url: postLink }
+                ],
+                size: '...',
+                release: {
+                    tituloOriginal: gameData.name,
+                    versao: '',
+                    tags: []
+                },
+                steamDetails: {
+                    name: gameData.name,
+                    header_image: gameData.header_image,
+                    release_date: gameData.release_date,
+                    genres: gameData.genres,
+                    developers: gameData.developers,
+                    detailed_description: gameData.detailed_description,
+                    short_description: gameData.short_description,
+                    screenshots: gameData.screenshots,
+                    categories: gameData.categories,
+                    movies: gameData.movies
+                }
+            };
+        }
+    } else if (sharedId.startsWith('skidrow-')) {
+        const postUrl = sharedId.replace('skidrow-', '');
+        try {
+            const urlObj = new URL(postUrl);
+            const slug = urlObj.pathname.split('/').filter(Boolean).pop() || '';
+            const searchTerm = slug.split(/[-_]v\d|[-_]build|[-_]p2p/i)[0].replace(/[-_]/g, ' ');
+
+            const resSearch = await fetch(`${API_BASE_URL}/api/skidrow-search?query=${encodeURIComponent(searchTerm)}`);
+            const dataSearch = await resSearch.json();
+
+            if (dataSearch.items && dataSearch.items.length > 0) {
+                const encontrado = dataSearch.items.find(item => {
+                    const parsed = parseFeedlyItem(item, 0);
+                    return parsed.feedlyId === sharedId || parsed.postLink === postUrl;
+                });
+
+                if (encontrado) {
+                    return parseFeedlyItem(encontrado, 0);
+                } else {
+                    return parseFeedlyItem(dataSearch.items[0], 0);
+                }
+            }
+        } catch (errSkidrow) {
+            console.error("Erro ao recuperar post do Skidrow via deep link:", errSkidrow);
+        }
+    } else {
+        const item = await buscarItemFeedlyRemoto(sharedId);
+        if (item) {
+            return parseFeedlyItem(item, 0);
+        }
+    }
+    return null;
+}
+
+async function carregarFeedBackgroundCompleto() {
     try {
-       // Dispara em paralelo a busca do feed de jogos E a busca das configurações do servidor
         const [resJogos, configServidor] = await Promise.all([
             fetch(`${API_BASE_URL}/api/feedly-proxy?action=list`),
             carregarConfiguracoesServidor()
         ]);
 
-        // Salva na variável global para ser usada pelas funções de verificação
         configuracoesUsuario = configServidor || {};
-
         const data = await resJogos.json();
 
-        // 1º: Primeiro preenchemos a lista de jogos em memória
+        const novosJogos = [];
         data.items.forEach((item, index) => {
             const jogo = parseFeedlyItem(item, index);
-            jogosCarregados.push(jogo);
+            novosJogos.push(jogo);
         });
 
-        jogosOriginaisFeedly = [...jogosCarregados];
+        jogosOriginaisFeedly = [...novosJogos];
 
-        // 2º: Agora sim renderizamos o destaque, pois ele precisará cruzar dados com jogosCarregados
+        const sharedId = new URLSearchParams(window.location.search).get('id');
+        if (sharedId) {
+            const indexExistente = jogosCarregados.findIndex(j => j.feedlyId === sharedId);
+            if (indexExistente >= 0) {
+                const jogoCompartilhado = jogosCarregados[indexExistente];
+                novosJogos.forEach((j) => {
+                    if (j.feedlyId !== sharedId) {
+                        j.id = jogosCarregados.length;
+                        jogosCarregados.push(j);
+                    }
+                });
+            } else {
+                novosJogos.forEach((j) => {
+                    j.id = jogosCarregados.length;
+                    jogosCarregados.push(j);
+                });
+            }
+        } else {
+            jogosCarregados = novosJogos;
+        }
+
         if (data.destaques) {
             renderizarDestaque(data.destaques);
         }
 
-        // Envia o novo timestamp para o servidor em segundo plano (não bloqueia a renderização)
-        atualizarUltimoAcessoServidor(jogosCarregados);
-
+        atualizarUltimoAcessoServidor(jogosOriginaisFeedly);
         renderizarJogos();
-        await processarDeepLink();
 
     } catch (err) {
-        console.error("Erro Feedly:", err);
-        grid.innerHTML = `<div class="col-span-full text-red-500 text-center py-20">Erro ao carregar feeds.</div>`;
-        await processarDeepLink();
+        console.error("Erro Feedly Background:", err);
+        const grid = document.getElementById('grid');
+        if (grid && jogosCarregados.length === 0) {
+            grid.innerHTML = `<div class="col-span-full text-red-500 text-center py-20">Erro ao carregar feeds.</div>`;
+        }
+    }
+}
+
+async function carregarJogos() {
+    const grid = document.getElementById('grid');
+    jogosCarregados = [];
+    
+    updateViewButtons();
+    verificarTokenSincroniaURL();
+    carregarWishlistDoServidor();
+
+    const sharedId = new URLSearchParams(window.location.search).get('id');
+
+    if (sharedId) {
+        grid.innerHTML = '<div class="col-span-full text-center py-20 text-emerald-500 animate-pulse">Carregando jogo compartilhado...</div>';
+        try {
+            let jogo = await resolverJogoPorSharedId(sharedId);
+            if (jogo) {
+                jogo.id = 0;
+                jogosCarregados.push(jogo);
+                const card = viewMode === 'compact' ? criarCardJogoCompacto(jogo) : criarCardJogo(jogo);
+                grid.innerHTML = '';
+                grid.prepend(card);
+                abrirModal(jogo.id, { fromDeepLink: true });
+            } else {
+                grid.innerHTML = '<div class="col-span-full text-center py-6 text-amber-400 text-sm">Jogo compartilhado não encontrado ou indisponível.</div>';
+            }
+        } catch (err) {
+            console.error('Erro ao carregar deep link prioritário:', err);
+            grid.innerHTML = '<div class="col-span-full text-center py-6 text-red-400 text-sm">Erro ao carregar o jogo compartilhado.</div>';
+        }
+
+        // Dispara o carregamento do restante do feed em background
+        carregarFeedBackgroundCompleto();
+    } else {
+        grid.innerHTML = '<div class="col-span-full text-center py-20 text-emerald-500 animate-pulse">Carregando releases...</div>';
+        carregarFeedBackgroundCompleto();
     }
 }
 
