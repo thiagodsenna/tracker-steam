@@ -1249,21 +1249,16 @@ async function buscarOutrasReleases(tituloOriginal, steamId, currentFeedlyId) {
                 <button type="button" 
                         onclick="abrirModal(${idx})" 
                         title="${novoJogo.title}" 
-                        class="group bg-neutral-800 border border-neutral-700 rounded-lg overflow-hidden hover:border-emerald-500/50 transition-all flex items-center justify-between shadow-md text-left w-full cursor-pointer px-3 py-2.5">
+                        class="group bg-neutral-800 border border-neutral-700 rounded-md overflow-hidden hover:border-emerald-500/50 transition-all flex items-center justify-between shadow-md text-left w-full cursor-pointer px-3 pr-1.5 py-2.5">
                     <div class="flex items-center gap-3 w-full">
-                        <!-- Data com largura fixa para garantir o alinhamento perfeito de todas as linhas -->
-                        <span class="text-[10px] text-neutral-400 flex items-center gap-1 font-semibold shrink-0 w-20">
+                        <span class="text-[9px] text-neutral-400 flex items-center gap-1 font-semibold shrink-0 w-16">
                             <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                             <span class="truncate">${novoJogo.date}</span>
                         </span>
-                        
-                        <!-- Título no meio ocupando o espaço -->
-                        <span class="font-bold text-xs text-neutral-300 group-hover:text-emerald-400 truncate flex-1 block">
+                        <span class="font-bold text-[11px] text-neutral-300 group-hover:text-emerald-400 truncate flex-1 block">
                             ${novoJogo.title}
                         </span>
-                        
-                        <!-- Versão alinhada à direita -->
-                        ${novoJogo.release.versao ? `<span class="bg-neutral-900 text-[10px] text-neutral-300 px-1.5 py-0.5 rounded font-mono font-bold shrink-0 ml-2">${novoJogo.release.versao}</span>` : ''}
+                        ${novoJogo.release.versao ? `<span class="bg-neutral-900 text-[9px] text-neutral-300 px-1.5 py-0.5 rounded font-mono font-bold shrink-0 ml-2">${novoJogo.release.versao}</span>` : ''}
                     </div>
                 </button>
             `;
