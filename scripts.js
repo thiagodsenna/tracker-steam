@@ -213,8 +213,9 @@ function mapearRelease(stringEntrada) {
     let tags = [];
     if (resto) {
         const parteLimpa = resto.replace(/^-+/, '').trim(); // Remove o hífen inicial e espaços
-        const primeiraPalavra = parteLimpa.split(' ')[0].trim();
+        let primeiraPalavra = parteLimpa.split(' ')[0].trim();
         if (primeiraPalavra) {
+            if (primeiraPalavra?.toUpperCase() === 'HYPERVISOR-P2P') primeiraPalavra = 'HYPERVISOR';
             tags.push(primeiraPalavra);
         }
     }
