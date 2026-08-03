@@ -1236,6 +1236,43 @@ async function buscarOutrasReleases(tituloOriginal, steamId, currentFeedlyId) {
 
         if (outras.length === 0) return;
 
+        // --- INÍCIO: POPULAR DOWNLOADS E TAMANHO PARA JOGOS SOMENTE ID STEAM ---
+        if (jogoAtual && (jogoAtual.feedlyId.startsWith('steam-') || !jogoAtual.downloads || jogoAtual.downloads.length === 0)) {
+            // Pega o primeiro item (o mais recente) do array de outras releases
+            const releaseMaisRecente = outras[0];
+            
+            if (releaseMaisRecente) {
+                // Atualiza o objeto do jogo na memória com o tamanho e os downloads encontrados
+                jogoAtual.size = releaseMaisRecente.size;
+                jogoAtual.downloads = [...releaseMaisRecente.downloads];
+
+                // Atualiza o elemento visual do Tamanho no Modal
+                const gameSizeEl = document.getElementById('game-size');
+                const gameSizeValueEl = document.getElementById('game-size-value');
+                if (gameSizeValueEl) gameSizeValueEl.textContent = releaseMaisRecente.size;
+                if (gameSizeEl) {
+                    const svgSize = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400 shrink-0"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
+                    gameSizeEl.innerHTML = `${svgSize}<span>${releaseMaisRecente.size}</span>`;
+                }
+
+                // Atualiza a grid visual de Downloads no Modal
+                const modalDownloadsGrid = document.getElementById('modal-downloads-grid');
+                if (modalDownloadsGrid && releaseMaisRecente.downloads.length > 0) {
+                    modalDownloadsGrid.innerHTML = releaseMaisRecente.downloads.map(dl => `
+                        <a href="${dl.url}" target="_blank" class="bg-neutral-800 hover:bg-neutral-700 p-2 flex items-center gap-2 rounded text-[11px] font-bold text-neutral-300 border border-neutral-700">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            ${dl.label}
+                        </a>`).join('');
+                }
+
+                // Se houver downloads válidos, dispara também a verificação do Torbox automaticamente para eles
+                if (releaseMaisRecente.downloads && releaseMaisRecente.downloads.length > 0) {
+                    buscarDownloadsTorbox(releaseMaisRecente.downloads);
+                }
+            }
+        }
+        // --- FIM DA ATUALIZAÇÃO AUTOMÁTICA ---
+
         container.innerHTML = outras.map(novoJogo => {
             // Se o jogo não estiver carregado na memória atual, incluímos ele
             let idx = jogosCarregados.findIndex(j => j.feedlyId === novoJogo.feedlyId);
