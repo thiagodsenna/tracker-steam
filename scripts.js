@@ -725,8 +725,34 @@ async function processarDeepLink() {
                     }
                 };
             }
+        } else if (sharedId.startsWith('skidrow-')) {
+            // CORREÇÃO: Trata IDs do Skidrow vindos de Outras Releases ou Busca direta via F5
+            const postUrl = sharedId.replace('skidrow-', '');
+            try {
+                const urlObj = new URL(postUrl);
+                const slug = urlObj.pathname.split('/').filter(Boolean).pop() || '';
+                const searchTerm = slug.split(/[-_]v\d|[-_]build|[-_]p2p/i)[0].replace(/[-_]/g, ' ');
+
+                const resSearch = await fetch(`${API_BASE_URL}/api/skidrow-search?query=${encodeURIComponent(searchTerm)}`);
+                const dataSearch = await resSearch.json();
+
+                if (dataSearch.items && dataSearch.items.length > 0) {
+                    const encontrado = dataSearch.items.find(item => {
+                        const parsed = parseFeedlyItem(item, 0);
+                        return parsed.feedlyId === sharedId || parsed.postLink === postUrl;
+                    });
+
+                    if (encontrado) {
+                        jogo = parseFeedlyItem(encontrado, jogosCarregados.length);
+                    } else {
+                        jogo = parseFeedlyItem(dataSearch.items[0], jogosCarregados.length);
+                    }
+                }
+            } catch (errSkidrow) {
+                console.error("Erro ao recuperar post do Skidrow via deep link:", errSkidrow);
+            }
         } else {
-            // 3. Caso contrário, faz a busca remota normal via Feedly/Skidrow
+            // 3. Caso contrário, faz a busca remota normal via Feedly/Skidrow Proxy
             const item = await buscarItemFeedlyRemoto(sharedId);
             if (item) {
                 jogo = parseFeedlyItem(item, jogosCarregados.length);
@@ -1191,13 +1217,16 @@ async function buscarOutrasReleases(tituloOriginal, steamId, currentFeedlyId) {
         if (!data.items || data.items.length === 0) return;
 
         const outras = [];
+        const jogoAtual = modalJogoAtual !== null ? jogosCarregados[modalJogoAtual] : null;
         
-        // Peneira os resultados pelo mesmo ID Steam (usando sua função nativa de scrap)
+        // Peneira os resultados pelo mesmo ID Steam e remove a release atual do modal
         data.items.forEach(item => {
             const jogo = parseFeedlyItem(item, 0); // Passamos index fake temporariamente
             
-            // Verifica se o ID Steam bate e se NÃO é o mesmo link que já estamos vendo
-            if (jogo.steamId === steamId && jogo.feedlyId !== currentFeedlyId) {
+            const ehAAtual = (currentFeedlyId && jogo.feedlyId === currentFeedlyId) || 
+                             (jogoAtual && (jogo.feedlyId === jogoAtual.feedlyId || jogo.postLink === jogoAtual.postLink));
+
+            if (jogo.steamId === steamId && !ehAAtual) {
                 outras.push(jogo);
             }
         });
