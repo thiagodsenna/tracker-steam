@@ -655,6 +655,7 @@ async function processarDeepLink() {
     const sharedId = new URLSearchParams(window.location.search).get('id');
     if (!sharedId) return;
 
+    // 1. Se o jogo já estiver no grid/memória, abre diretamente
     let index = encontrarJogoPorFeedlyId(sharedId);
     if (index >= 0) {
         abrirModal(index, { fromDeepLink: true });
@@ -667,21 +668,80 @@ async function processarDeepLink() {
     );
 
     try {
-        const item = await buscarItemFeedlyRemoto(sharedId);
+        let jogo = null;
+
+        // 2. RAMIFICAÇÃO: Verifica se o ID é da Steam
+        if (sharedId.startsWith('steam-')) {
+            const steamId = sharedId.replace('steam-', '').trim();
+            const res = await fetch(`${PROXY_BASE_URL}${steamId}`);
+            const json = await res.json();
+            const gameData = json[steamId]?.data;
+
+            if (gameData) {
+                const cover = `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${steamId}/library_600x900.jpg`;
+                const rawCover = `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${steamId}/library_capsule.jpg`;
+                const fallbackImage = gameData.header_image || `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${steamId}/header.jpg`;
+                const postLink = `https://store.steampowered.com/app/${steamId}`;
+                
+                jogo = {
+                    id: jogosCarregados.length,
+                    feedlyId: sharedId,
+                    title: gameData.name,
+                    cover: cover,
+                    rawCover: rawCover,
+                    fallbackImage: fallbackImage,
+                    postLink: postLink,
+                    downloads: [],
+                    date: 'Steam',
+                    steamId: steamId.toString(),
+                    links: [
+                        { label: 'Atualizações', url: `https://store.steampowered.com/newshub/?appids=${steamId}` },
+                        { label: 'Discussões', url: `https://steamcommunity.com/app/${steamId}/discussions/` },
+                        { label: 'Steam', url: postLink }
+                    ],
+                    size: '...',
+                    release: {
+                        tituloOriginal: gameData.name,
+                        versao: '',
+                        tags: []
+                    },
+                    steamDetails: {
+                        name: gameData.name,
+                        header_image: gameData.header_image,
+                        release_date: gameData.release_date,
+                        genres: gameData.genres,
+                        developers: gameData.developers,
+                        detailed_description: gameData.detailed_description,
+                        short_description: gameData.short_description,
+                        screenshots: gameData.screenshots,
+                        categories: gameData.categories,
+                        movies: gameData.movies
+                    }
+                };
+            }
+        } else {
+            // 3. Caso contrário, faz a busca remota normal via Feedly/Skidrow
+            const item = await buscarItemFeedlyRemoto(sharedId);
+            if (item) {
+                jogo = parseFeedlyItem(item, jogosCarregados.length);
+            }
+        }
+
         document.getElementById('deep-link-loading')?.remove();
 
-        if (!item) {
+        if (!jogo) {
             grid.insertAdjacentHTML('afterbegin',
                 '<div class="col-span-full text-center py-6 text-amber-400 text-sm">Jogo compartilhado não encontrado ou indisponível.</div>'
             );
             return;
         }
 
-        const jogo = parseFeedlyItem(item, jogosCarregados.length);
+        // 4. Adiciona o jogo à lista e abre o modal
         jogosCarregados.push(jogo);
         const card = viewMode === 'compact' ? criarCardJogoCompacto(jogo) : criarCardJogo(jogo);
         grid.prepend(card);
         abrirModal(jogo.id, { fromDeepLink: true });
+
     } catch (err) {
         console.error('Erro ao carregar deep link:', err);
         document.getElementById('deep-link-loading')?.remove();
@@ -1790,6 +1850,57 @@ async function buscarHowLongToBeat(steamId) {
     }
 }
 
+// Função para trocar os dados do modal para um jogo similar sem recarregar a página
+async function abrirDetalhesSteamDireto(steamId, nomeJogo) {
+    const steamIdStr = steamId.toString();
+    const feedlyId = `steam-${steamIdStr}`;
+
+    // 1. Procura se o jogo já existe no jogosCarregados
+    let index = jogosCarregados.findIndex(j => j.feedlyId === feedlyId || j.steamId === steamIdStr);
+
+    if (index >= 0) {
+        // Se já existir na memória, simplesmente abre pelo índice existente
+        abrirModal(index);
+        return;
+    }
+
+    // 2. Se não existir na memória, cria a estrutura do jogo e adiciona à memória
+    const cover = `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${steamIdStr}/library_600x900.jpg`;
+    const rawCover = `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${steamIdStr}/library_capsule.jpg`;
+    const fallbackImage = `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${steamIdStr}/header.jpg`;
+    const postLink = `https://store.steampowered.com/app/${steamIdStr}`;
+
+    const novoJogo = {
+        id: jogosCarregados.length,
+        feedlyId: feedlyId,
+        title: nomeJogo,
+        cover: cover,
+        rawCover: rawCover,
+        fallbackImage: fallbackImage,
+        postLink: postLink,
+        downloads: [],
+        date: 'Steam',
+        steamId: steamIdStr,
+        links: [
+            { label: 'Atualizações', url: `https://store.steampowered.com/newshub/?appids=${steamIdStr}` },
+            { label: 'Discussões', url: `https://steamcommunity.com/app/${steamIdStr}/discussions/` },
+            { label: 'Steam', url: postLink }
+        ],
+        size: '...',
+        release: {
+            tituloOriginal: nomeJogo,
+            versao: '',
+            tags: []
+        }
+    };
+
+    jogosCarregados.push(novoJogo);
+
+    // 3. Abre o modal com o novo jogo criado (reseta e busca todas as informações da Steam/HLTB/Reviews)
+    abrirModal(novoJogo.id);
+}
+
+// Atualização da busca de jogos similares para usar o clique direto
 async function buscarJogosSimilares(steamId) {
     const section = document.getElementById('modal-section-similares');
     const container = document.getElementById('modal-similares-grid');
@@ -1807,15 +1918,21 @@ async function buscarJogosSimilares(steamId) {
         }
 
         container.innerHTML = data.items.map(jogo => `
-            <a href="https://store.steampowered.com/app/${jogo.id}" target="_blank" title="Ver na Steam: ${jogo.name}" class="group bg-neutral-950 border border-neutral-800 rounded-lg overflow-hidden hover:border-emerald-500/50 transition-all flex flex-col justify-between shadow-md">
+            <button type="button" 
+                    onclick="abrirDetalhesSteamDireto('${jogo.id}', '${jogo.name.replace(/'/g, "\\'")}')" 
+                    title="Ver detalhes: ${jogo.name}" 
+                    class="group bg-neutral-950 border border-neutral-800 rounded-lg overflow-hidden hover:border-emerald-500/50 transition-all flex flex-col justify-between shadow-md text-left w-full cursor-pointer">
                 <div class="aspect-[460/215] w-full bg-neutral-900 overflow-hidden relative">
-                    <img src="${jogo.cover}" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src='https://store.fastly.steamstatic.com/public/images/v6/app_default_header.jpg';" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                    <img src="${jogo.cover}" 
+                         referrerpolicy="no-referrer" 
+                         onerror="this.onerror=null; this.src='https://store.fastly.steamstatic.com/public/images/v6/app_default_header.jpg';" 
+                         class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
                 </div>
-                <div class="p-2.5 flex items-center justify-between gap-2">
+                <div class="p-2.5 flex items-center justify-between gap-2 w-full">
                     <span class="font-bold text-xs text-neutral-300 group-hover:text-white truncate block">${jogo.name}</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-neutral-500 group-hover:text-emerald-400 shrink-0 transition-colors"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-neutral-500 group-hover:text-emerald-400 shrink-0 transition-colors"><polyline points="9 18 15 12 9 6"></polyline></svg>
                 </div>
-            </a>
+            </button>
         `).join('');
 
         section.classList.remove('hidden');
