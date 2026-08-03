@@ -1074,6 +1074,18 @@ async function abrirModal(id, options = {}) {
     document.getElementById('badge-download-torbox')?.classList.add('hidden');
     document.getElementById('float-badge-download-torbox')?.classList.add('hidden');
 
+    // --- RESET DA SEÇÃO TORBOX PARA EVITAR PERSISTÊNCIA DE JOGOS ANTERIORES ---
+    document.getElementById('modal-section-torbox')?.classList.add('hidden');
+    const gridTorbox = document.getElementById('modal-torbox-grid');
+    if (gridTorbox) gridTorbox.innerHTML = '';
+    
+    const statusTag = document.getElementById('torbox-status-tag');
+    if (statusTag) {
+        statusTag.textContent = '';
+        statusTag.className = '';
+    }
+    // --------------------------------------------------------------------------
+
     // Esconde os botões correspondentes que são assíncronos na barra da navegação
     ['hltb', 'recursos', 'screenshots', 'videos', 'reviews', 'similares', 'torbox'].forEach(sec => {
         atualizarVisibilidadeAtalho(sec, false);
@@ -1948,8 +1960,8 @@ function fecharModal(fromPopstate = false) {
         players.forEach(player => player.dispose());
     }
 
-    if (!fromPopstate && history.state?.modalOpen) {
-        history.back();
+    if (!fromPopstate) {
+        history.replaceState(null, '', window.location.pathname);
     }
 
     // Oculta as barras flutuantes ao fechar o modal
