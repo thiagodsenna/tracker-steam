@@ -1133,7 +1133,7 @@ async function abrirModal(id, options = {}) {
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mt-[1px]"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
                     ${link.label}
                 </a>`).join('');
-    console.log('jogo.downloads',jogo.downloads);        
+
     document.getElementById('modal-downloads-grid').innerHTML = jogo.downloads.map(dl => `
                 <a href="${dl.url}" target="_blank" class="bg-neutral-800 hover:bg-neutral-700 p-2 flex items-center gap-2 rounded text-[11px] font-bold text-neutral-300 border border-neutral-700">
                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -1207,6 +1207,9 @@ async function buscarOutrasReleases(tituloOriginal, steamId, currentFeedlyId) {
     const container = document.getElementById('modal-outras-grid');
     if (!section || !container) return;
 
+    // Força o container a ser uma única coluna vertical ocupando 100% do espaço
+    container.className = 'flex flex-col gap-2 w-full';
+
     try {
         // Usa o endpoint de busca que já varre o skidrow
         const res = await fetch(`${API_BASE_URL}/api/skidrow-search?query=${encodeURIComponent(tituloOriginal)}`);
@@ -1242,24 +1245,25 @@ async function buscarOutrasReleases(tituloOriginal, steamId, currentFeedlyId) {
                 jogosCarregados.push(novoJogo);
             }
 
-            // Interface baseada no card de similares, mas com foco em versão/data da release
             return `
                 <button type="button" 
                         onclick="abrirModal(${idx})" 
                         title="${novoJogo.title}" 
-                        class="group bg-neutral-950 border border-neutral-800 rounded-lg overflow-hidden hover:border-emerald-500/50 transition-all flex flex-col justify-between shadow-md text-left w-full cursor-pointer">
-                    <div class="p-3 flex flex-col gap-2 w-full h-full">
-                        <span class="font-bold text-[11px] text-neutral-300 group-hover:text-emerald-400 line-clamp-2 block leading-snug break-words">
+                        class="group bg-neutral-800 border border-neutral-700 rounded-lg overflow-hidden hover:border-emerald-500/50 transition-all flex items-center justify-between shadow-md text-left w-full cursor-pointer px-3 py-2.5">
+                    <div class="flex items-center gap-3 w-full">
+                        <!-- Data com largura fixa para garantir o alinhamento perfeito de todas as linhas -->
+                        <span class="text-[10px] text-neutral-400 flex items-center gap-1 font-semibold shrink-0 w-20">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="shrink-0"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                            <span class="truncate">${novoJogo.date}</span>
+                        </span>
+                        
+                        <!-- Título no meio ocupando o espaço -->
+                        <span class="font-bold text-xs text-neutral-300 group-hover:text-emerald-400 truncate flex-1 block">
                             ${novoJogo.title}
                         </span>
                         
-                        <div class="flex items-center justify-between w-full mt-auto pt-2 border-t border-neutral-800/60">
-                            <span class="text-[9px] text-neutral-500 flex items-center gap-1 font-semibold">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                                ${novoJogo.date}
-                            </span>
-                            ${novoJogo.release.versao ? `<span class="bg-neutral-800 text-[9px] text-neutral-300 px-1.5 py-0.5 rounded font-mono font-bold">${novoJogo.release.versao}</span>` : ''}
-                        </div>
+                        <!-- Versão alinhada à direita -->
+                        ${novoJogo.release.versao ? `<span class="bg-neutral-900 text-[10px] text-neutral-300 px-1.5 py-0.5 rounded font-mono font-bold shrink-0 ml-2">${novoJogo.release.versao}</span>` : ''}
                     </div>
                 </button>
             `;
