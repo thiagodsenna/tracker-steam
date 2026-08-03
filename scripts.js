@@ -2000,6 +2000,12 @@ function atualizarVisibilidadeAtalho(secao, visivel) {
 // --- Lógica de Busca ---
 
 async function executarBusca(termo) {
+    
+    // Adiciona o estado de busca no histórico quando uma pesquisa é iniciada
+    if (!termoPesquisado && !history.state?.buscaOpen) {
+        history.pushState({ buscaOpen: true }, '', window.location.href);
+    }
+    
     termoPesquisado = termo;
     
     // Oculta o destaque imediatamente ao iniciar a busca (sem esperar a API)
@@ -2120,7 +2126,7 @@ function atualizarEstiloBotoesFiltro() {
     }
 }
 
-function limparBusca() {
+function limparBusca(fromPopstate = false) {
     termoPesquisado = '';
     const searchInput = document.getElementById('search-input');
     if (searchInput) searchInput.value = '';
@@ -2130,15 +2136,18 @@ function limparBusca() {
     if (filterTag) filterTag.classList.add('hidden');
     if (filterHeader) filterHeader.classList.add('hidden');
 
-    // --- INÍCIO: ALTERAR COMPORTAMENTO LIMPAR BUSCA PARA WISHLIST ---
     if (fonteAtual === 'wishlist') {
         jogosCarregados = [...wishlistJogos];
     } else {
         jogosCarregados = [...jogosOriginaisFeedly];
     }
-    // --- FIM: ALTERAR COMPORTAMENTO LIMPAR BUSCA PARA WISHLIST ---
     
     renderizarJogos();
+
+    // Se limpou a busca clicando no 'X' (e não pelo botão Voltar)
+    if (!fromPopstate && history.state?.buscaOpen) {
+        history.back();
+    }
 }
 
 // --- LÓGICA DA BARRA DE ATALHOS NO MODAL ---
@@ -2213,7 +2222,7 @@ atualizarContadorWishlist();
 carregarJogos();
 
 // Ajuste na escuta do botão Voltar do navegador (popstate)
-window.addEventListener('popstate', () => {
+window.addEventListener('popstate', (event) => {
     // 1. Se o lightbox estiver aberto, fecha SOMENTE ele primeiro
     const lightbox = document.getElementById('lightbox');
     if (lightbox && !lightbox.classList.contains('hidden')) {
@@ -2221,10 +2230,23 @@ window.addEventListener('popstate', () => {
         return;
     }
 
-    // 2. Caso contrário, fecha o modal normalmente
+    // 2. Se o modal de detalhes do jogo estiver aberto, fecha o modal
     const modal = document.getElementById('modal-overlay');
     if (modal && !modal.classList.contains('hidden')) {
         fecharModal(true);
+        return;
+    }
+
+    // 3. Se houver busca ativa, limpa a busca sem fechar o app
+    if (termoPesquisado) {
+        limparBusca(true);
+        return;
+    }
+
+    // 4. Se a Wishlist estiver aberta, fecha a Wishlist e volta para os feeds sem fechar o app
+    if (fonteAtual === 'wishlist') {
+        fecharModoWishlist(true);
+        return;
     }
 });
 
@@ -2359,11 +2381,16 @@ function abrirModoWishlist() {
     const btnWishlist = document.getElementById('btn-header-wishlist');
     if (btnWishlist) btnWishlist.classList.add('border-emerald-500/50', 'bg-emerald-950/30');
     
+    // REGISTRA A WISHLIST NO HISTÓRICO DO NAVEGADOR
+    if (!history.state?.wishlistOpen) {
+        history.pushState({ wishlistOpen: true }, '', window.location.href);
+    }
+
     jogosCarregados = [...wishlistJogos];
     renderizarJogos();
 }
 
-function fecharModoWishlist() {
+function fecharModoWishlist(fromPopstate = false) {
     fonteAtual = 'feedly';
     document.getElementById('wishlist-filter-tag')?.classList.add('hidden');
     document.getElementById('wishlist-filter-header')?.classList.add('hidden');
@@ -2375,6 +2402,11 @@ function fecharModoWishlist() {
     } else {
         jogosCarregados = [...jogosOriginaisFeedly];
         renderizarJogos();
+    }
+
+    // Se o fechamento foi acionado via clique na interface (e não pelo botão Voltar nativo)
+    if (!fromPopstate && history.state?.wishlistOpen) {
+        history.back();
     }
 }
 
