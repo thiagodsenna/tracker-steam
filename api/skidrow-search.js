@@ -1,10 +1,13 @@
 export default async function handler(req, res) {
-  const { query } = req.query;
+  const { query: rawQuery } = req.query;
   res.setHeader('Access-Control-Allow-Origin', '*');
 
-  if (!query) {
+  if (!rawQuery) {
     return res.status(400).json({ error: 'Termo de busca é obrigatório' });
   }
+
+  // Remove apóstrofos (simples e tipográficos) antes de processar a busca
+  const query = rawQuery.replace(/['‘’]/g, '');
 
   try {
     const headers = {
