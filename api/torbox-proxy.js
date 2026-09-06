@@ -184,7 +184,7 @@ export default async function handler(req, res) {
 
                 if (!torrentId) throw new Error('Falha ao processar torrent na conta Torbox.');
 
-                const dlRes = await fetch(`${BASE_URL}/torrents/requestdl?token=${TORBOX_API_KEY}&torrent_id=${torrentId}&zip_link=true`, { method: 'GET', headers: headersJson });
+                const dlRes = await fetch(`${BASE_URL}/torrents/requestdl?token=${TORBOX_API_KEY}&torrent_id=${torrentId}&zip_link=false`, { method: 'GET', headers: headersJson });
                 const dlData = await dlRes.json();
                 if (dlData?.data) {
                     const linkFinal = dlData.data.download_url || dlData.data;
@@ -218,7 +218,7 @@ export default async function handler(req, res) {
 
                 if (!webId) throw new Error('Falha ao adicionar link Web na sua conta Torbox.');
 
-                const dlRes = await fetch(`${BASE_URL}/webdl/requestdl?token=${TORBOX_API_KEY}&web_id=${webId}&webdl_id=${webId}&id=${webId}&zip_link=true`, {
+                const dlRes = await fetch(`${BASE_URL}/webdl/requestdl?token=${TORBOX_API_KEY}&web_id=${webId}&webdl_id=${webId}&id=${webId}&zip_link=false`, {
                     method: 'GET',
                     headers: headersJson
                 });
