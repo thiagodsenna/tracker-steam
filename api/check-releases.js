@@ -240,9 +240,10 @@ export default async function handler(req, res) {
                     
                     const steamJson = await steamRes.json();
                     const revJson = await revRes.json();
+                    const game = steamJson[alvo.steamId] ?? Object?.values(steamJson)[0];
 
-                    if (steamJson[alvo.steamId]?.success && steamJson[alvo.steamId]?.data) {
-                        const gData = steamJson[alvo.steamId].data;
+                    if (game?.success && game?.data) {
+                        const gData = game?.data;
                         let notaNum = steamCache[alvo.steamId]?.rating || 0;
                         let totalReviews = steamCache[alvo.steamId]?.total_reviews || 0;
 
@@ -345,9 +346,10 @@ export default async function handler(req, res) {
 
                     const steamJson = await steamRes.json();
                     const revJson = await revRes.json();
+                    const game = Object?.values(steamJson)[0];
 
-                    if (steamJson[steamId]?.success && steamJson[steamId]?.data) {
-                        const gData = steamJson[steamId].data;
+                    if (game?.success && game?.data) {
+                        const gData = game.data;
                         if (gData.header_image) steamHeaderImg = gData.header_image;
 
                         // Captura a data de lançamento se existir

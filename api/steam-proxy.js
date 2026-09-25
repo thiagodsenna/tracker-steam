@@ -109,9 +109,10 @@ export default async function handler(req, res) {
                       try {
                         const steamRes = await fetch(`https://store.steampowered.com/api/appdetails?appids=${id}&filters=basic`);
                         const steamJson = await steamRes.json();
+                        const game = steamJson[id] ?? Object?.values(steamJson)[0];
                         
-                        if (steamJson[id]?.success) {
-                          const data = steamJson[id].data;
+                        if (game?.success) {
+                          const data = game?.data;
                           
                           if (data.type && data.type === 'dlc') return null;
 

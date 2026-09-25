@@ -728,7 +728,7 @@ async function resolverJogoPorSharedId(sharedId) {
         const steamId = sharedId.replace('steam-', '').trim();
         const res = await fetch(`${PROXY_BASE_URL}${steamId}`);
         const json = await res.json();
-        const gameData = json[steamId]?.data;
+        const gameData = json[steamId]?.data ?? Object?.values(json)[0]?.data;
 
         if (gameData) {
             const cover = `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${steamId}/library_600x900.jpg`;
@@ -1313,7 +1313,7 @@ async function buscarDadosSteam(steamId) {
     try {
         const res = await fetch(PROXY_BASE_URL + steamId);
         const json = await res.json();
-        const game = json[steamId]?.data;
+        const game = json[steamId]?.data ?? Object?.values(json)[0]?.data;
 
         if (!game) throw new Error("Sem dados");
 

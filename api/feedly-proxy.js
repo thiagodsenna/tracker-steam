@@ -115,9 +115,10 @@ export default async function handler(req, res) {
                                             
                                             const detJson = await detRes.json();
                                             const revJson = await revRes.json();
+                                            const game = detJson[steamId] ?? Object?.values(detJson)[0];
 
-                                            if (detJson[steamId]?.success) {
-                                                const gData = detJson[steamId].data;
+                                            if (game?.success) {
+                                                const gData = game.data;
                                                 let nota = 0;
                                                 let totalReviews = 0;
 
