@@ -274,8 +274,9 @@ export default async function handler(req, res) {
         // --- FIM: MANUTENÇÃO INTELIGENTE DE CACHE ---
         // =================================================================
 
-        // AGORA SIM: Se não houver jogos novos E o cache também não mudou, encerra o script!
-        if (novosItens.length === 0 && !cacheAtualizado) {
+        // AGORA SIM: Se não houver jogos novos E o cache também não mudou, verifica se o número de itens excede 50 antes de encerrar
+        const precisaLimparExcedentes = Object.keys(steamCache).length > 50;
+        if (novosItens.length === 0 && !cacheAtualizado && !precisaLimparExcedentes) {
             return res.status(200).json({ message: 'Sem lançamentos novos e cache em dia.', checked: 0 });
         }
 
@@ -467,8 +468,11 @@ export default async function handler(req, res) {
         // =================================================================
         // --- INÍCIO: SALVAR CACHE E CALCULAR DESTAQUES NO KV ---
         // =================================================================
-        if (cacheAtualizado) {
+        if (cacheAtualizado || precisaLimparExcedentes) {
             try {
+                // Limpa o cache para manter no máximo os 50 jogos mais recentes do feed
+                limparCacheSteam(steamCache, items, 50);
+
                 // 1. Salva o cache geral da Steam atualizado
                 await fetch(`${KV_REST_API_URL}/set/steam_metadata_cache`, {
                     method: 'POST',
@@ -544,5 +548,38 @@ export default async function handler(req, res) {
     } catch (error) {
         console.error('Erro na verificação de cron:', error);
         return res.status(500).json({ error: 'Erro interno ao processar cron job.' });
+    }
+}
+
+// Função auxiliar para manter no cache apenas os 50 lançamentos mais recentes do feed
+function limparCacheSteam(cache, feedItems, maxLimite = 50) {
+    if (!cache || typeof cache !== 'object') return;
+
+    const topSteamIds = new Set();
+    
+    if (Array.isArray(feedItems)) {
+        for (const item of feedItems.slice(0, maxLimite)) {
+            const content = item.content?.content || item.summary?.content || '';
+            const match = content.match(/(?:store\.steampowered\.com|steamcommunity\.com)\/app\/(\d+)/i);
+            if (match) topSteamIds.add(match[1]);
+        }
+    }
+
+    const chaves = Object.keys(cache);
+    if (topSteamIds.size > 0) {
+        for (const id of chaves) {
+            if (!topSteamIds.has(id)) {
+                delete cache[id];
+            }
+        }
+    }
+
+    const chavesRestantes = Object.keys(cache);
+    if (chavesRestantes.length > maxLimite) {
+        chavesRestantes.sort((a, b) => (cache[b]?.updated_at || 0) - (cache[a]?.updated_at || 0));
+        const paraRemover = chavesRestantes.slice(maxLimite);
+        for (const id of paraRemover) {
+            delete cache[id];
+        }
     }
 }
