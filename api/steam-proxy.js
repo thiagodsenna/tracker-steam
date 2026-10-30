@@ -38,16 +38,24 @@ export default async function handler(req, res) {
                 }
 
             case 'reviews':
-                // Lógica antiga do steam-reviews.js
                 if (!appid) return res.status(400).json({ error: 'AppID é obrigatório' });
                 try {
-                  // Busca os reviews utilizando os parâmetros para retornar todos desde o início (day_range=all),
-                  // em todos os idiomas (language=all) e ordenados pelos mais úteis (filter=all)
-                  const response = await fetch(`https://store.steampowered.com/appreviews/${appid}?json=1&filter=all&language=all&day_range=1000&num_per_page=40`);
+                  const response = await fetch(`https://store.steampowered.com/appreviews/${appid}?json=1&filter=all&language=all&day_range=1000&num_per_page=40`, {
+                    headers: {
+                      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                      'Cookie': 'birthtime=283993200; mature_content=1; lastagecheckage=1-0-1990'
+                    }
+                  });
+                  
+                  if (!response.ok) {
+                      throw new Error(`Erro na API da Steam: Status ${response.status}`);
+                  }
+                  
                   const data = await response.json();
                   
                   return res.status(200).json(data);
                 } catch (error) {
+                  console.error("Erro ao buscar reviews:", error);
                   return res.status(500).json({ error: 'Falha ao buscar reviews da Steam' });
                 }
 
