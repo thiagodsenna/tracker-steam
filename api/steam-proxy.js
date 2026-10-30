@@ -40,7 +40,6 @@ export default async function handler(req, res) {
             case 'reviews':
                 if (!appid) return res.status(400).json({ error: 'AppID é obrigatório' });
                 try {
-                  // Parâmetros estruturados exigidos pelo novo endpoint (input_json)
                   const inputJson = {
                       appid: parseInt(appid),
                       filter: 0, // 0 = Helpful (equivalente ao antigo 'all')
@@ -62,14 +61,10 @@ export default async function handler(req, res) {
                   
                   try {
                       const data = JSON.parse(text);
-                      
-                      // Extrai os dados de dentro do novo envelope "response" da Steam
                       let result = data.response || data;
-                      
                       // Injeta a chave 'success' artificialmente para não quebrar a validação 
                       // if(json.success && json.reviews) existente no seu scripts.js
                       result.success = true;
-                      
                       return res.status(200).json(result);
                       
                   } catch (parseError) {
