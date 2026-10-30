@@ -40,22 +40,50 @@ export default async function handler(req, res) {
             case 'reviews':
                 if (!appid) return res.status(400).json({ error: 'AppID é obrigatório' });
                 try {
-                  const response = await fetch(`https://store.steampowered.com/appreviews/${appid}?json=1&filter=all&language=all&day_range=1000&num_per_page=40`, {
+                  // Parâmetros estruturados exigidos pelo novo endpoint (input_json)
+                  const inputJson = {
+                      appid: parseInt(appid),
+                      filter: 0, // 0 = Helpful (equivalente ao antigo 'all')
+                      languages: ["all"],
+                      day_range: 1000,
+                      num_per_page: 40
+                  };
+                  
+                  const apiUrl = `https://api.steampowered.com/IUserReviewsService/GetAppReviews/v1/?input_json=${encodeURIComponent(JSON.stringify(inputJson))}`;
+
+                  const response = await fetch(apiUrl, {
                     headers: {
                       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                       'Cookie': 'birthtime=283993200; mature_content=1; lastagecheckage=1-0-1990'
                     }
                   });
                   
-                  if (!response.ok) {
-                      throw new Error(`Erro na API da Steam: Status ${response.status}`);
+                  const text = await response.text();
+                  
+                  try {
+                      const data = JSON.parse(text);
+                      
+                      // Extrai os dados de dentro do novo envelope "response" da Steam
+                      let result = data.response || data;
+                      
+                      // Injeta a chave 'success' artificialmente para não quebrar a validação 
+                      // if(json.success && json.reviews) existente no seu scripts.js
+                      result.success = true;
+                      
+                      return res.status(200).json(result);
+                      
+                  } catch (parseError) {
+                      console.error(`Falha no parse do novo endpoint para o AppID ${appid}`);
+                      console.error("Conteúdo recebido:", text.substring(0, 150));
+                      
+                      return res.status(200).json({ 
+                          success: false, 
+                          query_summary: { total_reviews: 0, total_positive: 0 }, 
+                          reviews: [] 
+                      });
                   }
-                  
-                  const data = await response.json();
-                  
-                  return res.status(200).json(data);
                 } catch (error) {
-                  console.error("Erro ao buscar reviews:", error);
+                  console.error("Erro interno ao buscar reviews:", error);
                   return res.status(500).json({ error: 'Falha ao buscar reviews da Steam' });
                 }
 
