@@ -1170,7 +1170,7 @@ async function abrirModal(id, options = {}) {
     if (jogo.steamId) {
         // --- INÍCIO: OTIMIZAÇÃO DE SSR (MODAL INSTANTÂNEO) ---
         // Se as informações já vieram mastigadas do Feedly Proxy / Vercel KV, renderiza na hora!
-        if (jogo.steamDetails && jogo.steamDetails.name) {
+        if (jogo.steamDetails && jogo.steamDetails.detailed_description) {
             renderizarDadosSteamNoModal(jogo.steamDetails);
         } else {
             // Se não existir no cache (ex: jogo antigo não cacheado ainda), continua fazendo a requisição via proxy
@@ -2404,34 +2404,76 @@ if ('serviceWorker' in navigator && window.location.protocol !== 'file:' && wind
 // --- INÍCIO: NOVAS FUNÇÕES EXCLUSIVAS PARA CONTROLE DA WISHLIST ---
 async function carregarWishlistDoServidor() {
     try {
-        const res = await fetch(`${API_BASE_URL}/api/wishlist?token=${encodeURIComponent(userToken)}`);
+        // 1. Checa apenas o timestamp da nuvem (requisição minúscula) usando action=meta
+        const metaRes = await fetch(`${API_BASE_URL}/api/wishlist?action=meta&token=${encodeURIComponent(userToken)}`);
+        let remoteTimestamp = 0;
+        
+        if (metaRes.ok) {
+            const metaData = await metaRes.json();
+            remoteTimestamp = metaData.timestamp || 0;
+        }
+
+        const localTimestamp = parseInt(localStorage.getItem('rt_wishlist_timestamp') || '0', 10);
+
+        // Se a versão local já é a mais atual, não gasta banda baixando tudo de novo!
+        if (remoteTimestamp > 0 && localTimestamp >= remoteTimestamp && wishlistJogos.length > 0) {
+            return; // Cache local perfeitamente sincronizado.
+        }
+
+        // 2. Se está desatualizado, baixa a wishlist completa usando action=full
+        const res = await fetch(`${API_BASE_URL}/api/wishlist?action=full&token=${encodeURIComponent(userToken)}`);
         if (!res.ok) return;
+        
         const data = await res.json();
         if (data && data.wishlist && Array.isArray(data.wishlist)) {
             wishlistJogos = data.wishlist;
             
-            // Atualiza o backup local para garantir que o próximo F5 já venha atualizado
             localStorage.setItem('rt_wishlist_backup', JSON.stringify(wishlistJogos));
+            localStorage.setItem('rt_wishlist_timestamp', remoteTimestamp.toString());
             
             atualizarContadorWishlist();
             if (fonteAtual === 'wishlist') renderizarJogos();
         }
     } catch (err) {
-        console.error("Erro ao carregar Wishlist remota:", err);
+        console.error("Erro ao sincronizar Wishlist remota:", err);
     }
 }
 
 async function salvarWishlistNoServidor() {
+    // 1. Enxuga os dados antes de salvar na nuvem
+    const wishlistEnxuta = wishlistJogos.map(jogo => {
+        const j = { ...jogo }; // Clone superficial
+        if (j.steamDetails) {
+            j.steamDetails = { ...j.steamDetails };
+            // Remove campos que pesam no JSON. Mantém apenas notas e datas para o Card.
+            delete j.steamDetails.detailed_description;
+            delete j.steamDetails.short_description;
+            delete j.steamDetails.movies;
+            delete j.steamDetails.screenshots;
+            delete j.steamDetails.categories;
+            delete j.steamDetails.developers;
+            delete j.steamDetails.background_raw;
+        }
+        return j;
+    });
+
     localStorage.setItem('rt_wishlist_backup', JSON.stringify(wishlistJogos));
     atualizarContadorWishlist();
+    
     try {
-        await fetch(`${API_BASE_URL}/api/wishlist`, {
+        const res = await fetch(`${API_BASE_URL}/api/wishlist`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token: userToken, wishlist: wishlistJogos })
+            body: JSON.stringify({ token: userToken, wishlist: wishlistEnxuta })
         });
+        
+        const data = await res.json();
+        if (data && data.timestamp) {
+            // Atualiza o timestamp local para não baixar de novo no próximo F5
+            localStorage.setItem('rt_wishlist_timestamp', data.timestamp.toString());
+        }
     } catch (err) {
-        console.error("Erro ao sincronizar Wishlist com servidor:", err);
+        console.error("Erro ao salvar Wishlist na nuvem:", err);
     }
 }
 
