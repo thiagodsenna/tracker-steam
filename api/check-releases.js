@@ -551,13 +551,17 @@ export default async function handler(req, res) {
     }
 }
 
-// Função auxiliar para manter no cache apenas os 50 lançamentos mais recentes do feed
+// Função auxiliar para manter no cache apenas os lançamentos mais recentes
 function limparCacheSteam(cache, feedItems, maxLimite = 50) {
     if (!cache || typeof cache !== 'object') return;
 
+    const chaves = Object.keys(cache);
+    // Se o banco ainda está dentro do limite (ex: 50), aborta. Não há o que limpar.
+    if (chaves.length <= maxLimite) return;
+
+    // Mapeia quem está visível no feed atual para PROTEGER contra deleção
     const topSteamIds = new Set();
-    
-    if (Array.isArray(feedItems)) {
+    if (Array.isArray(feedItems) && feedItems.length > 0) {
         for (const item of feedItems.slice(0, maxLimite)) {
             const content = item.content?.content || item.summary?.content || '';
             const match = content.match(/(?:store\.steampowered\.com|steamcommunity\.com)\/app\/(\d+)/i);
@@ -565,20 +569,18 @@ function limparCacheSteam(cache, feedItems, maxLimite = 50) {
         }
     }
 
-    const chaves = Object.keys(cache);
-    if (topSteamIds.size > 0) {
-        for (const id of chaves) {
-            if (!topSteamIds.has(id)) {
-                delete cache[id];
-            }
-        }
-    }
+    // Ordena as chaves pelo timestamp mais recente (maior updated_at fica no topo)
+    chaves.sort((a, b) => (cache[b]?.updated_at || 0) - (cache[a]?.updated_at || 0));
 
-    const chavesRestantes = Object.keys(cache);
-    if (chavesRestantes.length > maxLimite) {
-        chavesRestantes.sort((a, b) => (cache[b]?.updated_at || 0) - (cache[a]?.updated_at || 0));
-        const paraRemover = chavesRestantes.slice(maxLimite);
-        for (const id of paraRemover) {
+    // Varre a lista de trás pra frente (do mais ANTIGO para o mais NOVO)
+    for (let i = chaves.length - 1; i >= 0; i--) {
+        const id = chaves[i];
+        
+        // Só precisamos remover excedentes até voltar ao limite exato (50)
+        if (Object.keys(cache).length <= maxLimite) break;
+
+        // Se o jogo NÃO está sendo exibido na tela inicial no momento, é seguro apagar
+        if (!topSteamIds.has(id)) {
             delete cache[id];
         }
     }
