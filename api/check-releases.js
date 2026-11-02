@@ -110,6 +110,40 @@ export default async function handler(req, res) {
         return null;
     }
 
+    async function obterReviewsSeguro(appId) {
+        if (!appId) return { success: false };
+        const inputJson = {
+            appid: parseInt(appId),
+            filter: 0,
+            languages: ["all"],
+            day_range: 1000,
+            num_per_page: 1
+        };
+        const apiUrl = `https://api.steampowered.com/IUserReviewsService/GetAppReviews/v1/?input_json=${encodeURIComponent(JSON.stringify(inputJson))}`;
+        
+        try {
+            const res = await fetch(apiUrl, {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Cookie': 'birthtime=283993200; mature_content=1; lastagecheckage=1-0-1990'
+                }
+            });
+            const text = await res.text();
+            try {
+                const data = JSON.parse(text);
+                let result = data.response || data;
+                result.success = true; 
+                return result;
+            } catch (e) {
+                console.warn(`[Aviso] Steam retornou HTML na review para o AppID: ${appId}`);
+                return { success: false, query_summary: { total_reviews: 0, total_positive: 0 } };
+            }
+        } catch (error) {
+            console.error(`[Erro] Rede falhou nas reviews do AppID ${appId}:`, error.message);
+            return { success: false, query_summary: { total_reviews: 0, total_positive: 0 } };
+        }
+    }
+
     try {
         // Domínio base absoluto para garantir URLs válidas nas notificações mobile
         const DOMAIN_URL = 'https://tracker-steam.vercel.app';
@@ -227,20 +261,19 @@ export default async function handler(req, res) {
             console.log(`[Smart Refresh] Atualizando notas de ${loteAtualizacao.length} jogos voláteis...`);
             for (const alvo of loteAtualizacao) {
                 try {
-                    const [steamRes, revRes] = await Promise.all([
-                        fetch(`https://store.steampowered.com/api/appdetails?appids=${alvo.steamId}&filters=basic,release_date,genres,developers,screenshots,categories,movies,background&l=brazilian&cc=BR`, {
+                    const [steamRes, revJson] = await Promise.all([
+                        fetch(`https://store.steampowered.com/api/appdetails?appids=${steamId}&filters=basic,release_date,genres,developers,screenshots,categories,movies,background&l=brazilian&cc=BR`, {
                             headers: {
                                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                                 'Cookie': 'birthtime=283993200; mature_content=1; lastagecheckage=1-0-1990',
                                 'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7'
                             }
                         }),
-                        fetch(`https://store.steampowered.com/appreviews/${alvo.steamId}?json=1&filter=all&language=all&day_range=1000&num_per_page=1`)
+                        obterReviewsSeguro(steamId)
                     ]);
-                    
+
                     const steamJson = await steamRes.json();
-                    const revJson = await revRes.json();
-                    const game = steamJson[alvo.steamId] ?? Object?.values(steamJson)[0];
+                    const game = Object?.values(steamJson)[0];
 
                     if (game?.success && game?.data) {
                         const gData = game?.data;
@@ -334,20 +367,19 @@ export default async function handler(req, res) {
             if (steamId) {
                 try {
                     // Busca os detalhes do jogo (incluindo background) e também a quantidade de avaliações em paralelo
-                    const [steamRes, revRes] = await Promise.all([
-                        fetch(`https://store.steampowered.com/api/appdetails?appids=${steamId}&filters=basic,release_date,genres,developers,screenshots,categories,movies,background&l=brazilian&cc=BR`, {
+                    const [steamRes, revJson] = await Promise.all([
+                        fetch(`https://store.steampowered.com/api/appdetails?appids=${alvo.steamId}&filters=basic,release_date,genres,developers,screenshots,categories,movies,background&l=brazilian&cc=BR`, {
                             headers: {
                                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                                 'Cookie': 'birthtime=283993200; mature_content=1; lastagecheckage=1-0-1990',
                                 'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7'
                             }
                         }),
-                        fetch(`https://store.steampowered.com/appreviews/${steamId}?json=1&filter=all&language=all&day_range=1000&num_per_page=1`)
+                        obterReviewsSeguro(alvo.steamId)
                     ]);
 
                     const steamJson = await steamRes.json();
-                    const revJson = await revRes.json();
-                    const game = Object?.values(steamJson)[0];
+                    const game = steamJson[alvo.steamId] ?? Object?.values(steamJson)[0];
 
                     if (game?.success && game?.data) {
                         const gData = game.data;
