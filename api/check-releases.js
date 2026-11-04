@@ -368,18 +368,18 @@ export default async function handler(req, res) {
                 try {
                     // Busca os detalhes do jogo (incluindo background) e também a quantidade de avaliações em paralelo
                     const [steamRes, revJson] = await Promise.all([
-                        fetch(`https://store.steampowered.com/api/appdetails?appids=${alvo.steamId}&filters=basic,release_date,genres,developers,screenshots,categories,movies,background&l=brazilian&cc=BR`, {
+                        fetch(`https://store.steampowered.com/api/appdetails?appids=${steamId}&filters=basic,release_date,genres,developers,screenshots,categories,movies,background&l=brazilian&cc=BR`, {
                             headers: {
                                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                                 'Cookie': 'birthtime=283993200; mature_content=1; lastagecheckage=1-0-1990',
                                 'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7'
                             }
                         }),
-                        obterReviewsSeguro(alvo.steamId)
+                        obterReviewsSeguro(steamId)
                     ]);
 
                     const steamJson = await steamRes.json();
-                    const game = steamJson[alvo.steamId] ?? Object?.values(steamJson)[0];
+                    const game = steamJson[steamId] ?? Object?.values(steamJson)[0];
 
                     if (game?.success && game?.data) {
                         const gData = game.data;
