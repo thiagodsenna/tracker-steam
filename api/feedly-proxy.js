@@ -17,55 +17,80 @@ export default async function handler(req, res) {
                     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
                 };
 
-                let urlPage = 'https://www.skidrowreloaded.com/category/pc-games/';
-                if (query) {
-                    const encodedQuery = encodeURIComponent(query.replace(/['‘’]/g, ''));
-                    urlPage = `https://www.skidrowreloaded.com/?s=${encodedQuery}`;
+                // VARIÁVEL DE CONTROLE DE PAGINAÇÃO:
+                // Altere este valor para controlar quantas páginas da listagem serão raspadas em paralelo.
+                // Exemplo: 5 raspas a página 1 (principal) + páginas 2, 3, 4 e 5.
+                const TOTAL_PAGINAS = 5;
+
+                const isSearch = Boolean(query);
+                const queryClean = isSearch ? encodeURIComponent(query.replace(/['‘’]/g, '')) : '';
+                const pageUrls = [];
+
+                for (let p = 1; p <= TOTAL_PAGINAS; p++) {
+                    if (isSearch) {
+                        pageUrls.push(p === 1 
+                            ? `https://www.skidrowreloaded.com/?s=${queryClean}` 
+                            : `https://www.skidrowreloaded.com/page/${p}/?s=${queryClean}`
+                        );
+                    } else {
+                        pageUrls.push(p === 1 
+                            ? 'https://www.skidrowreloaded.com/category/pc-games/' 
+                            : `https://www.skidrowreloaded.com/category/pc-games/page/${p}/`
+                        );
+                    }
                 }
 
                 let items = [];
 
                 try {
-                    const response = await fetch(urlPage, { headers });
-                    if (!response.ok) {
-                        console.error(`[Scraper List Error] HTTP ${response.status} ao acessar ${urlPage}`);
-                        return res.status(response.status).json({ error: 'Falha ao buscar HTML do Skidrow' });
-                    }
+                    // Busca todas as páginas da listagem em paralelo para otimizar o tempo de resposta
+                    const pagesResponses = await Promise.all(
+                        pageUrls.map(url => fetch(url, { headers }).catch(err => {
+                            console.error(`[Scraper List Error] Falha na página ${url}:`, err);
+                            return null;
+                        }))
+                    );
 
-                    const html = await response.text();
-
-                    // Regex para extrair links, títulos e datas da listagem principal
-                    const regexPosts = /<h2>\s*<a href="([^"]+)"[^>]*>([^<]+)<\/a>[\s\S]*?Posted\s+([A-Za-z]+\s+\d{1,2},\s+\d{4})/gi;
-                    
-                    let match;
                     const postLinks = [];
                     const seenUrls = new Set();
 
-                    while ((match = regexPosts.exec(html)) !== null && postLinks.length < 25) {
-                        const url = match[1];
-                        if (!seenUrls.has(url)) {
-                            seenUrls.add(url);
-                            postLinks.push({
-                                url: url,
-                                titleFallback: match[2].trim(),
-                                dateFallback: match[3].trim()
-                            });
-                        }
-                    }
+                    // Processa o HTML de todas as páginas capturadas
+                    for (const resPage of pagesResponses) {
+                        if (!resPage || !resPage.ok) continue;
+                        const html = await resPage.text();
 
-                    // Fallback de regex simplificada caso a data não venha na regex principal
-                    if (postLinks.length === 0) {
-                        const regexSimple = /<h2>\s*<a href="([^"]+)"[^>]*>([^<]+)<\/a>/gi;
-                        while ((match = regexSimple.exec(html)) !== null && postLinks.length < 25) {
-                            const url = match[1];
+                        const matchesPosts = [...html.matchAll(/<h2>\s*<a href="([^"]+)"[^>]*>([^<]+)<\/a>[\s\S]*?Posted\s+([A-Za-z]+\s+\d{1,2},\s+\d{4})/gi)];
+                        
+                        for (const m of matchesPosts) {
+                            const url = m[1];
                             if (!seenUrls.has(url)) {
                                 seenUrls.add(url);
-                                postLinks.push({ url: url, titleFallback: match[2].trim(), dateFallback: new Date().toUTCString() });
+                                postLinks.push({
+                                    url: url,
+                                    titleFallback: m[2].trim(),
+                                    dateFallback: m[3].trim()
+                                });
+                            }
+                        }
+
+                        // Fallback de regex simplificada caso a data não venha na estrutura padrão
+                        if (matchesPosts.length === 0) {
+                            const matchesSimple = [...html.matchAll(/<h2>\s*<a href="([^"]+)"[^>]*>([^<]+)<\/a>/gi)];
+                            for (const m of matchesSimple) {
+                                const url = m[1];
+                                if (!seenUrls.has(url)) {
+                                    seenUrls.add(url);
+                                    postLinks.push({
+                                        url: url,
+                                        titleFallback: m[2].trim(),
+                                        dateFallback: new Date().toUTCString()
+                                    });
+                                }
                             }
                         }
                     }
 
-                    // Busca os detalhes das páginas dos posts em paralelo
+                    // Busca os detalhes das páginas individuais dos posts em paralelo
                     const postsDetailed = await Promise.all(
                         postLinks.map(async ({ url, titleFallback, dateFallback }) => {
                             try {
