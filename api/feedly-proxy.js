@@ -12,28 +12,55 @@ export default async function handler(req, res) {
         switch (action) {
             case 'skidrow-json': {
                 try {
-                    const feedUrl = 'https://www.skidrowreloaded.com/category/pc-games/feed/';
-                    const rssRes = await fetch(feedUrl, {
-                        headers: {
-                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-                            'Accept': 'application/rss+xml, application/xml, text/xml, */*'
+                    const headers = {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+                    };
+
+                    // Requisita a listagem principal do site ou a busca caso haja query
+                    let urlPage = 'https://www.skidrowreloaded.com/category/pc-games/';
+                    if (query) {
+                        const encodedQuery = encodeURIComponent(query.replace(/['‘’]/g, ''));
+                        urlPage = `https://www.skidrowreloaded.com/?s=${encodedQuery}`;
+                    }
+
+                    const response = await fetch(urlPage, { headers });
+                    if (!response.ok) {
+                        console.error(`[Scraper Home Error] HTTP ${response.status} ao acessar ${urlPage}`);
+                        return res.status(response.status).json({ error: 'Falha ao buscar HTML da listagem' });
+                    }
+
+                    const html = await response.text();
+
+                    // Extrai os links, títulos e datas da listagem (mesmo padrão do skidrow-search.js)
+                    const regexPosts = /<h2>\s*<a href="([^"]+)"[^>]*>([^<]+)<\/a>[\s\S]*?Posted\s+([A-Za-z]+\s+\d{1,2},\s+\d{4})/gi;
+                    
+                    let match;
+                    const postLinks = [];
+                    const seenUrls = new Set();
+
+                    while ((match = regexPosts.exec(html)) !== null && postLinks.length < 20) {
+                        const url = match[1];
+                        if (!seenUrls.has(url)) {
+                            seenUrls.add(url);
+                            postLinks.push({
+                                url: url,
+                                titleFallback: match[2].trim(),
+                                dateFallback: match[3].trim()
+                            });
                         }
-                    });
+                    }
 
-                    const status = rssRes.status;
-                    const text = await rssRes.text();
-                    const preview = text.slice(0, 300);
-
-                    console.log(`[TESTE RSS XML] Status: ${status} | Is XML: ${text.includes('<rss')} | Body Preview: ${preview}`);
+                    console.log(`[SCRAPER TEST] Total de jogos encontrados na página: ${postLinks.length}`);
 
                     return res.status(200).json({
-                        sucesso: rssRes.ok,
-                        statusHTTP: status,
-                        ehXMLValido: text.includes('<rss') || text.includes('<?xml'),
-                        preview: preview
+                        sucesso: true,
+                        totalPostsEncontrados: postLinks.length,
+                        amostra: postLinks.slice(0, 3)
                     });
+
                 } catch (err) {
-                    console.error('[TESTE RSS XML EXCEPTION]:', err);
+                    console.error('[SCRAPER HOME EXCEPTION]:', err);
                     return res.status(500).json({ error: err.message });
                 }
             }
