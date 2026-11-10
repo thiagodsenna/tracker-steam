@@ -11,35 +11,37 @@ export default async function handler(req, res) {
     try {
         switch (action) {
             case 'skidrow-json': {
+                // Scraping HTML direto do Skidrow para contornar bloqueios de Cloudflare no wp-json e RSS XML
+                const headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+                };
+
+                let urlPage = 'https://www.skidrowreloaded.com/category/pc-games/';
+                if (query) {
+                    const encodedQuery = encodeURIComponent(query.replace(/['‘’]/g, ''));
+                    urlPage = `https://www.skidrowreloaded.com/?s=${encodedQuery}`;
+                }
+
+                let items = [];
+
                 try {
-                    const headers = {
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
-                    };
-
-                    // Requisita a listagem principal do site ou a busca caso haja query
-                    let urlPage = 'https://www.skidrowreloaded.com/category/pc-games/';
-                    if (query) {
-                        const encodedQuery = encodeURIComponent(query.replace(/['‘’]/g, ''));
-                        urlPage = `https://www.skidrowreloaded.com/?s=${encodedQuery}`;
-                    }
-
                     const response = await fetch(urlPage, { headers });
                     if (!response.ok) {
-                        console.error(`[Scraper Home Error] HTTP ${response.status} ao acessar ${urlPage}`);
-                        return res.status(response.status).json({ error: 'Falha ao buscar HTML da listagem' });
+                        console.error(`[Scraper List Error] HTTP ${response.status} ao acessar ${urlPage}`);
+                        return res.status(response.status).json({ error: 'Falha ao buscar HTML do Skidrow' });
                     }
 
                     const html = await response.text();
 
-                    // Extrai os links, títulos e datas da listagem (mesmo padrão do skidrow-search.js)
+                    // Regex para extrair links, títulos e datas da listagem principal
                     const regexPosts = /<h2>\s*<a href="([^"]+)"[^>]*>([^<]+)<\/a>[\s\S]*?Posted\s+([A-Za-z]+\s+\d{1,2},\s+\d{4})/gi;
                     
                     let match;
                     const postLinks = [];
                     const seenUrls = new Set();
 
-                    while ((match = regexPosts.exec(html)) !== null && postLinks.length < 20) {
+                    while ((match = regexPosts.exec(html)) !== null && postLinks.length < 25) {
                         const url = match[1];
                         if (!seenUrls.has(url)) {
                             seenUrls.add(url);
@@ -51,18 +53,313 @@ export default async function handler(req, res) {
                         }
                     }
 
-                    console.log(`[SCRAPER TEST] Total de jogos encontrados na página: ${postLinks.length}`);
+                    // Fallback de regex simplificada caso a data não venha na regex principal
+                    if (postLinks.length === 0) {
+                        const regexSimple = /<h2>\s*<a href="([^"]+)"[^>]*>([^<]+)<\/a>/gi;
+                        while ((match = regexSimple.exec(html)) !== null && postLinks.length < 25) {
+                            const url = match[1];
+                            if (!seenUrls.has(url)) {
+                                seenUrls.add(url);
+                                postLinks.push({ url: url, titleFallback: match[2].trim(), dateFallback: new Date().toUTCString() });
+                            }
+                        }
+                    }
 
-                    return res.status(200).json({
-                        sucesso: true,
-                        totalPostsEncontrados: postLinks.length,
-                        amostra: postLinks.slice(0, 3)
-                    });
+                    // Busca os detalhes das páginas dos posts em paralelo
+                    const postsDetailed = await Promise.all(
+                        postLinks.map(async ({ url, titleFallback, dateFallback }) => {
+                            try {
+                                const detailRes = await fetch(url, { headers });
+                                if (!detailRes.ok) return null;
+                                const detailHtml = await detailRes.text();
 
-                } catch (err) {
-                    console.error('[SCRAPER HOME EXCEPTION]:', err);
-                    return res.status(500).json({ error: err.message });
+                                // Limpeza do título do jogo
+                                const titleMatch = detailHtml.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
+                                let title = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '').trim() : titleFallback;
+
+                                title = title
+                                    .replace(/&#\d+;|&[a-z]+;/gi, ' ')
+                                    .replace(/[-–—]\s*(?:Skidrow|Reloaded|Games|Scene|PC|FREE|DOWNLOAD).*/i, '')
+                                    .replace(/Skidrow\s*&?\s*Reloaded\s*Games.*/i, '')
+                                    .replace(/\s+/g, ' ')
+                                    .trim();
+
+                                if (!title) {
+                                    title = titleFallback.replace(/&#\d+;|&[a-z]+;/gi, ' ').trim();
+                                }
+
+                                const dateMatch = detailHtml.match(/Posted\s+([A-Za-z]+\s+\d{1,2},\s+\d{4})/i);
+                                const publishedStr = dateMatch ? dateMatch[1].trim() : dateFallback;
+                                const publishedTimestamp = new Date(publishedStr).getTime() || Date.now();
+
+                                let contentHtml = '';
+                                const contentStart = detailHtml.search(/class="(?:post|entry)-content|post-excerpt/i);
+                                if (contentStart !== -1) {
+                                    contentHtml = detailHtml.slice(contentStart, contentStart + 20000);
+                                } else {
+                                    contentHtml = detailHtml;
+                                }
+
+                                const imgMatches = [...contentHtml.matchAll(/<img[^>]+src="([^"]+)"/gi)];
+                                let imgUrl = '';
+                                for (const m of imgMatches) {
+                                    const urlLower = m[1].toLowerCase();
+                                    if (
+                                        !urlLower.includes('logo') && 
+                                        !urlLower.includes('avatar') && 
+                                        !urlLower.includes('icon') && 
+                                        !urlLower.includes('themes') && 
+                                        !urlLower.includes('plugins') &&
+                                        !urlLower.includes('smiley')
+                                    ) {
+                                        imgUrl = m[1];
+                                        break;
+                                    }
+                                }
+
+                                return {
+                                    id: url,
+                                    title: title,
+                                    published: publishedTimestamp,
+                                    content: { content: contentHtml },
+                                    summary: { content: contentHtml.slice(0, 500) },
+                                    alternate: [{ href: url }],
+                                    visual: imgUrl ? { url: imgUrl } : undefined
+                                };
+                            } catch (e) {
+                                console.error(`[Scraper Post Error] Erro ao processar ${url}:`, e);
+                                return null;
+                            }
+                        })
+                    );
+
+                    items = postsDetailed.filter(p => p !== null);
+
+                } catch (scrapErr) {
+                    console.error('[Scraper Main Error]:', scrapErr);
+                    return res.status(500).json({ error: 'Falha ao processar scraping dos posts' });
                 }
+
+                const data = { items };
+
+                // =================================================================
+                // --- INÍCIO: MERGE COM CACHE STEAM & LAZY SEEDING ---
+                // =================================================================
+                const KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+                const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+                
+                let steamCache = {};
+                let destaquesHome = [];
+
+                if (KV_URL && KV_TOKEN) {
+                    try {
+                        // Busca simultânea do cache de metadados da Steam e da lista de destaques calculados
+                        const [cacheRes, destRes] = await Promise.all([
+                            fetch(`${KV_URL}/get/steam_metadata_cache`, { headers: { Authorization: `Bearer ${KV_TOKEN}` } }),
+                            fetch(`${KV_URL}/get/destaques_home`, { headers: { Authorization: `Bearer ${KV_TOKEN}` } })
+                        ]);
+                        
+                        const cacheData = await cacheRes.json();
+                        const destData = await destRes.json();
+
+                        if (cacheData?.result) {
+                            steamCache = typeof cacheData.result === 'string' ? JSON.parse(cacheData.result) : cacheData.result;
+                        }
+                        if (destData?.result) {
+                            destaquesHome = typeof destData.result === 'string' ? JSON.parse(destData.result) : destData.result;
+                        }
+
+                        // --- LAZY SEEDING INTELIGENTE ---
+                        // Popula o cache em background para os primeiros 15 itens caso os dados da Steam estejam desatualizados ou incompletos
+                        if (data.items && data.items.length > 0) {
+                            const itensParaSeed = data.items.slice(0, 15);
+                            let cacheModificado = false;
+                            
+                            await Promise.allSettled(itensParaSeed.map(async (item) => {
+                                const content = item.content?.content || item.summary?.content || '';
+
+                                // Tenta encontrar o Steam App ID direto no link do post
+                                let match = content.match(/(?:store\.steampowered\.com|steamcommunity\.com)\/app\/(\d+)/i);
+                                let steamId = match ? match[1] : null;
+
+                                // Se for link de bundle da Steam, faz fetch na página do bundle para extrair o ID do primeiro jogo
+                                if (!steamId) {
+                                    const bundleMatch = content.match(/store\.steampowered\.com\/bundle\/(\d+)/i);
+                                    if (bundleMatch) {
+                                        const bundleId = bundleMatch[1];
+                                        try {
+                                            const bundleRes = await fetch(`https://store.steampowered.com/bundle/${bundleId}/`, {
+                                                headers: { 
+                                                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+                                                    'Cookie': 'birthtime=283993200; mature_content=1' 
+                                                }
+                                            });
+                                            const bundleHtml = await bundleRes.text();
+                                            const innerAppMatch = bundleHtml.match(/\/app\/(\d+)/i);
+                                            if (innerAppMatch) steamId = innerAppMatch[1];
+                                        } catch (e) {
+                                            console.error(`[Steam Bundle Error] Falha ao resolver AppID no bundle ${bundleId}:`, e);
+                                        }
+                                    }
+                                }
+
+                                const cacheAtual = steamCache[steamId];
+                                const precisaAtualizar = !cacheAtual || !cacheAtual.movies || !cacheAtual.detailed_description;
+
+                                if (steamId && precisaAtualizar) {
+                                    try {
+                                        // Consulta dados detalhados na API da Steam e reviews em paralelo
+                                        const [detRes, revRes] = await Promise.all([
+                                            fetch(`https://store.steampowered.com/api/appdetails?appids=${steamId}&filters=basic,release_date,genres,developers,screenshots,categories,movies,detailed_description,background&l=brazilian&cc=BR`, {
+                                                headers: {
+                                                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                                                    'Cookie': 'birthtime=283993200; mature_content=1; lastagecheckage=1-0-1990',
+                                                    'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7'
+                                                }
+                                            }),
+                                            fetch(`https://store.steampowered.com/appreviews/${steamId}?json=1&filter=all&language=all&day_range=1000&num_per_page=1`)
+                                        ]);
+                                        
+                                        const detJson = await detRes.json();
+                                        const revJson = await revRes.json();
+                                        const game = detJson[steamId] ?? Object?.values(detJson)[0];
+
+                                        if (game?.success) {
+                                            const gData = game.data;
+                                            let nota = 0;
+                                            let totalReviews = 0;
+
+                                            if (revJson?.success && revJson.query_summary) {
+                                                totalReviews = revJson.query_summary.total_reviews || 0;
+                                                if (totalReviews > 0) {
+                                                    nota = Math.trunc((revJson.query_summary.total_positive * 100) / totalReviews);
+                                                }
+                                            }
+
+                                            steamCache[steamId] = {
+                                                name: gData.name,
+                                                header_image: gData.header_image,
+                                                background_raw: gData.background_raw || gData.background || '',
+                                                detailed_description: gData.detailed_description || '',
+                                                short_description: gData.short_description || '',
+                                                release_date: gData.release_date,
+                                                genres: gData.genres || [],
+                                                developers: gData.developers || [],
+                                                screenshots: gData.screenshots || [],
+                                                categories: gData.categories || [],
+                                                movies: gData.movies || [],
+                                                rating: nota,
+                                                total_reviews: totalReviews,
+                                                updated_at: Date.now()
+                                            };
+                                            cacheModificado = true;
+                                        }
+                                    } catch (e) {
+                                        console.error(`[Steam Fetch Error] Falha ao atualizar dados do app ${steamId}:`, e);
+                                    }
+                                }
+                            }));
+
+                            const precisaLimparExcedentes = Object.keys(steamCache).length > 50;
+                            if ((cacheModificado || precisaLimparExcedentes) && Object.keys(steamCache).length > 0) {
+                                limparCacheSteam(steamCache, query ? [] : data.items, 50);
+
+                                await fetch(`${KV_URL}/set/steam_metadata_cache`, {
+                                    method: 'POST',
+                                    headers: { Authorization: `Bearer ${KV_TOKEN}`, 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(steamCache)
+                                });
+                            }
+                        }
+
+                        // --- CÁLCULO DE RESERVA DE DESTAQUES ---
+                        // Garante que o carrossel de destaques seja populado com base no algoritmo ponderado de nota e reviews das últimas 24h
+                        if (destaquesHome.length === 0 && Object.keys(steamCache).length > 0) {
+                            try {
+                                const agora = Date.now();
+                                const limite24h = 24 * 60 * 60 * 1000;
+                                const candidatos = (data.items || []).slice(0, 50).filter(i => (agora - (i.published || 0)) <= limite24h);
+
+                                const listaJogos = [];
+                                for (const item of candidatos) {
+                                    const content = item.content?.content || item.summary?.content || '';
+                                    const match = content.match(/(?:store\.steampowered\.com|steamcommunity\.com)\/app\/(\d+)/i);
+                                    const id = match ? match[1] : null;
+
+                                    if (id && steamCache[id]) {
+                                        const dados = steamCache[id];
+                                        const nota = dados.rating || 0;
+                                        const revs = Math.max(dados.total_reviews || 1, 1);
+                                        let score = (nota * 0.7) + (Math.log10(revs) * 10 * 0.3);
+
+                                        if (/voices38/i.test(item.title || '')) score += 100000;
+
+                                        listaJogos.push({ 
+                                            steamId: id, 
+                                            score, 
+                                            ...dados,
+                                            background_raw: dados.background_raw || dados.background || '',
+                                            published: item.published
+                                        });
+                                    }
+                                }
+
+                                listaJogos.sort((a, b) => b.score - a.score);
+                                destaquesHome = listaJogos.slice(0, 5);
+
+                                if (destaquesHome.length > 0) {
+                                    await fetch(`${KV_URL}/set/destaques_home`, {
+                                        method: 'POST',
+                                        headers: { Authorization: `Bearer ${KV_TOKEN}`, 'Content-Type': 'application/json' },
+                                        body: JSON.stringify(destaquesHome)
+                                    });
+                                }
+                            } catch (errDest) {
+                                console.error('[Destaques Home Error] Falha ao calcular destaques:', errDest);
+                            }
+                        }
+
+                    } catch (kvErr) {
+                        console.error('[Upstash Redis KV Error] Falha na comunicação com o KV:', kvErr);
+                    }
+                }
+
+                // Enriquece cada post retornado com resolvedSteamId e dados predefinidos de cache
+                if (data.items) {
+                    data.items = await Promise.all(data.items.map(async (item) => {
+                        const content = item.content?.content || item.summary?.content || '';
+                        let match = content.match(/(?:store\.steampowered\.com|steamcommunity\.com)\/app\/(\d+)/i);
+                        let steamId = match ? match[1] : null;
+
+                        if (!steamId) {
+                            const bundleMatch = content.match(/store\.steampowered\.com\/bundle\/(\d+)/i);
+                            if (bundleMatch) {
+                                const bundleId = bundleMatch[1];
+                                try {
+                                    const bundleRes = await fetch(`https://store.steampowered.com/bundle/${bundleId}/`, {
+                                        headers: { 'User-Agent': 'Mozilla/5.0', 'Cookie': 'birthtime=283993200; mature_content=1' }
+                                    });
+                                    const bundleHtml = await bundleRes.text();
+                                    const innerAppMatch = bundleHtml.match(/\/app\/(\d+)/i);
+                                    if (innerAppMatch) steamId = innerAppMatch[1];
+                                } catch (e) {
+                                    console.error(`[Steam Item Bundle Error] AppID bundle ${bundleId}:`, e);
+                                }
+                            }
+                        }
+
+                        return {
+                            ...item,
+                            resolvedSteamId: steamId,
+                            steamDetails: (steamId && steamCache[steamId]) ? steamCache[steamId] : null
+                        };
+                    }));
+                }
+
+                return res.status(200).json({
+                    ...data,
+                    destaques: destaquesHome
+                });
             }
 
             case 'list': {
@@ -304,34 +601,41 @@ export default async function handler(req, res) {
                     return res.status(400).json({ error: 'ID é obrigatório' });
                 }
 
-                // Tenta buscar no WordPress se for ID numérico da API nativa
-                if (/^\d+$/.test(id)) {
+                // Tenta buscar os detalhes diretamente da URL do post se for um link HTTP do Skidrow
+                if (id.startsWith('http')) {
                     try {
-                        const wpRes = await fetch(`https://www.skidrowreloaded.com/wp-json/wp/v2/posts/${id}?_embed&_fields=id,date,date_gmt,link,title,content,excerpt,_links,_embedded`, {
-                            headers: {
-                                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-                                'Accept': 'application/json, text/plain, */*',
-                                'Referer': 'https://www.skidrowreloaded.com/'
+                        const headers = {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                        };
+                        const detailRes = await fetch(id, { headers });
+                        if (detailRes.ok) {
+                            const detailHtml = await detailRes.text();
+                            const titleMatch = detailHtml.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
+                            let title = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '').trim() : '';
+
+                            const dateMatch = detailHtml.match(/Posted\s+([A-Za-z]+\s+\d{1,2},\s+\d{4})/i);
+                            const publishedStr = dateMatch ? dateMatch[1].trim() : '';
+                            const publishedTimestamp = publishedStr ? new Date(publishedStr).getTime() : Date.now();
+
+                            let contentHtml = '';
+                            const contentStart = detailHtml.search(/class="(?:post|entry)-content|post-excerpt/i);
+                            if (contentStart !== -1) {
+                                contentHtml = detailHtml.slice(contentStart, contentStart + 20000);
+                            } else {
+                                contentHtml = detailHtml;
                             }
-                        });
-                        if (wpRes.ok) {
-                            const post = await wpRes.json();
-                            const featuredMedia = post._embedded?.['wp:featuredmedia']?.[0]?.source_url || '';
+
                             return res.status(200).json({
-                                id: String(post.id),
-                                title: decodeHTMLEntities(post.title?.rendered || post.title || ''),
-                                published: new Date(post.date_gmt ? (post.date_gmt.endsWith('Z') ? post.date_gmt : post.date_gmt + 'Z') : post.date).getTime(),
-                                content: { content: post.content?.rendered || '' },
-                                summary: { content: post.excerpt?.rendered || '' },
-                                alternate: [{ href: post.link || '' }],
-                                visual: featuredMedia ? { url: featuredMedia } : undefined
+                                id: id,
+                                title: title,
+                                published: publishedTimestamp,
+                                content: { content: contentHtml },
+                                summary: { content: contentHtml.slice(0, 500) },
+                                alternate: [{ href: id }]
                             });
-                        } else {
-                            const errBody = await wpRes.text();
-                            console.error(`[Entry WP API Error] Post ID ${id} HTTP ${wpRes.status} ${wpRes.statusText} | Body Preview: ${errBody.slice(0, 300)}`);
                         }
                     } catch (e) {
-                        console.error(`[Entry WP API Exception] Post ID ${id}:`, e);
+                        console.error(`[Entry Scraper Exception] ID ${id}:`, e);
                     }
                 }
 
