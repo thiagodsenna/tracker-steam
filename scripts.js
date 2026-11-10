@@ -358,6 +358,116 @@ function isJogoNovo(jogo) {
 }
 // --- FIM: GESTÃO DE CONFIGURAÇÕES DO USUÁRIO E ITENS NOVOS (BLINDAGEM 2H) ---
 
+// --- FUNÇÃO AUXILIAR PARA CAPTURAR A LABEL REAL DO SKIDROW ---
+function extrairLabelSkidrow(a, doc) {
+    const rawHref = a.getAttribute('href') || '';
+    const href = a.href || '';
+    
+    // 1. Tratamento para Links Magnet / Torrent
+    if (rawHref.startsWith('magnet:')) {
+        const parentTab = a.closest('[id^="tabs"], .tab-pane, .tab-content > div');
+        if (parentTab && parentTab.id) {
+            const tabHeader = doc.querySelector(`a[href="#${parentTab.id}"], a[href*="${parentTab.id}"]`);
+            if (tabHeader && tabHeader.textContent.trim()) {
+                return tabHeader.textContent.trim().toUpperCase();
+            }
+        }
+        return 'TORRENT';
+    }
+
+    // 2. Busca na estrutura de Abas do Skidrow (tab-links que apontam para o container da tab)
+    const containerTab = a.closest('[id^="tabs"], .tab-pane, .tab-content > div');
+    if (containerTab && containerTab.id) {
+        const tabHeader = doc.querySelector(`a[href="#${containerTab.id}"], a[href*="${containerTab.id}"]`);
+        if (tabHeader) {
+            const headerText = tabHeader.textContent.trim();
+            if (headerText && headerText.length > 1 && !headerText.toLowerCase().includes('http')) {
+                return headerText.toUpperCase();
+            }
+        }
+    }
+
+    // 3. Busca em elementos de título/destaque anteriores no DOM (strong, b, p, h1-h6)
+    let el = a.parentElement;
+    let labelEncontrada = '';
+    
+    while (el && el !== doc.body && !labelEncontrada) {
+        const textNodes = el.querySelectorAll('strong, b, h1, h2, h3, h4, h5, h6, .tab-title, span');
+        for (const node of textNodes) {
+            if (node !== a && !node.contains(a)) {
+                const txt = node.textContent.trim();
+                if (txt && txt.length > 1 && !txt.toLowerCase().includes('http') && !txt.includes('.rar') && !txt.includes('.zip') && !txt.includes('Size:')) {
+                    labelEncontrada = txt;
+                    break;
+                }
+            }
+        }
+        if (labelEncontrada) break;
+
+        const prevSibling = el.previousElementSibling;
+        if (prevSibling) {
+            const txt = prevSibling.textContent.trim();
+            if (txt && txt.length > 1 && txt.length < 40 && !txt.toLowerCase().includes('http') && !txt.includes('.rar') && !txt.includes('.zip')) {
+                labelEncontrada = txt;
+                break;
+            }
+        }
+        el = el.parentElement;
+    }
+
+    if (labelEncontrada) {
+        const cleanLabel = labelEncontrada.replace(/[:\-–—].*$/, '').trim().toUpperCase();
+        if (cleanLabel && cleanLabel.length > 1 && cleanLabel.length < 35) {
+            return cleanLabel;
+        }
+    }
+
+    // 4. Fallback de Mapeamento de Domínios para Nomes Oficiais
+    try {
+        const hostname = new URL(href).hostname.replace('www.', '').toLowerCase();
+        
+        const mapaDominios = {
+            'frdl.to': 'FREEDLINK',
+            'freedlink.com': 'FREEDLINK',
+            'downmediaload.com': 'DOWNMEDIALOAD',
+            'downmediaload.net': 'DOWNMEDIALOAD',
+            'turbobit.net': 'TURBOBIT',
+            'hitfile.net': 'HITFILE',
+            'multiup.io': 'MULTI LINKS',
+            'multiup.org': 'MULTI LINKS',
+            'buzzheavier.com': 'BUZZHEAVIER',
+            'vikingfile.com': 'VIKINGFILE',
+            'chomikuj.pl': 'CHOMIKUJ',
+            'mixdrop.gl': 'MIXDROP',
+            'mixdrop.co': 'MIXDROP',
+            'hexload.com': 'HEXLOAD',
+            '1cloudfile.com': '1CLOUDFILE',
+            'clicknupload.click': 'CLICKNUPLOAD',
+            'clicknupload.net': 'CLICKNUPLOAD',
+            'nitroflare.com': 'NITROFLARE',
+            'gofile.io': 'GOFILE',
+            'datanodes.to': 'DATANODES',
+            'bowfile.com': 'BOWFILE',
+            'pixeldrain.com': 'PIXELDRAIN',
+            'mediafire.com': 'MEDIAFIRE',
+            '1fichier.com': '1FICHIER',
+            'mega.nz': 'MEGA',
+            'mega.co.nz': 'MEGA'
+        };
+
+        for (const [dom, lab] of Object.entries(mapaDominios)) {
+            if (hostname.includes(dom) || dom.includes(hostname)) {
+                return lab;
+            }
+        }
+
+        return hostname.split('.')[0].toUpperCase();
+    } catch (e) {
+        return 'DOWNLOAD';
+    }
+}
+
+// --- PARSER REVISADO DE ITENS FEEDLY / SKIDROW ---
 function parseFeedlyItem(item, index) {
     const doc = new DOMParser().parseFromString(item.content?.content || item.summary?.content || '', 'text/html');
     
@@ -390,16 +500,30 @@ function parseFeedlyItem(item, index) {
     let downloads = [];
     doc.querySelectorAll('a').forEach(a => {
         const href = a.href || '';
+        const rawHref = a.getAttribute('href') || '';
         
-        // NOVA REGRA: Interrompe a leitura se o link não for protocolo HTTP/HTTPS ou Magnet Link
+        // CORREÇÃO 1: Descarta âncoras locais (#tabs-...), scripts e links sem protocolo válido
+        if (!rawHref || rawHref.startsWith('#') || rawHref.startsWith('javascript:') || rawHref.includes('#tabs')) return;
         if (!href.startsWith('http') && !href.startsWith('magnet:')) return;
 
-        // Filtro original que ignora URLs próprias da Steam, YouTube e Skidrow
-        if (href.includes('skidrowreloaded') || href.includes('steampowered') || href.includes('youtube') || href.includes('steamcommunity')) return;
+        // Filtra domínios próprios e redes sociais
+        if (
+            href.includes('skidrowreloaded') || 
+            href.includes('steampowered') || 
+            href.includes('youtube') || 
+            href.includes('steamcommunity') ||
+            href.includes('tracker-steam') ||
+            href.includes('vercel.app') ||
+            (window.location.hostname && href.includes(window.location.hostname))
+        ) return;
         
-        if (a.textContent.length > 2 && downloads.length < 30) {
-            let label = href.startsWith('magnet:') ? 'TORRENT' : new URL(a.href).hostname.replace('www.', '').toUpperCase().split('.')[0];
-            downloads.push({ label: label, url: a.href });
+        // Evita duplicatas do mesmo link
+        if (downloads.some(d => d.url === href)) return;
+
+        if (downloads.length < 30) {
+            // CORREÇÃO 2: Busca a label real usada nas abas/cabeçalhos do site Skidrow
+            let label = extrairLabelSkidrow(a, doc);
+            downloads.push({ label: label, url: href });
         }
     });
 
@@ -2694,16 +2818,25 @@ async function buscarDownloadsTorbox(downloads) {
             document.getElementById('badge-download-torbox')?.classList.remove('hidden');
             document.getElementById('float-badge-download-torbox')?.classList.remove('hidden');
 
-            // Renderiza os botões unificados com AUTO VIP para Torrents e Web Downloads em cache
-            gridTorbox.innerHTML = torboxItems.map((item, idx) => `
-                <button type="button" id="btn-tb-${idx}" onclick="executarDownloadTorbox('${encodeURIComponent(item.url)}', 'btn-tb-${idx}', '${item.type}')" class="w-full bg-emerald-950/30 hover:bg-emerald-900/50 p-2.5 flex items-center justify-between gap-2 rounded text-[11px] font-bold text-emerald-300 border border-emerald-500/40 transition-all shadow-sm group cursor-pointer" title="${item.url}">
-                    <div class="flex items-center gap-2 truncate">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400 group-hover:scale-110 transition-transform shrink-0"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-                        <span class="truncate">${item?.label.startsWith('magnet:') ? 'TORRENT' : item?.label.replace('www.', '').toUpperCase().split('.')[0]}</span>
-                    </div>
-                    <span class="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded uppercase font-mono shrink-0">CACHED</span>
-                </button>
-            `).join('');
+            // CORREÇÃO 3: Recupera a label real do Skidrow mapeada no array downloads para exibir no Torbox
+            gridTorbox.innerHTML = torboxItems.map((item, idx) => {
+                const originalDl = downloads.find(d => d.url === item.url);
+                let displayLabel = originalDl ? originalDl.label : (item?.label || 'DOWNLOAD');
+                
+                if (item?.url?.startsWith('magnet:') && !displayLabel.includes('TORRENT') && !displayLabel.includes('MAGNET')) {
+                    displayLabel = 'TORRENT';
+                }
+
+                return `
+                    <button type="button" id="btn-tb-${idx}" onclick="executarDownloadTorbox('${encodeURIComponent(item.url)}', 'btn-tb-${idx}', '${item.type}')" class="w-full bg-emerald-950/30 hover:bg-emerald-900/50 p-2.5 flex items-center justify-between gap-2 rounded text-[11px] font-bold text-emerald-300 border border-emerald-500/40 transition-all shadow-sm group cursor-pointer" title="${item.url}">
+                        <div class="flex items-center gap-2 truncate">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-emerald-400 group-hover:scale-110 transition-transform shrink-0"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                            <span class="truncate">${displayLabel}</span>
+                        </div>
+                        <span class="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded uppercase font-mono shrink-0">CACHED</span>
+                    </button>
+                `;
+            }).join('');
         } else {
             statusTag.textContent = "Sem cache";
             statusTag.className = "text-[10px] bg-neutral-900 border border-neutral-800 text-neutral-500 px-2 py-0.5 rounded font-mono";
