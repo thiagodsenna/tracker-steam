@@ -1,4 +1,5 @@
 import webpush from 'web-push';
+import { obterPostsSkidrow } from './feedly-proxy.js';
 
 export default async function handler(req, res) {
     const secretParam = req.query?.secret || req.headers?.authorization?.replace('Bearer ', '');
@@ -18,8 +19,6 @@ export default async function handler(req, res) {
         process.env.VAPID_PUBLIC_KEY,
         process.env.VAPID_PRIVATE_KEY
     );
-
-    // --- FUNÇÕES UTILITÁRIAS E REGRAS DA CRON (MANTIDAS INTEGRALMENTE) ---
 
     function decodeHTMLEntities(text) {
         if (!text) return '';
@@ -175,8 +174,6 @@ export default async function handler(req, res) {
         }
     }
 
-    // --- INÍCIO DA EXECUÇÃO PRINCIPAL ---
-
     try {
         const DOMAIN_URL = process.env.VERCEL_URL 
             ? (process.env.VERCEL_URL.startsWith('http') ? process.env.VERCEL_URL : `https://${process.env.VERCEL_URL}`) 
@@ -200,12 +197,8 @@ export default async function handler(req, res) {
             lastChecked = Date.now() - (2 * 60 * 60 * 1000);
         }
 
-        // 2. REAPROVEITA O SCRAPING DE POSTS (Troca da antiga wp-json pelo endpoint skidrow-json)
-        const feedRes = await fetch(`${DOMAIN_URL}/api/feedly-proxy?action=skidrow-json`);
-        if (!feedRes.ok) {
-            throw new Error(`Falha ao obter posts via feedly-proxy: ${feedRes.status}`);
-        }
-        const feedData = await feedRes.json();
+        // 2. OBTÉM OS POSTS DO SKIDROW DIRETO EM MEMÓRIA (Evita erro de fetch HTTP retornando HTML)
+        const feedData = await obterPostsSkidrow();
         const items = feedData.items || [];
 
         // 3. Filtra apenas os lançamentos mais recentes que o lastChecked
