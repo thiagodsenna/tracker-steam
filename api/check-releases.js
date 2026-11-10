@@ -19,6 +19,8 @@ export default async function handler(req, res) {
         process.env.VAPID_PRIVATE_KEY
     );
 
+    // --- FUNÇÕES UTILITÁRIAS E REGRAS DA CRON (MANTIDAS INTEGRALMENTE) ---
+
     function decodeHTMLEntities(text) {
         if (!text) return '';
         return text
@@ -147,9 +149,40 @@ export default async function handler(req, res) {
         }
     }
 
-    try {
-        const DOMAIN_URL = 'https://tracker-steam.vercel.app';
+    function limparCacheSteam(cache, feedItems, maxLimite = 50) {
+        if (!cache || typeof cache !== 'object') return;
 
+        const chaves = Object.keys(cache);
+        if (chaves.length <= maxLimite) return;
+
+        const topSteamIds = new Set();
+        if (Array.isArray(feedItems) && feedItems.length > 0) {
+            for (const item of feedItems.slice(0, maxLimite)) {
+                const content = item.content?.content || item.summary?.content || '';
+                const match = content.match(/(?:store\.steampowered\.com|steamcommunity\.com)\/app\/(\d+)/i);
+                if (match) topSteamIds.add(match[1]);
+            }
+        }
+
+        chaves.sort((a, b) => (cache[b]?.updated_at || 0) - (cache[a]?.updated_at || 0));
+
+        for (let i = chaves.length - 1; i >= 0; i--) {
+            const id = chaves[i];
+            if (Object.keys(cache).length <= maxLimite) break;
+            if (!topSteamIds.has(id)) {
+                delete cache[id];
+            }
+        }
+    }
+
+    // --- INÍCIO DA EXECUÇÃO PRINCIPAL ---
+
+    try {
+        const DOMAIN_URL = process.env.VERCEL_URL 
+            ? (process.env.VERCEL_URL.startsWith('http') ? process.env.VERCEL_URL : `https://${process.env.VERCEL_URL}`) 
+            : 'https://tracker-steam.vercel.app';
+
+        // 1. Resgata a timestamp da última verificação da cron
         const getCronTimeRes = await fetch(`${KV_REST_API_URL}/get/last_checked_cron`, {
             headers: { Authorization: `Bearer ${KV_REST_API_TOKEN}` }
         });
@@ -167,33 +200,22 @@ export default async function handler(req, res) {
             lastChecked = Date.now() - (2 * 60 * 60 * 1000);
         }
 
-        // Requisição da API JSON do Skidrow (WordPress REST API)
-        const feedUrl = 'https://www.skidrowreloaded.com/wp-json/wp/v2/posts?per_page=50&_embed&_fields=id,date,date_gmt,link,title,content,excerpt,_links,_embedded';
-        const feedRes = await fetch(feedUrl, {
-            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
-        });
-        const wpPosts = await feedRes.json();
+        // 2. REAPROVEITA O SCRAPING DE POSTS (Troca da antiga wp-json pelo endpoint skidrow-json)
+        const feedRes = await fetch(`${DOMAIN_URL}/api/feedly-proxy?action=skidrow-json`);
+        if (!feedRes.ok) {
+            throw new Error(`Falha ao obter posts via feedly-proxy: ${feedRes.status}`);
+        }
+        const feedData = await feedRes.json();
+        const items = feedData.items || [];
 
-        const items = Array.isArray(wpPosts) ? wpPosts.map(post => {
-            const featuredMedia = post._embedded?.['wp:featuredmedia']?.[0]?.source_url || '';
-            return {
-                id: String(post.id),
-                title: decodeHTMLEntities(post.title?.rendered || post.title || ''),
-                published: new Date(post.date_gmt ? (post.date_gmt.endsWith('Z') ? post.date_gmt : post.date_gmt + 'Z') : post.date).getTime(),
-                content: { content: post.content?.rendered || '' },
-                summary: { content: post.excerpt?.rendered || '' },
-                alternate: [{ href: post.link || '' }],
-                visual: featuredMedia ? { url: featuredMedia } : undefined
-            };
-        }) : [];
-
+        // 3. Filtra apenas os lançamentos mais recentes que o lastChecked
         const forcarTesteManual = req.query?.forcar_teste === 'true';
         const feedlyIdForcado = req.query?.feedlyId || req.query?.id;
 
         let novosItens = [];
         if (forcarTesteManual) {
             if (feedlyIdForcado) {
-                const encontrado = items.find(i => i.id === feedlyIdForcado);
+                const encontrado = items.find(i => i.id === feedlyIdForcado || (i.id && i.id.includes(feedlyIdForcado)));
                 if (encontrado) novosItens = [encontrado];
             }
             if (novosItens.length === 0 && items.length > 0) {
@@ -203,6 +225,7 @@ export default async function handler(req, res) {
             novosItens = items.filter(item => (item.published || 0) > lastChecked);
         }
 
+        // 4. Carrega o cache atual da Steam do Vercel KV
         let steamCache = {};
         try {
             const getCacheRes = await fetch(`${KV_REST_API_URL}/get/steam_metadata_cache`, {
@@ -215,7 +238,7 @@ export default async function handler(req, res) {
         } catch (e) {}
         let cacheAtualizado = false;
 
-        // SMART REFRESH DE CACHE
+        // 5. SMART REFRESH DE CACHE (Inteligência de cooldown baseada em número de reviews e idade do jogo)
         const candidatosHome = items.slice(0, 50);
         const agora = Date.now();
         const filaParaAtualizar = [];
@@ -305,6 +328,7 @@ export default async function handler(req, res) {
             novosItens = novosItens.slice(0, 10);
         }
 
+        // 6. Carrega os inscritos nas notificações Push
         const getSubsRes = await fetch(`${KV_REST_API_URL}/get/push_subscriptions`, {
             headers: { Authorization: `Bearer ${KV_REST_API_TOKEN}` }
         });
@@ -316,6 +340,7 @@ export default async function handler(req, res) {
 
         let disparosDeletados = false;
 
+        // 7. Envia notificações Push para os novos lançamentos
         for (const item of novosItens) {
             const htmlContent = item.content?.content || item.summary?.content || '';
             const textContent = item.summary?.content || htmlContent;
@@ -409,7 +434,7 @@ export default async function handler(req, res) {
             const indexHifen = item.title.lastIndexOf('-');
             const tituloLimpo = indexHifen !== -1 ? item.title.slice(0, indexHifen).trim() : item.title.trim();
 
-            let totalReviewsFormatado = totalReviews > 1000 ? `${(totalReviews/1000).toFixed(1)}k` : totalReviews;
+            let totalReviewsFormatado = totalReviews > 1000 ? `${(totalReviews / 1000).toFixed(1)}k` : totalReviews;
 
             const payload = JSON.stringify({
                 id: item.id,
@@ -436,6 +461,7 @@ export default async function handler(req, res) {
             }
         }
 
+        // Limpa assinaturas Push inativas se houver
         if (disparosDeletados) {
             await fetch(`${KV_REST_API_URL}/set/push_subscriptions`, {
                 method: 'POST',
@@ -444,6 +470,7 @@ export default async function handler(req, res) {
             });
         }
 
+        // 8. LIMPEZA DE CACHE EXCEDENTE E CÁLCULO DE DESTAQUES DA HOME
         if (cacheAtualizado || precisaLimparExcedentes) {
             try {
                 limparCacheSteam(steamCache, items, 50);
@@ -490,6 +517,7 @@ export default async function handler(req, res) {
             } catch (errKv) {}
         }
 
+        // 9. Atualiza o timestamp da última execução da Cron
         if (!forcarTesteManual && novosItens.length > 0) {
             const maiorTimestamp = Math.max(...novosItens.map(i => i.published || 0));
             if (isFinite(maiorTimestamp) && maiorTimestamp > 0) {
@@ -512,31 +540,5 @@ export default async function handler(req, res) {
     } catch (error) {
         console.error('Erro na verificação de cron:', error);
         return res.status(500).json({ error: 'Erro interno ao processar cron job.' });
-    }
-}
-
-function limparCacheSteam(cache, feedItems, maxLimite = 50) {
-    if (!cache || typeof cache !== 'object') return;
-
-    const chaves = Object.keys(cache);
-    if (chaves.length <= maxLimite) return;
-
-    const topSteamIds = new Set();
-    if (Array.isArray(feedItems) && feedItems.length > 0) {
-        for (const item of feedItems.slice(0, maxLimite)) {
-            const content = item.content?.content || item.summary?.content || '';
-            const match = content.match(/(?:store\.steampowered\.com|steamcommunity\.com)\/app\/(\d+)/i);
-            if (match) topSteamIds.add(match[1]);
-        }
-    }
-
-    chaves.sort((a, b) => (cache[b]?.updated_at || 0) - (cache[a]?.updated_at || 0));
-
-    for (let i = chaves.length - 1; i >= 0; i--) {
-        const id = chaves[i];
-        if (Object.keys(cache).length <= maxLimite) break;
-        if (!topSteamIds.has(id)) {
-            delete cache[id];
-        }
     }
 }
