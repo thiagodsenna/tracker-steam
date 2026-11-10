@@ -809,7 +809,7 @@ async function resolverJogoPorSharedId(sharedId) {
 async function carregarFeedBackgroundCompleto() {
     try {
         const [resJogos, configServidor] = await Promise.all([
-            fetch(`${API_BASE_URL}/api/feedly-proxy?action=list`),
+            fetch(`${API_BASE_URL}/api/feedly-proxy?action=skidrow-json`),
             carregarConfiguracoesServidor()
         ]);
 
@@ -853,7 +853,7 @@ async function carregarFeedBackgroundCompleto() {
         renderizarJogos();
 
     } catch (err) {
-        console.error("Erro Feedly Background:", err);
+        console.error("Erro Skidrow JSON Background:", err);
         const grid = document.getElementById('grid');
         if (grid && jogosCarregados.length === 0) {
             grid.innerHTML = `<div class="col-span-full text-red-500 text-center py-20">Erro ao carregar feeds.</div>`;
