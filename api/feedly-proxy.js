@@ -117,7 +117,7 @@ export default async function handler(req, res) {
                                 const publishedStr = dateMatch ? dateMatch[1].trim() : dateFallback;
                                 const publishedTimestamp = new Date(publishedStr).getTime() || Date.now();
 
-                                // Extração precisa do container de conteúdo do post para evitar o envio do HTML completo da página
+                                // Extração precisa do container de conteúdo do post para evitar o envio do HTML completo da página na listagem
                                 let contentHtml = '';
                                 const contentMatch = detailHtml.match(/<div[^>]*class="[^"]*(?:post-content|entry-content|entry)[^"]*"[^>]*>([\s\S]*?)<\/div>\s*<(?:div|footer|section)[^>]*class="[^"]*(?:post-footer|share|comments|related|tags)[^"]*"/i)
                                                   || detailHtml.match(/<div[^>]*class="[^"]*(?:post-content|entry-content|entry)[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
@@ -125,14 +125,8 @@ export default async function handler(req, res) {
                                 if (contentMatch) {
                                     contentHtml = contentMatch[1].trim();
                                 } else {
-                                    // Limitação de segurança para evitar vazamento da página inteira
                                     const contentStart = detailHtml.search(/class="(?:post|entry)-content|post-excerpt/i);
                                     contentHtml = contentStart !== -1 ? detailHtml.slice(contentStart, contentStart + 3500) : detailHtml.slice(0, 3500);
-                                }
-
-                                // Trava estrita de tamanho por item (posts de jogos possuem em média 1.5KB a 3KB)
-                                if (contentHtml.length > 3500) {
-                                    contentHtml = contentHtml.slice(0, 3500);
                                 }
 
                                 const imgMatches = [...contentHtml.matchAll(/<img[^>]+src="([^"]+)"/gi)];
@@ -636,7 +630,7 @@ export default async function handler(req, res) {
                     return res.status(400).json({ error: 'ID é obrigatório' });
                 }
 
-                // Tenta buscar os detalhes diretamente da URL do post se for um link HTTP do Skidrow
+                // Tenta buscar os detalhes diretamente da URL do post se for um link HTTP do Skidrow (Sem truncamento de caracteres)
                 if (id.startsWith('http')) {
                     try {
                         const headers = {
@@ -653,15 +647,14 @@ export default async function handler(req, res) {
                             const publishedTimestamp = publishedStr ? new Date(publishedStr).getTime() : Date.now();
 
                             let contentHtml = '';
-                            const contentMatch = detailHtml.match(/<div[^>]*class="[^"]*(?:post-content|entry-content|entry)[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
+                            const contentMatch = detailHtml.match(/<div[^>]*class="[^"]*(?:post-content|entry-content|entry)[^"]*"[^>]*>([\s\S]*?)<\/div>\s*<(?:div|footer|section)[^>]*class="[^"]*(?:post-footer|share|comments|related|tags)[^"]*"/i)
+                                              || detailHtml.match(/<div[^>]*class="[^"]*(?:post-content|entry-content|entry)[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
+
                             if (contentMatch) {
                                 contentHtml = contentMatch[1].trim();
                             } else {
-                                contentHtml = detailHtml.slice(0, 3500);
-                            }
-
-                            if (contentHtml.length > 3500) {
-                                contentHtml = contentHtml.slice(0, 3500);
+                                const contentStart = detailHtml.search(/class="(?:post|entry)-content|post-excerpt/i);
+                                contentHtml = contentStart !== -1 ? detailHtml.slice(contentStart) : detailHtml;
                             }
 
                             return res.status(200).json({
@@ -669,7 +662,7 @@ export default async function handler(req, res) {
                                 title: title,
                                 published: publishedTimestamp,
                                 content: { content: contentHtml },
-                                summary: { content: contentHtml.slice(0, 300) },
+                                summary: { content: contentHtml.slice(0, 500) },
                                 alternate: [{ href: id }]
                             });
                         }
