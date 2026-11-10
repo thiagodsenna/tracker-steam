@@ -175,9 +175,8 @@ export default async function handler(req, res) {
     }
 
     try {
-        const DOMAIN_URL = process.env.VERCEL_URL 
-            ? (process.env.VERCEL_URL.startsWith('http') ? process.env.VERCEL_URL : `https://${process.env.VERCEL_URL}`) 
-            : 'https://tracker-steam.vercel.app';
+        // Fixado domínio de produção público para evitar links de preview Vercel protegidos por login (SSO)
+        const DOMAIN_URL = 'https://tracker-steam.vercel.app';
 
         // 1. Resgata a timestamp da última verificação da cron
         const getCronTimeRes = await fetch(`${KV_REST_API_URL}/get/last_checked_cron`, {
@@ -197,7 +196,7 @@ export default async function handler(req, res) {
             lastChecked = Date.now() - (2 * 60 * 60 * 1000);
         }
 
-        // 2. OBTÉM OS POSTS DO SKIDROW DIRETO EM MEMÓRIA (Evita erro de fetch HTTP retornando HTML)
+        // 2. Obtém os posts do Skidrow direto em memória
         const feedData = await obterPostsSkidrow();
         const items = feedData.items || [];
 
@@ -231,7 +230,7 @@ export default async function handler(req, res) {
         } catch (e) {}
         let cacheAtualizado = false;
 
-        // 5. SMART REFRESH DE CACHE (Inteligência de cooldown baseada em número de reviews e idade do jogo)
+        // 5. Smart Refresh de Cache
         const candidatosHome = items.slice(0, 50);
         const agora = Date.now();
         const filaParaAtualizar = [];
@@ -239,7 +238,7 @@ export default async function handler(req, res) {
         for (const item of candidatosHome) {
             const htmlContent = item.content?.content || item.summary?.content || '';
             const textContent = item.summary?.content || htmlContent;
-            const steamId = await resolverSteamId(htmlContent + ' ' + textContent);
+            const steamId = item.resolvedSteamId || await resolverSteamId(htmlContent + ' ' + textContent);
 
             if (steamId) {
                 const dados = steamCache[steamId] || {};
@@ -336,19 +335,22 @@ export default async function handler(req, res) {
         // 7. Envia notificações Push para os novos lançamentos
         for (const item of novosItens) {
             const htmlContent = item.content?.content || item.summary?.content || '';
-            const textContent = item.summary?.content || htmlContent;
-
-            const sizeMatch = textContent.match(/Size:\s*([\d.,]+\s*[a-zA-Z]+)/i);
+            
+            // Limpa o HTML antes de rodar o Regex do Tamanho para ignorar tags como <strong>SIZE:</strong>
+            const plainText = decodeHTMLEntities(htmlContent.replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ');
+            const sizeMatch = plainText.match(/Size\s*:\s*([\d.,]+\s*(?:GB|MB|KB|GiB|MiB))/i) || plainText.match(/Size\s*:\s*([\d.,]+\s*[a-zA-Z]+)/i);
             const size = sizeMatch ? sizeMatch[1].trim() : 'N/A';
 
-            const steamId = await resolverSteamId(htmlContent + ' ' + textContent);
+            // Resgata metadados da Steam já anexados pelo obterPostsSkidrow ou pelo cache KV
+            const steamDetails = item.steamDetails;
+            let steamHeaderImg = steamDetails?.header_image || '';
+            let notaTexto = steamDetails?.rating > 0 ? `${steamDetails.rating}%` : 'Sem nota';
+            let totalReviews = steamDetails?.total_reviews || 0;
+            let lancamento = steamDetails?.release_date?.date || 'N/A';
 
-            let steamHeaderImg = '';
-            let notaTexto = 'Sem nota';
-            let lancamento = 'N/A';
-            let totalReviews = 0;
-            
-            if (steamId) {
+            const steamId = item.resolvedSteamId || await resolverSteamId(htmlContent);
+
+            if (steamId && (!steamHeaderImg || !steamDetails)) {
                 try {
                     const [steamRes, revJson] = await Promise.all([
                         fetch(`https://store.steampowered.com/api/appdetails?appids=${steamId}&filters=basic,release_date,genres,developers,screenshots,categories,movies,background&l=brazilian&cc=BR`, {
@@ -463,7 +465,7 @@ export default async function handler(req, res) {
             });
         }
 
-        // 8. LIMPEZA DE CACHE EXCEDENTE E CÁLCULO DE DESTAQUES DA HOME
+        // 8. Limpeza de cache excedente e cálculo de destaques da home
         if (cacheAtualizado || precisaLimparExcedentes) {
             try {
                 limparCacheSteam(steamCache, items, 50);
@@ -482,7 +484,7 @@ export default async function handler(req, res) {
                 for (const item of candidatos) {
                     const htmlContent = item.content?.content || item.summary?.content || '';
                     const textContent = item.summary?.content || htmlContent;
-                    const id = await resolverSteamId(htmlContent + ' ' + textContent);
+                    const id = item.resolvedSteamId || await resolverSteamId(htmlContent + ' ' + textContent);
 
                     if (id && steamCache[id]) {
                         const dados = steamCache[id];
