@@ -42,11 +42,12 @@ export default async function handler(req, res) {
                     if (response.ok) {
                         wpPosts = await response.json();
                     } else {
-                        console.warn(`Skidrow WP API retornou status ${response.status}. Ativando fallback para Feedly.`);
+                        const errBody = await response.text();
+                        console.error(`[Skidrow WP API Error] HTTP ${response.status} ${response.statusText} | URL: ${wpUrl} | Body Preview: ${errBody.slice(0, 500)}`);
                         usandoFallbackFeedly = true;
                     }
                 } catch (wpErr) {
-                    console.error('Erro de conexão com Skidrow WP API:', wpErr);
+                    console.error('[Skidrow WP API Exception] Falha na requisição fetch:', wpErr);
                     usandoFallbackFeedly = true;
                 }
 
@@ -59,12 +60,19 @@ export default async function handler(req, res) {
                         feedlyUrl = 'https://api.feedly.com/v3/streams/contents?streamId=feed%2Fhttps%3A%2F%2Fwww.skidrowreloaded.com%2Fcategory%2Fpc-games%2Ffeed%2F&count=1000&ranked=newest&ct=feedly.desktop&cv=31.0.3081';
                     }
 
-                    const feedlyRes = await fetch(feedlyUrl);
-                    if (!feedlyRes.ok) {
-                        return res.status(feedlyRes.status).json({ error: 'Falha ao buscar dados do Skidrow e do Feedly.' });
+                    try {
+                        const feedlyRes = await fetch(feedlyUrl);
+                        if (!feedlyRes.ok) {
+                            const errFeedly = await feedlyRes.text();
+                            console.error(`[Feedly Fallback Error] HTTP ${feedlyRes.status} ${feedlyRes.statusText} | Body Preview: ${errFeedly.slice(0, 500)}`);
+                            return res.status(feedlyRes.status).json({ error: 'Falha ao buscar dados do Skidrow e do Feedly.' });
+                        }
+                        const feedlyData = await feedlyRes.json();
+                        items = feedlyData.items || [];
+                    } catch (feedlyErr) {
+                        console.error('[Feedly Fallback Exception]:', feedlyErr);
+                        return res.status(500).json({ error: 'Exceção ao executar fallback no Feedly.' });
                     }
-                    const feedlyData = await feedlyRes.json();
-                    items = feedlyData.items || [];
                 } else {
                     // Mapeamento dos posts do WordPress para a estrutura padrão de itens do Feedly
                     items = Array.isArray(wpPosts) ? wpPosts.map(post => {
@@ -148,7 +156,9 @@ export default async function handler(req, res) {
                                             const bundleHtml = await bundleRes.text();
                                             const innerAppMatch = bundleHtml.match(/\/app\/(\d+)/i);
                                             if (innerAppMatch) steamId = innerAppMatch[1];
-                                        } catch (e) {}
+                                        } catch (e) {
+                                            console.error(`[Steam Bundle Error] Falha ao resolver AppID no bundle ${bundleId}:`, e);
+                                        }
                                     }
                                 }
 
@@ -203,7 +213,9 @@ export default async function handler(req, res) {
                                             };
                                             cacheModificado = true;
                                         }
-                                    } catch (e) {}
+                                    } catch (e) {
+                                        console.error(`[Steam Fetch Error] Falha ao atualizar dados do app ${steamId}:`, e);
+                                    }
                                 }
                             }));
 
@@ -261,10 +273,14 @@ export default async function handler(req, res) {
                                         body: JSON.stringify(destaquesHome)
                                     });
                                 }
-                            } catch (errDest) {}
+                            } catch (errDest) {
+                                console.error('[Destaques Home Error] Falha ao calcular destaques:', errDest);
+                            }
                         }
 
-                    } catch (kvErr) {}
+                    } catch (kvErr) {
+                        console.error('[Upstash Redis KV Error] Falha na comunicação com o KV:', kvErr);
+                    }
                 }
 
                 // Enriquece cada post retornado com resolvedSteamId e dados predefinidos de cache
@@ -285,7 +301,9 @@ export default async function handler(req, res) {
                                     const bundleHtml = await bundleRes.text();
                                     const innerAppMatch = bundleHtml.match(/\/app\/(\d+)/i);
                                     if (innerAppMatch) steamId = innerAppMatch[1];
-                                } catch (e) {}
+                                } catch (e) {
+                                    console.error(`[Steam Item Bundle Error] AppID bundle ${bundleId}:`, e);
+                                }
                             }
                         }
 
@@ -314,6 +332,11 @@ export default async function handler(req, res) {
 
                 try {
                     const response = await fetch(url);
+                    if (!response.ok) {
+                        const errText = await response.text();
+                        console.error(`[Feedly List Error] HTTP ${response.status} ${response.statusText} | Body: ${errText.slice(0, 500)}`);
+                        return res.status(response.status).json({ error: 'Falha ao buscar feedly' });
+                    }
                     let data = await response.json();
 
                     if (query && data.items) {
@@ -368,7 +391,9 @@ export default async function handler(req, res) {
                                                 const bundleHtml = await bundleRes.text();
                                                 const innerAppMatch = bundleHtml.match(/\/app\/(\d+)/i);
                                                 if (innerAppMatch) steamId = innerAppMatch[1];
-                                            } catch (e) {}
+                                            } catch (e) {
+                                                console.error(`[List Steam Bundle Error] AppID bundle ${bundleId}:`, e);
+                                            }
                                         }
                                     }
 
@@ -422,7 +447,9 @@ export default async function handler(req, res) {
                                                 };
                                                 cacheModificado = true;
                                             }
-                                        } catch (e) {}
+                                        } catch (e) {
+                                            console.error(`[List Steam Fetch Error] AppID ${steamId}:`, e);
+                                        }
                                     }
                                 }));
 
@@ -478,10 +505,14 @@ export default async function handler(req, res) {
                                             body: JSON.stringify(destaquesHome)
                                         });
                                     }
-                                } catch (errDest) {}
+                                } catch (errDest) {
+                                    console.error('[List Destaques Error]:', errDest);
+                                }
                             }
 
-                        } catch (kvErr) {}
+                        } catch (kvErr) {
+                            console.error('[List KV Error]:', kvErr);
+                        }
                     }
 
                     if (data.items) {
@@ -501,7 +532,9 @@ export default async function handler(req, res) {
                                         const bundleHtml = await bundleRes.text();
                                         const innerAppMatch = bundleHtml.match(/\/app\/(\d+)/i);
                                         if (innerAppMatch) steamId = innerAppMatch[1];
-                                    } catch (e) {}
+                                    } catch (e) {
+                                        console.error(`[List Item Steam Bundle Error] AppID bundle ${bundleId}:`, e);
+                                    }
                                 }
                             }
 
@@ -518,6 +551,7 @@ export default async function handler(req, res) {
                         destaques: destaquesHome
                     });
                 } catch (error) {
+                    console.error('[List Action Exception]:', error);
                     return res.status(500).json({ error: 'Falha ao buscar feedly' });
                 }
             }
@@ -549,14 +583,21 @@ export default async function handler(req, res) {
                                 alternate: [{ href: post.link || '' }],
                                 visual: featuredMedia ? { url: featuredMedia } : undefined
                             });
+                        } else {
+                            const errBody = await wpRes.text();
+                            console.error(`[Entry WP API Error] Post ID ${id} HTTP ${wpRes.status} ${wpRes.statusText} | Body Preview: ${errBody.slice(0, 300)}`);
                         }
-                    } catch (e) {}
+                    } catch (e) {
+                        console.error(`[Entry WP API Exception] Post ID ${id}:`, e);
+                    }
                 }
 
                 // Fallback Feedly para IDs no formato antigo de RSS
                 try {
                     const response = await fetch(`https://api.feedly.com/v3/entries/${encodeURIComponent(id)}`);
                     if (!response.ok) {
+                        const errBody = await response.text();
+                        console.error(`[Entry Feedly Error] ID ${id} HTTP ${response.status} ${response.statusText} | Body Preview: ${errBody.slice(0, 300)}`);
                         return res.status(response.status).json({ error: 'Item não encontrado no Feedly' });
                     }
 
@@ -569,6 +610,7 @@ export default async function handler(req, res) {
 
                     return res.status(200).json(item);
                 } catch (error) {
+                    console.error(`[Entry Action Exception] ID ${id}:`, error);
                     return res.status(500).json({ error: 'Falha ao buscar item' });
                 }
             }
@@ -577,6 +619,7 @@ export default async function handler(req, res) {
                 return res.status(400).json({ error: 'Ação inválida.' });
         }
     } catch (error) {
+        console.error('[Handler General Exception]:', error);
         return res.status(500).json({ error: 'Erro interno no servidor.' });
     }
 }
