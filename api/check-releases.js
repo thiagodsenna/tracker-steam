@@ -175,35 +175,45 @@ export default async function handler(req, res) {
     }
 
     try {
-        // Fixado domínio de produção público para evitar links de preview Vercel protegidos por login (SSO)
         const DOMAIN_URL = 'https://tracker-steam.vercel.app';
 
-        // 1. Resgata a timestamp da última verificação da cron
-        const getCronTimeRes = await fetch(`${KV_REST_API_URL}/get/last_checked_cron`, {
+        // 1. Resgata o histórico de IDs de jogos já notificados do KV
+        const getNotifiedRes = await fetch(`${KV_REST_API_URL}/get/notified_post_ids`, {
             headers: { Authorization: `Bearer ${KV_REST_API_TOKEN}` }
         });
-        const getCronTimeData = await getCronTimeRes.json();
+        const getNotifiedData = await getNotifiedRes.json();
         
-        let lastChecked = 0;
-        if (getCronTimeData?.result) {
-            const parsed = parseInt(getCronTimeData.result, 10);
-            if (!isNaN(parsed) && isFinite(parsed) && parsed > 0) {
-                lastChecked = parsed;
-            }
+        let notifiedIds = [];
+        if (getNotifiedData?.result) {
+            notifiedIds = typeof getNotifiedData.result === 'string' 
+                ? JSON.parse(getNotifiedData.result) 
+                : getNotifiedData.result;
         }
 
-        if (!lastChecked) {
-            lastChecked = Date.now() - (2 * 60 * 60 * 1000);
-        }
-
-        // 2. Obtém os posts do Skidrow direto em memória
+        // 2. Obtém os posts do Skidrow diretamente em memória
         const feedData = await obterPostsSkidrow();
         const items = feedData.items || [];
 
-        // 3. Filtra apenas os lançamentos mais recentes que o lastChecked
         const forcarTesteManual = req.query?.forcar_teste === 'true';
         const feedlyIdForcado = req.query?.feedlyId || req.query?.id;
 
+        // Se for a primeira inicialização do histórico (KV vazio) e não for teste manual,
+        // preenche o histórico com os posts atuais sem disparar notificações em massa.
+        if (notifiedIds.length === 0 && items.length > 0 && !forcarTesteManual) {
+            notifiedIds = items.map(i => i.id);
+            await fetch(`${KV_REST_API_URL}/set/notified_post_ids`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${KV_REST_API_TOKEN}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify(notifiedIds)
+            });
+            return res.status(200).json({ 
+                success: true, 
+                message: 'Histórico inicial de notificações registrado no KV.', 
+                checked: items.length 
+            });
+        }
+
+        // 3. Filtra posts cujas URLs/IDs AINDA NÃO FORAM NOTIFICADAS
         let novosItens = [];
         if (forcarTesteManual) {
             if (feedlyIdForcado) {
@@ -214,7 +224,7 @@ export default async function handler(req, res) {
                 novosItens = [items[0]];
             }
         } else {
-            novosItens = items.filter(item => (item.published || 0) > lastChecked);
+            novosItens = items.filter(item => item.id && !notifiedIds.includes(item.id));
         }
 
         // 4. Carrega o cache atual da Steam do Vercel KV
@@ -336,12 +346,11 @@ export default async function handler(req, res) {
         for (const item of novosItens) {
             const htmlContent = item.content?.content || item.summary?.content || '';
             
-            // Limpa o HTML antes de rodar o Regex do Tamanho para ignorar tags como <strong>SIZE:</strong>
+            // Extrai o tamanho removendo tags HTML
             const plainText = decodeHTMLEntities(htmlContent.replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ');
             const sizeMatch = plainText.match(/Size\s*:\s*([\d.,]+\s*(?:GB|MB|KB|GiB|MiB))/i) || plainText.match(/Size\s*:\s*([\d.,]+\s*[a-zA-Z]+)/i);
             const size = sizeMatch ? sizeMatch[1].trim() : 'N/A';
 
-            // Resgata metadados da Steam já anexados pelo obterPostsSkidrow ou pelo cache KV
             const steamDetails = item.steamDetails;
             let steamHeaderImg = steamDetails?.header_image || '';
             let notaTexto = steamDetails?.rating > 0 ? `${steamDetails.rating}%` : 'Sem nota';
@@ -451,9 +460,24 @@ export default async function handler(req, res) {
                 }
             }));
 
+            // Adiciona o ID ao histórico de notificados se ainda não existir
+            if (!notifiedIds.includes(item.id)) {
+                notifiedIds.unshift(item.id);
+            }
+
             if (novosItens.length > 1) {
                 await new Promise(r => setTimeout(r, 600));
             }
+        }
+
+        // 8. Atualiza o histórico no KV com os últimos 100 IDs notificados
+        if (!forcarTesteManual && novosItens.length > 0) {
+            const histRecortado = notifiedIds.slice(0, 100);
+            await fetch(`${KV_REST_API_URL}/set/notified_post_ids`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${KV_REST_API_TOKEN}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify(histRecortado)
+            });
         }
 
         // Limpa assinaturas Push inativas se houver
@@ -465,7 +489,7 @@ export default async function handler(req, res) {
             });
         }
 
-        // 8. Limpeza de cache excedente e cálculo de destaques da home
+        // 9. Limpeza de cache excedente e cálculo de destaques da home
         if (cacheAtualizado || precisaLimparExcedentes) {
             try {
                 limparCacheSteam(steamCache, items, 50);
@@ -510,18 +534,6 @@ export default async function handler(req, res) {
                     body: JSON.stringify(top5Destaques)
                 });
             } catch (errKv) {}
-        }
-
-        // 9. Atualiza o timestamp da última execução da Cron
-        if (!forcarTesteManual && novosItens.length > 0) {
-            const maiorTimestamp = Math.max(...novosItens.map(i => i.published || 0));
-            if (isFinite(maiorTimestamp) && maiorTimestamp > 0) {
-                await fetch(`${KV_REST_API_URL}/set/last_checked_cron`, {
-                    method: 'POST',
-                    headers: { Authorization: `Bearer ${KV_REST_API_TOKEN}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify(maiorTimestamp)
-                });
-            }
         }
 
         return res.status(200).json({ 
