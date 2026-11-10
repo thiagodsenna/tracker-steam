@@ -117,12 +117,22 @@ export default async function handler(req, res) {
                                 const publishedStr = dateMatch ? dateMatch[1].trim() : dateFallback;
                                 const publishedTimestamp = new Date(publishedStr).getTime() || Date.now();
 
+                                // Extração precisa do container de conteúdo do post para evitar o envio do HTML completo da página
                                 let contentHtml = '';
-                                const contentStart = detailHtml.search(/class="(?:post|entry)-content|post-excerpt/i);
-                                if (contentStart !== -1) {
-                                    contentHtml = detailHtml.slice(contentStart, contentStart + 20000);
+                                const contentMatch = detailHtml.match(/<div[^>]*class="[^"]*(?:post-content|entry-content|entry)[^"]*"[^>]*>([\s\S]*?)<\/div>\s*<(?:div|footer|section)[^>]*class="[^"]*(?:post-footer|share|comments|related|tags)[^"]*"/i)
+                                                  || detailHtml.match(/<div[^>]*class="[^"]*(?:post-content|entry-content|entry)[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
+
+                                if (contentMatch) {
+                                    contentHtml = contentMatch[1].trim();
                                 } else {
-                                    contentHtml = detailHtml;
+                                    // Limitação de segurança para evitar vazamento da página inteira
+                                    const contentStart = detailHtml.search(/class="(?:post|entry)-content|post-excerpt/i);
+                                    contentHtml = contentStart !== -1 ? detailHtml.slice(contentStart, contentStart + 3500) : detailHtml.slice(0, 3500);
+                                }
+
+                                // Trava estrita de tamanho por item (posts de jogos possuem em média 1.5KB a 3KB)
+                                if (contentHtml.length > 3500) {
+                                    contentHtml = contentHtml.slice(0, 3500);
                                 }
 
                                 const imgMatches = [...contentHtml.matchAll(/<img[^>]+src="([^"]+)"/gi)];
@@ -147,7 +157,7 @@ export default async function handler(req, res) {
                                     title: title,
                                     published: publishedTimestamp,
                                     content: { content: contentHtml },
-                                    summary: { content: contentHtml.slice(0, 500) },
+                                    summary: { content: contentHtml.slice(0, 300) },
                                     alternate: [{ href: url }],
                                     visual: imgUrl ? { url: imgUrl } : undefined
                                 };
@@ -643,11 +653,15 @@ export default async function handler(req, res) {
                             const publishedTimestamp = publishedStr ? new Date(publishedStr).getTime() : Date.now();
 
                             let contentHtml = '';
-                            const contentStart = detailHtml.search(/class="(?:post|entry)-content|post-excerpt/i);
-                            if (contentStart !== -1) {
-                                contentHtml = detailHtml.slice(contentStart, contentStart + 20000);
+                            const contentMatch = detailHtml.match(/<div[^>]*class="[^"]*(?:post-content|entry-content|entry)[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
+                            if (contentMatch) {
+                                contentHtml = contentMatch[1].trim();
                             } else {
-                                contentHtml = detailHtml;
+                                contentHtml = detailHtml.slice(0, 3500);
+                            }
+
+                            if (contentHtml.length > 3500) {
+                                contentHtml = contentHtml.slice(0, 3500);
                             }
 
                             return res.status(200).json({
@@ -655,7 +669,7 @@ export default async function handler(req, res) {
                                 title: title,
                                 published: publishedTimestamp,
                                 content: { content: contentHtml },
-                                summary: { content: contentHtml.slice(0, 500) },
+                                summary: { content: contentHtml.slice(0, 300) },
                                 alternate: [{ href: id }]
                             });
                         }
