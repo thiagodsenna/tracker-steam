@@ -358,73 +358,49 @@ function isJogoNovo(jogo) {
 }
 // --- FIM: GESTÃO DE CONFIGURAÇÕES DO USUÁRIO E ITENS NOVOS (BLINDAGEM 2H) ---
 
-// --- FUNÇÃO AUXILIAR PARA CAPTURAR A LABEL REAL DO SKIDROW ---
+// --- FUNÇÃO AUXILIAR CORRIGIDA PARA EXTRAIR A LABEL REAL DO SKIDROW ---
 function extrairLabelSkidrow(a, doc) {
     const rawHref = a.getAttribute('href') || '';
     const href = a.href || '';
-    
-    // 1. Tratamento para Links Magnet / Torrent
+    const anchorText = (a.textContent || '').trim().toUpperCase();
+
+    // 1. Links Magnet / Torrent
     if (rawHref.startsWith('magnet:')) {
-        const parentTab = a.closest('[id^="tabs"], .tab-pane, .tab-content > div');
-        if (parentTab && parentTab.id) {
-            const tabHeader = doc.querySelector(`a[href="#${parentTab.id}"], a[href*="${parentTab.id}"]`);
-            if (tabHeader && tabHeader.textContent.trim()) {
-                return tabHeader.textContent.trim().toUpperCase();
-            }
-        }
         return 'TORRENT';
     }
 
-    // 2. Busca na estrutura de Abas do Skidrow (tab-links que apontam para o container da tab)
+    // Lista de palavras genéricas a ignorar como label
+    const termosGenericos = [
+        'DESCRIPTION', 'DOWNLOAD', 'INSTRUCTIONS', 'SYSTEM REQUIREMENTS',
+        'SCREENSHOT', 'TRAILER', 'INSTALL', 'NOTE', 'INFO', 'LINK', 'LINKS',
+        'DESCRIPTION / DOWNLOAD', 'DOWNLOAD LINKS'
+    ];
+
+    // 2. Verificar o texto da própria hiperligação (ex: "PART 1", "SINGLE LINK", etc.)
+    if (anchorText && anchorText.length > 1 && anchorText.length < 30) {
+        const ehGenerico = termosGenericos.some(t => anchorText.includes(t));
+        if (!ehGenerico && !anchorText.startsWith('HTTP')) {
+            return anchorText;
+        }
+    }
+
+    // 3. Verificar a estrutura de Abas (Tabs) do Skidrow
     const containerTab = a.closest('[id^="tabs"], .tab-pane, .tab-content > div');
     if (containerTab && containerTab.id) {
         const tabHeader = doc.querySelector(`a[href="#${containerTab.id}"], a[href*="${containerTab.id}"]`);
         if (tabHeader) {
-            const headerText = tabHeader.textContent.trim();
-            if (headerText && headerText.length > 1 && !headerText.toLowerCase().includes('http')) {
-                return headerText.toUpperCase();
+            const headerText = tabHeader.textContent.trim().toUpperCase();
+            const ehGenerico = termosGenericos.some(t => headerText.includes(t));
+            if (headerText && !ehGenerico && !headerText.startsWith('HTTP')) {
+                return headerText;
             }
         }
     }
 
-    // 3. Busca em elementos de título/destaque anteriores no DOM (strong, b, p, h1-h6)
-    let el = a.parentElement;
-    let labelEncontrada = '';
-    
-    while (el && el !== doc.body && !labelEncontrada) {
-        const textNodes = el.querySelectorAll('strong, b, h1, h2, h3, h4, h5, h6, .tab-title, span');
-        for (const node of textNodes) {
-            if (node !== a && !node.contains(a)) {
-                const txt = node.textContent.trim();
-                if (txt && txt.length > 1 && !txt.toLowerCase().includes('http') && !txt.includes('.rar') && !txt.includes('.zip') && !txt.includes('Size:')) {
-                    labelEncontrada = txt;
-                    break;
-                }
-            }
-        }
-        if (labelEncontrada) break;
-
-        const prevSibling = el.previousElementSibling;
-        if (prevSibling) {
-            const txt = prevSibling.textContent.trim();
-            if (txt && txt.length > 1 && txt.length < 40 && !txt.toLowerCase().includes('http') && !txt.includes('.rar') && !txt.includes('.zip')) {
-                labelEncontrada = txt;
-                break;
-            }
-        }
-        el = el.parentElement;
-    }
-
-    if (labelEncontrada) {
-        const cleanLabel = labelEncontrada.replace(/[:\-–—].*$/, '').trim().toUpperCase();
-        if (cleanLabel && cleanLabel.length > 1 && cleanLabel.length < 35) {
-            return cleanLabel;
-        }
-    }
-
-    // 4. Fallback de Mapeamento de Domínios para Nomes Oficiais
+    // 4. Mapeamento Direto por Domínio da URL (Identifica o nome real do servidor)
     try {
-        const hostname = new URL(href).hostname.replace('www.', '').toLowerCase();
+        const urlObj = new URL(href);
+        const hostname = urlObj.hostname.replace('www.', '').toLowerCase();
         
         const mapaDominios = {
             'frdl.to': 'FREEDLINK',
@@ -444,6 +420,7 @@ function extrairLabelSkidrow(a, doc) {
             '1cloudfile.com': '1CLOUDFILE',
             'clicknupload.click': 'CLICKNUPLOAD',
             'clicknupload.net': 'CLICKNUPLOAD',
+            'clicknupload.org': 'CLICKNUPLOAD',
             'nitroflare.com': 'NITROFLARE',
             'gofile.io': 'GOFILE',
             'datanodes.to': 'DATANODES',
@@ -452,7 +429,10 @@ function extrairLabelSkidrow(a, doc) {
             'mediafire.com': 'MEDIAFIRE',
             '1fichier.com': '1FICHIER',
             'mega.nz': 'MEGA',
-            'mega.co.nz': 'MEGA'
+            'mega.co.nz': 'MEGA',
+            'rapidgator.net': 'RAPIDGATOR',
+            'krakenfiles.com': 'KRAKENFILES',
+            'uptobox.com': 'UPTOBOX'
         };
 
         for (const [dom, lab] of Object.entries(mapaDominios)) {
@@ -461,10 +441,17 @@ function extrairLabelSkidrow(a, doc) {
             }
         }
 
-        return hostname.split('.')[0].toUpperCase();
+        // Extrai o nome do domínio caso não esteja no mapa explicito
+        const parts = hostname.split('.');
+        if (parts.length >= 2) {
+            const domName = parts[parts.length - 2].toUpperCase();
+            if (domName && domName.length > 2) return domName;
+        }
     } catch (e) {
-        return 'DOWNLOAD';
+        // Ignora erros de URL inválida
     }
+
+    return 'DOWNLOAD';
 }
 
 // --- PARSER REVISADO DE ITENS FEEDLY / SKIDROW ---
@@ -502,7 +489,7 @@ function parseFeedlyItem(item, index) {
         const href = a.href || '';
         const rawHref = a.getAttribute('href') || '';
         
-        // CORREÇÃO 1: Descarta âncoras locais (#tabs-...), scripts e links sem protocolo válido
+        // Ignora âncoras locais (#tabs-...), scripts e links sem protocolo válido
         if (!rawHref || rawHref.startsWith('#') || rawHref.startsWith('javascript:') || rawHref.includes('#tabs')) return;
         if (!href.startsWith('http') && !href.startsWith('magnet:')) return;
 
@@ -517,11 +504,10 @@ function parseFeedlyItem(item, index) {
             (window.location.hostname && href.includes(window.location.hostname))
         ) return;
         
-        // Evita duplicatas do mesmo link
+        // Evita duplicados da mesma URL
         if (downloads.some(d => d.url === href)) return;
 
         if (downloads.length < 30) {
-            // CORREÇÃO 2: Busca a label real usada nas abas/cabeçalhos do site Skidrow
             let label = extrairLabelSkidrow(a, doc);
             downloads.push({ label: label, url: href });
         }
