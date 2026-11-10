@@ -82,99 +82,47 @@ export default async function handler(req, res) {
                   return res.status(500).json({ error: 'Falha ao buscar reviews da Steam' });
                 }
 
-            case 'similar':
-                // Lógica antiga do steam-similar.js
-                if (!appid) {
-                  return res.status(400).json({ error: 'AppID é obrigatório' });
-                }
-
+            case 'similar': {
+                if (!appid) return res.status(400).json({ error: 'AppID é obrigatório' });
                 try {
-                  const storeRes = await fetch(`https://store.steampowered.com/app/${appid}`, {
-                    headers: {
-                      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                      'Accept-Language': 'en-US,en;q=0.9,pt-BR;q=0.8'
-                    }
-                  });
-
-                  if (!storeRes.ok) throw new Error('Falha ao acessar a loja da Steam');
-                  
-                  const html = await storeRes.text();
-                  
-                  let similarIds = [];
-
-                  // 1. CAPTURA INTELIGENTE PELO DATA-PROPS:
-                  const regexProps = /data-featuretarget="storeitems-carousel"[^>]*data-props="([^"]+)"/gi;
-                  let match;
-
-                  while ((match = regexProps.exec(html)) !== null) {
-                    try {
-                      const decodedJson = match[1].replace(/&quot;/g, '"');
-                      const props = JSON.parse(decodedJson);
-
-                      if (props.title === "More like this" && Array.isArray(props.appIDs)) {
-                        similarIds = props.appIDs;
-                        break;
-                      }
-                    } catch (err) {
-                      continue;
-                    }
-                  }
-
-                  // 2. FALLBACK DE SEGURANÇA PARA OS IDS
-                  if (similarIds.length === 0) {
-                    const fallbackMatch = html.match(/"appIDs":\s*\[([\d,\s]+)\]/);
-                    if (fallbackMatch) {
-                      similarIds = fallbackMatch[1].split(',').map(id => id.trim());
-                    }
-                  }
-
-                  const topSimilarIds = similarIds.slice(0, 10);
-
-                  if (topSimilarIds.length === 0) {
-                    return res.status(200).json({ success: true, items: [] });
-                  }
-
-                  // 3. BUSCA OS DETALHES DE CADA JOGO COM FALLBACK DE CAPAS
-                  const similarGames = await Promise.all(
-                    topSimilarIds.map(async (id) => {
-                      try {
-                        const steamRes = await fetch(`https://store.steampowered.com/api/appdetails?appids=${id}&filters=basic`);
-                        const steamJson = await steamRes.json();
-                        const game = steamJson[id] ?? Object?.values(steamJson)[0];
-                        
-                        if (game?.success) {
-                          const data = game?.data;
-                          
-                          if (data.type && data.type === 'dlc') return null;
-
-                          // Estratégia de Fallback para a Capa:
-                          // 1. Tenta usar a imagem de cabeçalho oficial fornecida diretamente pela API da Steam
-                          // 2. Se não houver, recorre ao CDN padrão do Cloudflare
-                          // 3. Como último caso, aponta para o header genérico da store
-                          const coverImage = data.header_image 
-                            || `https://cdn.cloudflare.steamstatic.com/steam/apps/${id}/header.jpg`
-                            || `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${id}/header.jpg`;
-
-                          return {
-                            id: id,
-                            name: data.name,
-                            cover: coverImage
-                          };
+                    const steamUrl = `https://store.steampowered.com/recommended/morelike/app/${appid}?l=brazilian&cc=BR`;
+                    const steamRes = await fetch(steamUrl, {
+                        headers: {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                            // Adicionada a flag 'lastagecheckage' para ignorar o redirecionamento de idade da Steam
+                            'Cookie': 'birthtime=283993200; mature_content=1; lastagecheckage=1-0-1990'
                         }
-                        return null;
-                      } catch (e) {
-                        return null;
-                      }
-                    })
-                  );
+                    });
 
-                  const validGames = similarGames.filter(g => g !== null);
+                    if (!steamRes.ok) return res.status(200).json({ success: false, items: [] });
 
-                  return res.status(200).json({ success: true, items: validGames });
-                } catch (error) {
-                  console.error("Erro em jogos similares:", error);
-                  return res.status(500).json({ error: 'Falha ao buscar jogos similares' });
+                    const html = await steamRes.text();
+                    const items = [];
+                    const seenIds = new Set();
+
+                    // Regex ajustado para capturar links relativos ou absolutos e remover tags HTML internas do título
+                    const matches = [...html.matchAll(/href="(?:https:\/\/store\.steampowered\.com)?\/app\/(\d+)[^"]*"[\s\S]*?<div class="tab_item_name">([\s\S]*?)<\/div>/gi)];
+
+                    for (const m of matches) {
+                        const id = m[1];
+                        const name = m[2].replace(/<[^>]+>/g, '').trim();
+                        if (name && !seenIds.has(id) && id !== appid) {
+                            seenIds.add(id);
+                            items.push({
+                                id: id,
+                                name: name,
+                                cover: `https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/${id}/header.jpg`
+                            });
+                        }
+                        if (items.length >= 6) break;
+                    }
+
+                    return res.status(200).json({ success: true, items });
+                } catch (e) {
+                    console.error('[Steam Proxy Similar Error]:', e);
+                    return res.status(200).json({ success: false, items: [] });
                 }
+            }
 
             default:
                 return res.status(400).json({ error: 'Ação inválida.' });
