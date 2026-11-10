@@ -362,65 +362,68 @@ function isJogoNovo(jogo) {
 function extrairLabelSkidrow(a, doc) {
     const rawHref = a.getAttribute('href') || '';
     const href = a.href || '';
-    const anchorText = (a.textContent || '').trim().toUpperCase();
 
-    // 1. Links Magnet / Torrent
-    if (rawHref.startsWith('magnet:')) {
-        return 'TORRENT';
+    // Valida se o texto encontrado pode ser considerado uma label
+    function ehLabelValida(txt) {
+        if (!txt || txt.length < 2 || txt.length > 40) return false;
+        const t = txt.toLowerCase();
+        if (t.includes('http') || t.includes('www.') || t.includes('.rar') || t.includes('.zip') || t.includes('.7z')) return false;
+        if (t.includes('uploading') || t.includes('password') || t.includes('size:') || t.includes('system requirements')) return false;
+        return true;
     }
 
-    // Lista de palavras genéricas a ignorar como label
-    const termosGenericos = [
-        'DESCRIPTION', 'DOWNLOAD', 'INSTRUCTIONS', 'SYSTEM REQUIREMENTS',
-        'SCREENSHOT', 'TRAILER', 'INSTALL', 'NOTE', 'INFO', 'LINK', 'LINKS',
-        'DESCRIPTION / DOWNLOAD', 'DOWNLOAD LINKS'
-    ];
+    // 1. Coleta todos os elementos de título/destaque que antecedem links no Skidrow
+    const candidatos = Array.from(doc.querySelectorAll('strong, b, span[style*="color"], .tab-title, h1, h2, h3, h4, h5, h6, .tab-links a'));
+    let melhorLabel = '';
 
-    // 2. Verificar o texto da própria hiperligação (ex: "PART 1", "SINGLE LINK", etc.)
-    if (anchorText && anchorText.length > 1 && anchorText.length < 30) {
-        const ehGenerico = termosGenericos.some(t => anchorText.includes(t));
-        if (!ehGenerico && !anchorText.startsWith('HTTP')) {
-            return anchorText;
-        }
-    }
-
-    // 3. Verificar a estrutura de Abas (Tabs) do Skidrow
-    const containerTab = a.closest('[id^="tabs"], .tab-pane, .tab-content > div');
-    if (containerTab && containerTab.id) {
-        const tabHeader = doc.querySelector(`a[href="#${containerTab.id}"], a[href*="${containerTab.id}"]`);
-        if (tabHeader) {
-            const headerText = tabHeader.textContent.trim().toUpperCase();
-            const ehGenerico = termosGenericos.some(t => headerText.includes(t));
-            if (headerText && !ehGenerico && !headerText.startsWith('HTTP')) {
-                return headerText;
+    for (const el of candidatos) {
+        // Compara a posição no documento: se 'el' está posicionado ANTES de 'a'
+        const pos = el.compareDocumentPosition(a);
+        if (pos & Node.DOCUMENT_POSITION_FOLLOWING) {
+            const txt = el.textContent.trim();
+            if (ehLabelValida(txt)) {
+                melhorLabel = txt.toUpperCase();
             }
+        } else {
+            // Como querySelectorAll retorna na ordem exata do DOM, ao passar de 'a', encerra o loop
+            break;
         }
     }
 
-    // 4. Mapeamento Direto por Domínio da URL (Identifica o nome real do servidor)
+    if (melhorLabel) {
+        return melhorLabel;
+    }
+
+    // 2. Trata links magnet sem label anterior explícita
+    if (rawHref.startsWith('magnet:')) {
+        return 'MAGNET LINK';
+    }
+
+    // 3. Mapeamento de fallback para domínios de encurtadores/hospedagem (caso o HTML venha sem tags <strong>)
     try {
-        const urlObj = new URL(href);
-        const hostname = urlObj.hostname.replace('www.', '').toLowerCase();
-        
+        const hostname = new URL(href).hostname.replace('www.', '').toLowerCase();
         const mapaDominios = {
+            'frdl.io': 'FREEDLINK',
             'frdl.to': 'FREEDLINK',
             'freedlink.com': 'FREEDLINK',
+            'down.mdiaload.com': 'DOWNMEDIALOAD',
             'downmediaload.com': 'DOWNMEDIALOAD',
-            'downmediaload.net': 'DOWNMEDIALOAD',
+            'trbt.cc': 'TURBOBIT',
             'turbobit.net': 'TURBOBIT',
+            'htfl.net': 'HITFILE',
             'hitfile.net': 'HITFILE',
             'multiup.io': 'MULTI LINKS',
             'multiup.org': 'MULTI LINKS',
             'buzzheavier.com': 'BUZZHEAVIER',
             'vikingfile.com': 'VIKINGFILE',
             'chomikuj.pl': 'CHOMIKUJ',
+            'mixdrop.top': 'MIXDROP',
             'mixdrop.gl': 'MIXDROP',
             'mixdrop.co': 'MIXDROP',
             'hexload.com': 'HEXLOAD',
             '1cloudfile.com': '1CLOUDFILE',
             'clicknupload.click': 'CLICKNUPLOAD',
             'clicknupload.net': 'CLICKNUPLOAD',
-            'clicknupload.org': 'CLICKNUPLOAD',
             'nitroflare.com': 'NITROFLARE',
             'gofile.io': 'GOFILE',
             'datanodes.to': 'DATANODES',
@@ -429,10 +432,7 @@ function extrairLabelSkidrow(a, doc) {
             'mediafire.com': 'MEDIAFIRE',
             '1fichier.com': '1FICHIER',
             'mega.nz': 'MEGA',
-            'mega.co.nz': 'MEGA',
-            'rapidgator.net': 'RAPIDGATOR',
-            'krakenfiles.com': 'KRAKENFILES',
-            'uptobox.com': 'UPTOBOX'
+            'mega.co.nz': 'MEGA'
         };
 
         for (const [dom, lab] of Object.entries(mapaDominios)) {
@@ -441,15 +441,11 @@ function extrairLabelSkidrow(a, doc) {
             }
         }
 
-        // Extrai o nome do domínio caso não esteja no mapa explicito
         const parts = hostname.split('.');
         if (parts.length >= 2) {
-            const domName = parts[parts.length - 2].toUpperCase();
-            if (domName && domName.length > 2) return domName;
+            return parts[parts.length - 2].toUpperCase();
         }
-    } catch (e) {
-        // Ignora erros de URL inválida
-    }
+    } catch (e) {}
 
     return 'DOWNLOAD';
 }
@@ -458,10 +454,7 @@ function extrairLabelSkidrow(a, doc) {
 function parseFeedlyItem(item, index) {
     const doc = new DOMParser().parseFromString(item.content?.content || item.summary?.content || '', 'text/html');
     
-    // Seleciona todas as imagens do post HTML
     const imagens = Array.from(doc.querySelectorAll('img'));
-
-    // Filtra logos do tema, avatares ou ícones do Skidrow
     const capaValida = imagens.find(img => {
         const src = img.src.toLowerCase();
         return !src.includes('logo') && 
@@ -489,7 +482,7 @@ function parseFeedlyItem(item, index) {
         const href = a.href || '';
         const rawHref = a.getAttribute('href') || '';
         
-        // Ignora âncoras locais (#tabs-...), scripts e links sem protocolo válido
+        // Descarta links vazios, âncoras de abas (#tabs-...) e links do próprio site
         if (!rawHref || rawHref.startsWith('#') || rawHref.startsWith('javascript:') || rawHref.includes('#tabs')) return;
         if (!href.startsWith('http') && !href.startsWith('magnet:')) return;
 
@@ -504,7 +497,7 @@ function parseFeedlyItem(item, index) {
             (window.location.hostname && href.includes(window.location.hostname))
         ) return;
         
-        // Evita duplicados da mesma URL
+        // Evita duplicatas (o Skidrow gera 3 tags <a> para a mesma URL)
         if (downloads.some(d => d.url === href)) return;
 
         if (downloads.length < 30) {
@@ -2808,10 +2801,6 @@ async function buscarDownloadsTorbox(downloads) {
             gridTorbox.innerHTML = torboxItems.map((item, idx) => {
                 const originalDl = downloads.find(d => d.url === item.url);
                 let displayLabel = originalDl ? originalDl.label : (item?.label || 'DOWNLOAD');
-                
-                if (item?.url?.startsWith('magnet:') && !displayLabel.includes('TORRENT') && !displayLabel.includes('MAGNET')) {
-                    displayLabel = 'TORRENT';
-                }
 
                 return `
                     <button type="button" id="btn-tb-${idx}" onclick="executarDownloadTorbox('${encodeURIComponent(item.url)}', 'btn-tb-${idx}', '${item.type}')" class="w-full bg-emerald-950/30 hover:bg-emerald-900/50 p-2.5 flex items-center justify-between gap-2 rounded text-[11px] font-bold text-emerald-300 border border-emerald-500/40 transition-all shadow-sm group cursor-pointer" title="${item.url}">
